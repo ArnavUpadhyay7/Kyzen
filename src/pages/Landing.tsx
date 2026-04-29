@@ -229,11 +229,13 @@ const Nav = () => {
   );
 };
 
-// ─── HERO (100vh) ─────────────────────────────────────────────────────────────
+// ─── HERO — Full bleed image, Reflect-style ───────────────────────────────────
 const Hero = () => {
   const { scrollY } = useScroll();
-  const orbY = useTransform(scrollY, [0, 700], [0, 160]);
-  const contentOpacity = useTransform(scrollY, [0, 500], [1, 0]);
+  const imgScale = useTransform(scrollY, [0, 600], [1, 1.08]);
+  const imgOpacity = useTransform(scrollY, [0, 500], [1, 0.3]);
+  const contentOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+  const contentY = useTransform(scrollY, [0, 400], [0, -40]);
   const [xp, setXp] = useState(3240);
 
   useEffect(() => {
@@ -242,67 +244,108 @@ const Hero = () => {
   }, []);
 
   return (
-    <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-[#030308]" />
-      <GlowOrb className="w-[900px] h-[500px] bg-purple-700/20 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-      <GlowOrb className="w-[400px] h-[400px] bg-violet-600/15 top-1/2 left-1/4 -translate-y-1/2" />
-      <GlowOrb className="w-[300px] h-[300px] bg-fuchsia-700/10 top-1/2 right-1/4 -translate-y-1/2" />
+    <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden bg-[#05030f]">
 
-      <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 80 }).map((_, i) => (
+      {/* Black hole image — fills the section */}
+      <motion.div
+        style={{ scale: imgScale, opacity: imgOpacity }}
+        className="absolute inset-0 flex items-center justify-center"
+      >
+      </motion.div>
+
+      {/* Very subtle top gradient to let nav breathe */}
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#05030f] to-transparent pointer-events-none" />
+
+      {/* Bottom fade — pulls image into content below */}
+      <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#02020c] to-transparent pointer-events-none" />
+
+      {/* Floating particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 50 }).map((_, i) => (
           <motion.div key={i} className="absolute w-px h-px bg-white rounded-full"
-            style={{ top:`${Math.random()*100}%`, left:`${Math.random()*100}%`, opacity: Math.random()*0.5+0.1 }}
-            animate={{ opacity: [null, 0.1, 0.8] }}
-            transition={{ duration: 2+Math.random()*4, repeat: Infinity, repeatType: "reverse", delay: Math.random()*5 }} />
+            style={{ top:`${Math.random()*100}%`, left:`${Math.random()*100}%`, opacity: Math.random()*0.3+0.05 }}
+            animate={{ opacity: [null, 0.05, 0.5] }}
+            transition={{ duration: 2+Math.random()*5, repeat: Infinity, repeatType: "reverse", delay: Math.random()*6 }} />
         ))}
       </div>
 
-      {/* Portal orb */}
-      <motion.div style={{ y: orbY, opacity: contentOpacity }} className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2">
-        <div className="relative w-[520px] h-[520px]">
-          {[0,1,2].map(i => (
-            <motion.div key={i} className="absolute inset-0 rounded-full border border-purple-500/20"
-              style={{ scale: 1 + i * 0.15 }}
-              animate={{ rotate: i%2===0 ? 360 : -360, scale: [1+i*0.15, 1.06+i*0.15, 1+i*0.15] }}
-              transition={{ rotate:{duration:20+i*10,repeat:Infinity,ease:"linear"}, scale:{duration:4,repeat:Infinity,ease:"easeInOut"} }} />
-          ))}
-          <div className="absolute inset-[20%] rounded-full bg-gradient-to-b from-purple-600/30 via-violet-800/20 to-transparent blur-xl" />
-          <motion.div className="absolute inset-[35%] rounded-full"
-            style={{ background:"radial-gradient(circle,rgba(167,139,250,0.5) 0%,rgba(139,92,246,0.15) 50%,transparent 70%)" }}
-            animate={{ scale:[1,1.12,1], opacity:[0.8,1,0.8] }}
-            transition={{ duration:3, repeat:Infinity, ease:"easeInOut" }} />
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[640px] h-[60px] bg-purple-500/20 blur-2xl rounded-full" />
-        </div>
-      </motion.div>
-
-      <motion.div style={{ opacity: contentOpacity }} className="relative z-10 text-center px-6 mt-36">
-        <motion.div {...fadeUp(0.2)} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-[11px] font-mono tracking-[0.2em] mb-8 uppercase">
+      {/* Hero copy — sits above the image center */}
+      <motion.div
+        style={{ opacity: contentOpacity, y: contentY }}
+        className="relative z-10 flex flex-col items-center text-center px-6"
+      >
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-[11px] font-mono tracking-[0.2em] mb-8 uppercase"
+        >
           <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
           Season 01 · Now Live
         </motion.div>
-        <motion.h1 {...fadeUp(0.35)} className="text-6xl md:text-8xl font-black tracking-tight leading-none mb-6" style={{ fontFamily:"'Syne',sans-serif" }}>
+
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="text-5xl md:text-7xl font-black tracking-tight leading-[1.05] mb-5"
+          style={{ fontFamily: "'Syne',sans-serif" }}
+        >
           <span className="block text-white">Your Life.</span>
-          <span className="block bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">Leveled Up.</span>
+          <span className="block bg-gradient-to-r from-violet-300 via-purple-300 to-fuchsia-300 bg-clip-text text-transparent">
+            Leveled Up.
+          </span>
         </motion.h1>
-        <motion.p {...fadeUp(0.5)} className="text-white/35 text-lg max-w-md mx-auto mb-10 font-light tracking-wide">
+
+        {/* Subline */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.5 }}
+          className="text-white/40 text-base max-w-sm mx-auto mb-10 font-light tracking-wide leading-relaxed"
+        >
           Turn your developer journey into an RPG. Earn XP, complete quests, master skills, build your legend.
         </motion.p>
-        <motion.div {...fadeUp(0.6)} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <motion.button whileHover={{ scale:1.05 }} whileTap={{ scale:0.97 }}
-            className="px-8 py-3.5 rounded-xl font-bold text-[11px] tracking-widest uppercase text-white"
-            style={{ background:"linear-gradient(135deg,#7c3aed,#a855f7,#c026d3)", boxShadow:"0 0 40px rgba(168,85,247,0.3)" }}>
+
+        {/* CTAs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.62 }}
+          className="flex flex-col sm:flex-row gap-3 items-center"
+        >
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            className="px-7 py-3 rounded-xl font-bold text-[11px] tracking-widest uppercase text-white"
+            style={{
+              background: "linear-gradient(135deg,#7c3aed,#a855f7,#c026d3)",
+              boxShadow: "0 0 40px rgba(168,85,247,0.35)",
+            }}
+          >
             Enter the World
           </motion.button>
-          <motion.button whileHover={{ scale:1.03 }}
-            className="px-8 py-3.5 rounded-xl border border-white/10 text-white/50 text-[11px] tracking-widest uppercase hover:border-purple-500/40 hover:text-white/80 transition-all">
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            className="px-7 py-3 rounded-xl border border-white/10 text-white/40 text-[11px] tracking-widest uppercase hover:border-purple-500/30 hover:text-white/70 transition-all"
+          >
             Watch Demo
           </motion.button>
         </motion.div>
-        <motion.div {...fadeUp(0.75)} className="mt-10 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/3 border border-white/8">
+
+        {/* Live XP counter */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="mt-8 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/3 border border-white/8"
+        >
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-white/30 text-[11px] font-mono tracking-widest">XP THIS SESSION</span>
           <AnimatePresence mode="wait">
-            <motion.span key={xp} initial={{ y:-10,opacity:0 }} animate={{ y:0,opacity:1 }} exit={{ y:10,opacity:0 }}
+            <motion.span key={xp} initial={{ y: -8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 8, opacity: 0 }}
               className="text-emerald-400 text-[11px] font-mono font-bold">
               +{xp.toLocaleString()}
             </motion.span>
@@ -310,10 +353,12 @@ const Hero = () => {
         </motion.div>
       </motion.div>
 
-      {/* Scroll hint */}
-      <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:2 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        <motion.div animate={{ y:[0,6,0] }} transition={{ duration:1.8, repeat:Infinity, ease:"easeInOut" }}
+      {/* Scroll cue */}
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10"
+      >
+        <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
           className="w-5 h-8 rounded-full border border-white/15 flex items-start justify-center pt-1.5">
           <div className="w-1 h-2 bg-white/30 rounded-full" />
         </motion.div>
@@ -322,7 +367,7 @@ const Hero = () => {
   );
 };
 
-// ─── LIFE RPG — BENTO GRID (100vh) ────────────────────────────────────────────
+// ─── LIFE RPG — BENTO GRID ────────────────────────────────────────────────────
 const LifeRPG = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end","end start"] });
@@ -336,7 +381,6 @@ const LifeRPG = () => {
       <GlowOrb className="w-[250px] h-[250px] bg-indigo-900/15 bottom-0 left-0" />
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 w-full">
-        {/* Section header */}
         <motion.div style={{ y: headerY, opacity: headerOpacity }} className="text-center mb-14">
           <div className="text-purple-400/60 text-[11px] font-mono tracking-[0.3em] uppercase mb-4">01 · Game Mechanics</div>
           <h2 className="text-5xl md:text-6xl font-black text-white leading-tight" style={{ fontFamily:"'Syne',sans-serif" }}>
@@ -348,10 +392,7 @@ const LifeRPG = () => {
           </p>
         </motion.div>
 
-        {/* ── Bento grid ── */}
         <div className="grid grid-cols-12 gap-4 auto-rows-auto">
-
-          {/* ── Col 1: XP & Stats — tall card */}
           <BentoCard delay={0.1} glowColor="rgba(139,92,246,0.14)" className="col-span-12 md:col-span-4 row-span-2">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -361,8 +402,6 @@ const LifeRPG = () => {
               <span className="px-2.5 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-mono tracking-widest">ACTIVE</span>
             </div>
             <p className="text-white/30 text-xs leading-relaxed mb-5">Every commit, focus session, and completed task earns XP. Your effort is never invisible.</p>
-
-            {/* Stats */}
             <div className="space-y-3 mb-5">
               {STATS.map((s, i) => (
                 <div key={s.label} className="space-y-1.5">
@@ -374,7 +413,6 @@ const LifeRPG = () => {
                 </div>
               ))}
             </div>
-
             <div className="mt-auto space-y-3">
               <div>
                 <div className="text-[10px] font-mono text-white/30 mb-1.5 flex justify-between">
@@ -400,7 +438,6 @@ const LifeRPG = () => {
             </div>
           </BentoCard>
 
-          {/* ── Quest System — top center */}
           <BentoCard delay={0.2} glowColor="rgba(99,102,241,0.1)" className="col-span-12 md:col-span-5">
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -429,23 +466,19 @@ const LifeRPG = () => {
             </div>
           </BentoCard>
 
-          {/* ── Streak — top right */}
           <BentoCard delay={0.3} glowColor="rgba(249,115,22,0.08)" className="col-span-12 md:col-span-3">
             <div className="mb-3">
               <div className="text-[11px] text-orange-400/60 font-mono tracking-[0.2em] uppercase mb-1">Streak Engine</div>
               <div className="text-2xl font-black text-white" style={{ fontFamily:"'Syne',sans-serif" }}>🔥 Streaks</div>
             </div>
             <p className="text-white/30 text-[11px] leading-relaxed mb-4">Maintain momentum chains. Break one and your score drops.</p>
-            <div className="flex-1 mb-4">
-              <StreakViz />
-            </div>
+            <div className="flex-1 mb-4"><StreakViz /></div>
             <div className="text-center pt-2 border-t border-white/5">
               <div className="text-3xl font-black text-orange-400">34</div>
               <div className="text-[10px] text-orange-400/50 font-mono uppercase tracking-wider">day streak</div>
             </div>
           </BentoCard>
 
-          {/* ── Skill Trees — bottom center */}
           <BentoCard delay={0.15} glowColor="rgba(192,132,252,0.1)" className="col-span-12 md:col-span-5">
             <div className="mb-4">
               <div className="text-[11px] text-purple-400/60 font-mono tracking-[0.2em] uppercase mb-1">Skill Trees</div>
@@ -457,25 +490,21 @@ const LifeRPG = () => {
             </div>
           </BentoCard>
 
-          {/* ── Guild Network — bottom right */}
           <BentoCard delay={0.35} glowColor="rgba(99,102,241,0.12)" className="col-span-12 md:col-span-3">
             <div className="mb-3">
               <div className="text-[11px] text-indigo-400/60 font-mono tracking-[0.2em] uppercase mb-1">Guild Network</div>
               <div className="text-2xl font-black text-white" style={{ fontFamily:"'Syne',sans-serif" }}>⚔ Social</div>
             </div>
             <p className="text-white/30 text-[11px] leading-relaxed mb-3">Form parties, compete in weekly wars, share quests with your guild.</p>
-            <div className="flex-1 flex items-center justify-center min-h-[140px]">
-              <NetworkViz />
-            </div>
+            <div className="flex-1 flex items-center justify-center min-h-[140px]"><NetworkViz /></div>
           </BentoCard>
-
         </div>
       </div>
     </section>
   );
 };
 
-// ─── DEV DASHBOARD (100vh) ────────────────────────────────────────────────────
+// ─── DEV DASHBOARD ────────────────────────────────────────────────────────────
 const DevDashboard = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end","end start"] });
@@ -490,7 +519,6 @@ const DevDashboard = () => {
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
           <motion.div style={{ x: leftX, opacity }}>
             <div className="text-purple-400/60 text-[11px] font-mono tracking-[0.3em] uppercase mb-4">02 · Analytics</div>
             <h2 className="text-5xl font-black text-white leading-tight mb-6" style={{ fontFamily:"'Syne',sans-serif" }}>
@@ -557,14 +585,13 @@ const DevDashboard = () => {
               </div>
             </div>
           </motion.div>
-
         </div>
       </div>
     </section>
   );
 };
 
-// ─── PROGRESSION (100vh) ──────────────────────────────────────────────────────
+// ─── PROGRESSION ──────────────────────────────────────────────────────────────
 const Progression = () => {
   const [activeRank, setActiveRank] = useState(3);
   const sectionRef = useRef(null);
@@ -575,7 +602,6 @@ const Progression = () => {
   return (
     <section ref={sectionRef} className="relative min-h-screen flex items-center py-24 overflow-hidden bg-[#02020c]">
       <GlowOrb className="w-[700px] h-[400px] bg-purple-900/20 bottom-0 left-1/2 -translate-x-1/2" />
-
       <div className="relative z-10 max-w-6xl mx-auto px-6 w-full">
         <motion.div style={{ y, opacity }} className="text-center mb-16">
           <div className="text-purple-400/60 text-[11px] font-mono tracking-[0.3em] uppercase mb-4">03 · Ranking</div>
@@ -640,7 +666,7 @@ const Progression = () => {
   );
 };
 
-// ─── GUILDS (100vh) ───────────────────────────────────────────────────────────
+// ─── GUILDS ───────────────────────────────────────────────────────────────────
 const Guilds = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end","end start"] });
@@ -658,7 +684,6 @@ const Guilds = () => {
   return (
     <section ref={sectionRef} className="relative min-h-screen flex items-center py-24 overflow-hidden bg-[#030308]">
       <GlowOrb className="w-[600px] h-[500px] bg-violet-900/20 top-0 left-0" />
-
       <div className="relative z-10 max-w-6xl mx-auto px-6 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
           <motion.div style={{ x: leftX, opacity }}>
@@ -702,7 +727,7 @@ const Guilds = () => {
   );
 };
 
-// ─── THEMES (100vh) ───────────────────────────────────────────────────────────
+// ─── THEMES ───────────────────────────────────────────────────────────────────
 const Themes = () => {
   const [active, setActive] = useState(0);
   const themes = [
@@ -779,7 +804,7 @@ const Themes = () => {
   );
 };
 
-// ─── FINAL CTA (100vh) ────────────────────────────────────────────────────────
+// ─── FINAL CTA ────────────────────────────────────────────────────────────────
 const FinalCTA = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end","end start"] });
