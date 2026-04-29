@@ -1,73 +1,83 @@
-# React + TypeScript + Vite
+# Kyzen
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> A life RPG for developers and ambitious people.
 
-Currently, two official plugins are available:
+Kyzen transforms self-improvement into a progression system.
+Complete quests, gain XP, level up skills, maintain streaks, and build your digital identity like a game character.
+Kaisen is a japanese word which means continuous improvement and that's where the name comes from.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Currently in active development.
+MVP launching soon.
 
-## React Compiler
+# V1 Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Progression System
 
-## Expanding the ESLint configuration
+* XP & leveling
+* Daily streaks
+* Rank system
+* Skill progression
+* Stat tracking
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Quests
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+* Daily quests
+* Weekly quests
+* Reward system
+* XP bonuses
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Developer Dashboard
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+* GitHub integration
+* LeetCode stats
+* Coding activity graphs
+* Progress analytics
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Profile System
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+* Custom profile
+* Levels & stats
+* Titles & achievements
+* Skill trees
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+# Coming Soon
+
+* Guilds & social systems
+* Leaderboards
+* AI coach / NPC
+* ML-powered insights
+* Premium themes & cosmetics
+* Seasonal events
+* Kyzen Wrapped
+* Multiplayer focus rooms
+* Advanced analytics
+* Profile customization system
+* Aura & visual progression effects
+
+# Tech Stack
+
+## Frontend
+
+* React
+* Vite
+* TypeScript
+* TailwindCSS
+* Zustand
+* Framer Motion
+
+## Backend
+
+* Node.js
+* TypeScript
+* PostgreSQL
+* Prisma
+
+
+# Philosophy
+
+Kyzen is not a productivity app.
+It is a character progression system for real life.
+
+The goal is simple:
+
+> Make growth feel addictive.
