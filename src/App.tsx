@@ -1,10 +1,11 @@
 import './App.css'
+import Landing from './pages/Landing'
 
 function App() {
 
   return (
-    <div className='text-center text-7xl pt-14'>
-      heya
+    <div className=''>
+      <Landing />
     </div>
   )
 }
