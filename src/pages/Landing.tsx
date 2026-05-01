@@ -6,12 +6,12 @@ import {
   useInView,
   AnimatePresence,
 } from "framer-motion";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import Hero from "../components/Hero";
+import Navbar from "../components/global/Navbar";
+import Footer from "../components/global/Footer";
+import Hero from "../components/landing/Hero";
 import { RANKS } from "../constants/rank";
 import { SKILLS } from "../constants/skills";
-import LiveSystemPreview from "../components/LiveSystemPreview";
+import LiveSystemPreview from "../components/landing/LiveSystemPreview";
 
 const HOW_IT_WORKS = [
   { step:"01", icon:"🎯", title:"Accept Quests",  desc:"Daily quests auto-generated from your GitHub activity, calendar, and stated goals. Each quest has XP, tags, and difficulty tiers.", color:"#818cf8" },
