@@ -1,90 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import {
   motion,
   useMotionValue,
   useSpring,
-  AnimatePresence,
   useTransform,
 } from "framer-motion";
 import dashboardImg from "../../assets/dashboard_hero.png";
 
-// ─── Animated XP counter ──────────────────────────────────────────────────────
-function LiveXP() {
-  const [xp, setXp] = useState(3240);
-  useEffect(() => {
-    const id = setInterval(
-      () => setXp((v) => v + Math.floor(Math.random() * 9 + 2)),
-      2800
-    );
-    return () => clearInterval(id);
-  }, []);
-  return (
-    <AnimatePresence mode="popLayout">
-      <motion.span
-        key={xp}
-        initial={{ y: -10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 10, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="tabular-nums inline-block"
-      >
-        +{xp.toLocaleString()} XP
-      </motion.span>
-    </AnimatePresence>
-  );
-}
-
-// ─── Floating stat pill ───────────────────────────────────────────────────────
-interface PillProps {
-  icon: string;
-  label: string;
-  sub?: string;
-  accentColor: string;
-  glowColor: string;
-  className?: string;
-  delay?: number;
-  floatDir?: "up" | "down";
-}
-
-function FloatPill({
-  icon, label, sub, accentColor, glowColor, className = "", delay = 0, floatDir = "up",
-}: PillProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.88, y: floatDir === "up" ? 16 : -16 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={`absolute flex items-center gap-3 px-3.5 py-2.5 rounded-2xl z-30 select-none pointer-events-none ${className}`}
-      style={{
-        background: "rgba(8, 4, 22, 0.82)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        boxShadow: `0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), 0 0 20px 0px ${glowColor}`,
-      }}
-    >
-      <div
-        className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
-        style={{
-          background: accentColor,
-          boxShadow: `0 0 16px 3px ${glowColor}`,
-        }}
-      >
-        {icon}
-      </div>
-      <div className="flex flex-col min-w-0">
-        <span className="text-[12px] font-semibold text-white leading-tight tracking-tight">{label}</span>
-        {sub && (
-          <span className="text-[10px] leading-tight mt-0.5 text-white/30 font-mono">
-            {sub}
-          </span>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── Twinkling star dot ───────────────────────────────────────────────────────
 function Star({ x, y, size = 2.5, delay = 0 }: { x: string; y: string; size?: number; delay?: number }) {
   return (
     <motion.div
@@ -101,7 +23,6 @@ function Star({ x, y, size = 2.5, delay = 0 }: { x: string; y: string; size?: nu
   );
 }
 
-// ─── Subtle radial grid ───────────────────────────────────────────────────────
 function RadialGrid() {
   return (
     <svg
@@ -144,7 +65,6 @@ function RadialGrid() {
   );
 }
 
-// ─── Main Hero ────────────────────────────────────────────────────────────────
 export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const mouseX = useMotionValue(0);
@@ -179,7 +99,7 @@ export default function Hero() {
         fontFamily: "'Sora', -apple-system, sans-serif",
       }}
     >
-      {/* ── LAYERED BACKGROUND ─────────────────────────────────── */}
+      {/* ── LAYERED BACKGROUND  */}
 
       {/* Deep space top gradient */}
       <div
@@ -271,7 +191,7 @@ export default function Hero() {
       <Star x="61%" y="6%" size={1.4} delay={1.8} />
 
       {/* ── CONTENT ──────────────────────────────────────────────── */}
-      <div className="relative z-10 flex flex-col items-center text-center w-full px-6 pt-20 pb-0">
+      <div className="relative z-10 flex flex-col items-center text-center w-full px-6 pt-20 md:pt-28 pb-0">
 
         {/* Headline */}
         <motion.h1
@@ -412,7 +332,9 @@ export default function Hero() {
           </span>
         </motion.div>
 
-        {/* ── DASHBOARD FRAME ─────────────────────────────────────── */}
+        {/* To do's Tilt the frame and slide it under text area */}
+        
+        {/* DASHBOARD FRAME */}
         <motion.div
           initial={{ opacity: 0, y: 48 }}
           animate={{ opacity: 1, y: 0 }}
@@ -503,6 +425,7 @@ export default function Hero() {
                 {/* Right side space */}
                 <div className="w-14" />
               </div>
+              
 
               {/* Dashboard image */}
               <div className="relative w-full" style={{ lineHeight: 0 }}>
@@ -530,15 +453,18 @@ export default function Hero() {
                 <div className="absolute inset-y-0 right-0 w-12 pointer-events-none"
                   style={{ background: "linear-gradient(to left, rgba(6,4,18,0.4), transparent)" }} />
               </div>
+
+
             </div>
           </motion.div>
 
         </motion.div>
+
       </div>
 
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-      `}</style>
+<style>{`
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+`}</style>
     </section>
   );
 }
