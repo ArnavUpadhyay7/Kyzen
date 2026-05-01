@@ -7,14 +7,16 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import Hero from "../components/Hero";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// Types
 interface StatItem  { label: string; value: number; color: string }
 interface QuestItem { title: string; xp: number; done: boolean; tag: string }
 interface SkillItem { name: string; level: number; max: number; color: string }
 interface RankItem  { name: string; tier: string; color: string; glow: string; desc: string }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
+// Data
 const STATS: StatItem[] = [
   { label: "Focus",      value: 87, color: "#a78bfa" },
   { label: "Discipline", value: 74, color: "#818cf8" },
@@ -61,7 +63,6 @@ const WORLD_STATS = [
 
 const COMMITS = [4,7,2,9,5,12,8,3,11,6,9,14,7,5,10,13,8,6,11,15,9,7,12,10,4,8,13,6,11,9];
 
-// ─── Shared utilities ─────────────────────────────────────────────────────────
 const GlowOrb = ({ className }: { className: string }) => (
   <div className={`absolute rounded-full blur-[120px] pointer-events-none select-none ${className}`} />
 );
@@ -79,7 +80,6 @@ const SectionLabel = ({ index, text }: { index: string; text: string }) => (
   </div>
 );
 
-// ─── AnimatedBar ──────────────────────────────────────────────────────────────
 const AnimatedBar = ({ value, color, delay }: { value: number; color: string; delay: number }) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
@@ -96,7 +96,6 @@ const AnimatedBar = ({ value, color, delay }: { value: number; color: string; de
   );
 };
 
-// ─── SkillRow ─────────────────────────────────────────────────────────────────
 const SkillRow = ({ skill, delay }: { skill: SkillItem; delay: number }) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
@@ -122,7 +121,6 @@ const SkillRow = ({ skill, delay }: { skill: SkillItem; delay: number }) => {
   );
 };
 
-// ─── StreakCalendar ───────────────────────────────────────────────────────────
 const StreakCalendar = () => {
   const weeks = 8; const days = 7;
   const data = useRef(Array.from({ length: weeks * days }, () => Math.random())).current;
@@ -147,7 +145,6 @@ const StreakCalendar = () => {
   );
 };
 
-// ─── BentoCard ────────────────────────────────────────────────────────────────
 const BentoCard = ({ children, className = "", delay = 0, glowColor = "rgba(139,92,246,0.08)" }: {
   children: React.ReactNode; className?: string; delay?: number; glowColor?: string;
 }) => (
@@ -164,7 +161,6 @@ const BentoCard = ({ children, className = "", delay = 0, glowColor = "rgba(139,
   </motion.div>
 );
 
-// ─── NetworkViz ───────────────────────────────────────────────────────────────
 const NetworkViz = () => {
   const nodes = [
     { cx: 100, cy: 90,  r: 22, icon: "⚡", color: "#a855f7" },
@@ -196,264 +192,6 @@ const NetworkViz = () => {
   );
 };
 
-// ─── Starfield ────────────────────────────────────────────────────────────────
-const Starfield = ({ count = 60 }: { count?: number }) => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {Array.from({ length: count }).map((_, i) => (
-      <motion.div key={i} className="absolute rounded-full bg-white"
-        style={{ top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`, width: Math.random() > 0.9 ? 2 : 1, height: Math.random() > 0.9 ? 2 : 1, opacity: Math.random() * 0.35 + 0.05 }}
-        animate={{ opacity: [null as any, 0.04, 0.45] }}
-        transition={{ duration: 2 + Math.random() * 5, repeat: Infinity, repeatType: "reverse", delay: Math.random() * 6 }}
-      />
-    ))}
-  </div>
-);
-
-// ─── HERO — Centered, full-bleed, Reflect/Vetra style ─────────────────────────
-const Hero = () => {
-  const { scrollY } = useScroll();
-  const previewY = useTransform(scrollY, [0, 700], [0, 90]);
-  const heroOpacity = useTransform(scrollY, [0, 500], [1, 0]);
-
-  return (
-    <section className="relative min-h-screen flex flex-col bg-[#03020e] overflow-hidden">
-      <Starfield count={75} />
-
-      {/* ── Atmospheric orb — sits at top-center like a glow horizon ── */}
-      <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ zIndex: 0 }}>
-        {/* Outer halo */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-24 w-[1100px] h-[560px] rounded-full"
-          style={{ background: "radial-gradient(ellipse at 50% 30%, rgba(109,40,217,0.55) 0%, rgba(139,92,246,0.2) 45%, transparent 68%)", filter: "blur(60px)", opacity: 0.85 }} />
-        {/* Inner bright core */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-10 w-[500px] h-[300px] rounded-full"
-          style={{ background: "radial-gradient(ellipse at 50% 40%, rgba(192,132,252,0.55) 0%, rgba(168,85,247,0.25) 45%, transparent 70%)", filter: "blur(40px)" }} />
-        {/* Thin top rim light */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-0 w-[340px] h-[2px]"
-          style={{ background: "linear-gradient(90deg, transparent, rgba(216,180,254,0.6), transparent)", filter: "blur(1px)" }} />
-      </div>
-
-      {/* Fade from orb glow into page background */}
-      <div className="absolute inset-x-0 top-[340px] h-40 bg-gradient-to-b from-transparent to-[#03020e] pointer-events-none" style={{ zIndex: 1 }} />
-      {/* Bottom fade */}
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#02020c] to-transparent pointer-events-none" style={{ zIndex: 2 }} />
-
-      {/* ── Hero content — centered column ── */}
-      <motion.div
-        style={{ opacity: heroOpacity, zIndex: 3 }}
-        className="relative flex flex-col items-center text-center w-full px-6 pt-32 pb-0"
-      >
-        {/* Badge pill */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/25 bg-purple-950/50 text-purple-300/80 text-[11px] font-mono tracking-[0.2em] mb-8 uppercase"
-          style={{ backdropFilter: "blur(16px)" }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-          ⚡ Season 01 · Now Live
-        </motion.div>
-
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 22 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.85, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="font-black tracking-tight leading-[1.04] mb-5 max-w-[720px]"
-          style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(2.4rem, 6vw, 4.5rem)" }}
-        >
-          <span className="text-white">Turn Your Life Into a</span>
-          <br />
-          <span className="bg-clip-text text-transparent"
-            style={{ backgroundImage: "linear-gradient(135deg, #ddd6fe 0%, #a78bfa 40%, #e879f9 100%)" }}>
-            Game Engine.
-          </span>
-        </motion.h1>
-
-        {/* Subtext */}
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.42 }}
-          className="text-white/35 max-w-[440px] mx-auto mb-10 font-light leading-relaxed tracking-wide"
-          style={{ fontSize: "clamp(0.9rem, 2vw, 1.05rem)" }}
-        >
-          Accept quests, earn XP from every commit and focus session, level your skills, and forge a developer identity that compounds.
-        </motion.p>
-
-        {/* CTA row */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.54 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 0 48px rgba(168,85,247,0.6)" }}
-            whileTap={{ scale: 0.97 }}
-            className="px-8 py-3.5 rounded-xl font-bold text-[11px] tracking-widest uppercase text-white transition-all"
-            style={{ background: "linear-gradient(135deg,#6d28d9,#a855f7,#c026d3)", boxShadow: "0 0 28px rgba(139,92,246,0.4)" }}
-          >
-            Initialize Character
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl border border-white/10 text-white/40 text-[11px] tracking-widest uppercase transition-all hover:border-white/20 hover:text-white/65"
-            style={{ backdropFilter: "blur(12px)", background: "rgba(255,255,255,0.02)" }}
-          >
-            {/* Play icon */}
-            <span className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0">
-              <span className="w-0 h-0 ml-0.5"
-                style={{ borderTop: "4px solid transparent", borderBottom: "4px solid transparent", borderLeft: "6px solid rgba(255,255,255,0.5)" }} />
-            </span>
-            Watch Demo
-          </motion.button>
-        </motion.div>
-
-        {/* Social proof / trust line */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.78 }}
-          className="flex items-center gap-3 mb-14"
-        >
-          <div className="flex -space-x-2">
-            {["#7c3aed","#6366f1","#a855f7","#8b5cf6","#c026d3"].map((c, i) => (
-              <div key={i} className="w-6 h-6 rounded-full border-[1.5px] border-[#03020e] flex items-center justify-center text-[8px] text-white/60 font-bold"
-                style={{ background: `linear-gradient(135deg, ${c}cc, ${c})` }}>
-                {["M","K","A","J","R"][i]}
-              </div>
-            ))}
-          </div>
-          <span className="text-white/25 text-[11px] font-mono tracking-wider">Trusted by 31,420+ developers</span>
-        </motion.div>
-
-        {/* ── Dashboard preview card — floats below, partially clipped ── */}
-        <motion.div
-          style={{ y: previewY }}
-          className="relative w-full max-w-4xl mx-auto"
-          initial={{ opacity: 0, y: 56 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.1, delay: 0.72, ease: [0.22, 1, 0.36, 1] }}
-        >
-          {/* Soft glow behind the card */}
-          <div className="absolute -inset-8 rounded-[2.5rem] pointer-events-none"
-            style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(109,40,217,0.35) 0%, transparent 60%)", filter: "blur(30px)" }} />
-
-          {/* The card */}
-          <div
-            className="relative rounded-2xl border border-white/[0.09] overflow-hidden"
-            style={{ background: "rgba(6,4,16,0.97)", backdropFilter: "blur(40px)", boxShadow: "0 0 0 1px rgba(139,92,246,0.08), 0 48px 120px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.06)" }}
-          >
-            {/* Window chrome bar */}
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/[0.05]">
-              {["#ff5f57","#febc2e","#28c840"].map((c) => (
-                <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />
-              ))}
-              <div className="flex-1 flex justify-center">
-                <div className="flex items-center gap-2 px-4 py-1 rounded-full bg-white/[0.04] border border-white/[0.06]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[10px] font-mono text-white/20 tracking-widest">kyzen.app · dashboard</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex">
-              {/* Sidebar */}
-              <div className="hidden sm:flex w-44 flex-col border-r border-white/[0.04] p-4 gap-1 shrink-0">
-                <div className="text-[9px] font-mono text-white/15 tracking-widest uppercase mb-3 px-2">Menu</div>
-                {[
-                  { icon:"⚡", label:"Dashboard", active: true  },
-                  { icon:"🏹", label:"Quests",    active: false },
-                  { icon:"🧠", label:"Skills",    active: false },
-                  { icon:"🔥", label:"Streaks",   active: false },
-                  { icon:"⚔", label:"Guild",     active: false },
-                ].map((item) => (
-                  <div key={item.label}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-mono cursor-pointer transition-all ${item.active ? "bg-purple-500/15 border border-purple-500/20 text-purple-300" : "text-white/20"}`}>
-                    <span className="text-sm">{item.icon}</span>{item.label}
-                  </div>
-                ))}
-                <div className="mt-auto pt-4 border-t border-white/[0.04]">
-                  <div className="px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                    <div className="flex justify-between text-[9px] font-mono text-white/20 mb-1.5">
-                      <span>LVL 42</span><span>79%</span>
-                    </div>
-                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                      <motion.div initial={{ width: 0 }} animate={{ width: "79%" }}
-                        transition={{ duration: 2, delay: 1.4, ease: "easeOut" }}
-                        className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#7c3aed,#e879f9)" }} />
-                    </div>
-                    <div className="text-[9px] font-mono text-white/12 mt-1">14,320 / 18,000 XP</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Main panel */}
-              <div className="flex-1 p-5 min-w-0">
-                {/* Header row */}
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <div className="text-white font-black text-sm mb-0.5" style={{ fontFamily:"'Syne',sans-serif" }}>Good morning, Dev.</div>
-                    <div className="text-white/25 text-[10px] font-mono">Quest board refreshed · 4 active today</div>
-                  </div>
-                  <motion.div animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 2, repeat: Infinity }}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/15 shrink-0">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-emerald-400 text-[9px] font-mono">+3,240 XP live</span>
-                  </motion.div>
-                </div>
-
-                {/* Quick stats */}
-                <div className="grid grid-cols-3 gap-2.5 mb-4">
-                  {[
-                    { label:"Streak", value:"34🔥", color:"#fb923c" },
-                    { label:"Done",   value:"12 ✓", color:"#34d399" },
-                    { label:"Rank",   value:"ARCH·III", color:"#a78bfa" },
-                  ].map((s) => (
-                    <div key={s.label} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.04] text-center">
-                      <div className="text-[9px] font-mono text-white/20 uppercase tracking-widest mb-1">{s.label}</div>
-                      <div className="font-black text-xs" style={{ color: s.color, fontFamily:"'Syne',sans-serif" }}>{s.value}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Quest list */}
-                <div className="text-[9px] font-mono text-white/15 uppercase tracking-widest mb-2">Active Quests</div>
-                <div className="space-y-1.5">
-                  {QUESTS.map((q, i) => (
-                    <motion.div key={i}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.4 + i * 0.07 }}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border ${q.done ? "border-emerald-500/12 bg-emerald-500/4" : "border-white/[0.04] bg-white/[0.015]"}`}>
-                      <div className={`w-3.5 h-3.5 rounded flex-shrink-0 flex items-center justify-center text-[9px] font-bold ${q.done ? "bg-emerald-500 text-black" : "border border-white/15"}`}>
-                        {q.done ? "✓" : ""}
-                      </div>
-                      <span className={`flex-1 text-[10px] font-mono truncate ${q.done ? "text-white/18 line-through" : "text-white/55"}`}>{q.title}</span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0" style={{ color:"#a78bfa", background:"rgba(167,139,250,0.08)" }}>{q.tag}</span>
-                      <span className="text-[9px] font-mono text-yellow-400/45 shrink-0 hidden md:block">+{q.xp}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-
-      {/* Scroll cue */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.2 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
-        <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-          className="w-5 h-8 rounded-full border border-white/12 flex items-start justify-center pt-1.5 mx-auto">
-          <div className="w-1 h-2 bg-white/25 rounded-full" />
-        </motion.div>
-      </motion.div>
-    </section>
-  );
-};
-
-// ─── LIVE SYSTEM PREVIEW ──────────────────────────────────────────────────────
 const LiveSystemPreview = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end","end start"] });
@@ -573,7 +311,6 @@ const LiveSystemPreview = () => {
   );
 };
 
-// ─── HOW IT WORKS ─────────────────────────────────────────────────────────────
 const HowItWorks = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end","end start"] });
@@ -637,7 +374,6 @@ const HowItWorks = () => {
   );
 };
 
-// ─── BUILD YOUR CHARACTER ─────────────────────────────────────────────────────
 const BuildCharacter = () => {
   const [activeRank, setActiveRank] = useState(2);
   const sectionRef = useRef(null);
@@ -699,7 +435,6 @@ const BuildCharacter = () => {
   );
 };
 
-// ─── SOCIAL PROOF ─────────────────────────────────────────────────────────────
 const SocialProof = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end","end start"] });
@@ -753,51 +488,6 @@ const SocialProof = () => {
   );
 };
 
-// ─── FINAL CTA ────────────────────────────────────────────────────────────────
-const FinalCTA = () => {
-  const sectionRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end","end start"] });
-  const scale = useTransform(scrollYProgress, [0.1,0.5], [0.92,1]);
-  const opacity = useTransform(scrollYProgress, [0.1,0.4], [0,1]);
-  return (
-    <footer ref={sectionRef} className="relative min-h-screen flex flex-col items-center justify-center py-40 overflow-hidden bg-[#02020c]">
-      <Starfield count={70} />
-      <GlowOrb className="w-[900px] h-[600px] bg-purple-900/25 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-      <motion.div style={{ scale, opacity }} className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-        <div className="text-purple-400/60 text-[11px] font-mono tracking-[0.3em] uppercase mb-6">Your Journey Begins</div>
-        <h2 className="text-6xl md:text-[6rem] font-black text-white leading-none mb-8" style={{ fontFamily:"'Syne',sans-serif" }}>
-          Ready to<br/>
-          <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">level up?</span>
-        </h2>
-        <p className="text-white/30 text-lg mb-12 max-w-lg mx-auto">Join thousands of developers who transformed their daily grind into a legendary quest.</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-          <motion.button whileHover={{scale:1.07,boxShadow:"0 0 70px rgba(168,85,247,0.55)"}} whileTap={{scale:0.96}}
-            className="px-12 py-5 rounded-xl font-black text-white text-[11px] tracking-widest uppercase transition-all"
-            style={{background:"linear-gradient(135deg,#7c3aed,#a855f7,#c026d3)",boxShadow:"0 0 50px rgba(168,85,247,0.4)"}}>
-            Create Your Character
-          </motion.button>
-          <button className="text-white/30 text-[11px] font-mono tracking-widest uppercase hover:text-white/60 transition-colors">Browse Guilds →</button>
-        </div>
-        <div className="text-white/20 text-[11px] font-mono tracking-widest">Free to start · No credit card required · Season 01 live now</div>
-      </motion.div>
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 mt-32 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md flex items-center justify-center text-[9px]"
-            style={{background:"linear-gradient(135deg,#7c3aed,#a855f7)",boxShadow:"0 0 12px rgba(168,85,247,0.4)"}}>⚡</div>
-          <span className="text-white font-black text-lg tracking-widest" style={{fontFamily:"'Syne',sans-serif"}}>KYZEN<span className="text-purple-500">.</span></span>
-        </div>
-        <div className="flex gap-8">
-          {["Privacy","Terms","Status","GitHub"].map(l=>(
-            <a key={l} href="#" className="text-white/20 text-[11px] font-mono tracking-wider hover:text-white/50 transition-colors">{l}</a>
-          ))}
-        </div>
-        <div className="text-white/15 text-[11px] font-mono">© 2024 KYZEN SYSTEMS</div>
-      </div>
-    </footer>
-  );
-};
-
-// ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function Landing() {
   return (
     <div className="min-h-screen bg-[#03020e] overflow-x-hidden">
@@ -812,13 +502,14 @@ export default function Landing() {
         ::-webkit-scrollbar-track { background: #03020e; }
         ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.4); border-radius: 2px; }
       `}</style>
+
       <Navbar />
       <Hero />
       <LiveSystemPreview />
       <HowItWorks />
       <BuildCharacter />
       <SocialProof />
-      <FinalCTA />
+      <Footer />
     </div>
   );
 }
