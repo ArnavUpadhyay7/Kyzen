@@ -1,308 +1,222 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { motion, useScroll, useTransform, useMotionValue, useSpring, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface QuestItem { title: string; xp: number; done: boolean; tag: string }
-interface FloatingBadge { id: number; label: string; color: string; x: number; y: number }
+interface Quest { title: string; xp: number; done: boolean; tag: string }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const QUESTS: QuestItem[] = [
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const QUESTS: Quest[] = [
   { title: "Ship feature branch before 18:00", xp: 450, done: true,  tag: "DEV"   },
   { title: "30-min deep work session",         xp: 200, done: true,  tag: "FOCUS" },
   { title: "Solve 2 LeetCode mediums",         xp: 300, done: false, tag: "DSA"   },
   { title: "Push daily commit streak",         xp: 150, done: false, tag: "HABIT" },
 ];
 
-const LIVE_STATS = [
-  { label: "XP/hr",        value: "2,840", accent: "#22c55e", icon: "⚡" },
-  { label: "Online",       value: "4,201", accent: "#06b6d4", icon: "◉"  },
-  { label: "Quests done",  value: "98%",   accent: "#a78bfa", icon: "✓"  },
-];
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fadeUp = (delay = 0) => ({
+  initial:    { opacity: 0, y: 22 },
+  animate:    { opacity: 1, y: 0  },
+  transition: { duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] as const },
+});
 
-const FLOATING_BADGES: Omit<FloatingBadge, "id">[] = [
-  { label: "+450 XP",   color: "#22c55e", x: 8,  y: 28  },
-  { label: "QUEST ✓",   color: "#a78bfa", x: 82, y: 18  },
-  { label: "+DEV RANK", color: "#06b6d4", x: 88, y: 62  },
-  { label: "STREAK 34🔥", color: "#f97316", x: 5, y: 68 },
-];
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-/** Dot-matrix star field with two depth layers */
-const Starfield = () => {
-  const stars = useRef(
-    Array.from({ length: 120 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() > 0.92 ? 1.5 : 0.8,
-      opacity: Math.random() * 0.5 + 0.05,
-      duration: 3 + Math.random() * 6,
-      delay: Math.random() * 8,
-    }))
-  ).current;
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      {stars.map((s) => (
-        <motion.div
-          key={s.id}
-          className="absolute rounded-full bg-white"
-          style={{ top: `${s.y}%`, left: `${s.x}%`, width: s.size, height: s.size, opacity: s.opacity }}
-          animate={{ opacity: [s.opacity, s.opacity * 0.15, s.opacity] }}
-          transition={{ duration: s.duration, repeat: Infinity, delay: s.delay, ease: "easeInOut" }}
-        />
-      ))}
-    </div>
-  );
-};
-
-/** SVG perspective grid — receding toward center horizon */
-const HorizonGrid = () => (
-  <div className="absolute inset-x-0 bottom-0 h-[55%] overflow-hidden pointer-events-none" aria-hidden>
-    <svg
-      viewBox="0 0 1200 500"
-      preserveAspectRatio="xMidYMax slice"
-      className="absolute bottom-0 w-full h-full"
-      style={{ opacity: 0.18 }}
-    >
-      <defs>
-        <radialGradient id="gridFade" cx="50%" cy="100%" r="75%">
-          <stop offset="0%"   stopColor="#8b5cf6" stopOpacity="0.9" />
-          <stop offset="55%"  stopColor="#4c1d95" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#0b0618" stopOpacity="0"   />
-        </radialGradient>
-        <linearGradient id="lineOpacity" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="white" stopOpacity="0" />
-          <stop offset="100%" stopColor="white" stopOpacity="1" />
-        </linearGradient>
-        <mask id="gridMask">
-          <rect width="1200" height="500" fill="url(#lineOpacity)" />
-        </mask>
-      </defs>
-
-      <g mask="url(#gridMask)" stroke="url(#gridFade)" strokeWidth="0.6">
-        {/* Horizontal lines — perspective scaled */}
-        {[0.96, 0.88, 0.76, 0.6, 0.42, 0.24, 0.1].map((t, i) => {
-          const y = 500 * t;
-          const spread = 600 * (1 - t) * 2.2;
-          return (
-            <motion.line
-              key={`h${i}`}
-              x1={600 - spread} y1={y} x2={600 + spread} y2={y}
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 + i * 0.08, duration: 0.6 }}
-            />
-          );
-        })}
-        {/* Vertical perspective lines radiating from vanishing point */}
-        {Array.from({ length: 15 }, (_, i) => {
-          const frac = i / 14;
-          const x2 = frac * 1200;
-          return (
-            <motion.line
-              key={`v${i}`}
-              x1={600} y1={0} x2={x2} y2={500}
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              transition={{ delay: 1.5 + i * 0.04, duration: 0.5 }}
-            />
-          );
-        })}
-      </g>
-      {/* Horizon glow line */}
-      <motion.line
-        x1="0" y1="2" x2="1200" y2="2"
-        stroke="#8b5cf6" strokeWidth="1.5" strokeOpacity="0.55"
-        initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
-        transition={{ delay: 1.0, duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
-        style={{ transformOrigin: "600px 2px" }}
-      />
-    </svg>
-  </div>
-);
-
-/** Faint concentric orbit rings */
-const OrbitRings = () => (
-  <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden
-    style={{ top: "10%" }}>
-    {[340, 520, 720].map((r, i) => (
-      <motion.div
-        key={r}
-        className="absolute rounded-full border"
-        style={{
-          width: r, height: r,
-          borderColor: `rgba(139,92,246,${0.07 - i * 0.018})`,
-        }}
-        animate={{ rotate: i % 2 === 0 ? 360 : -360 }}
-        transition={{ duration: 60 + i * 30, repeat: Infinity, ease: "linear" }}
-      >
-        {/* Orbiting dot */}
-        <motion.div
-          className="absolute w-1 h-1 rounded-full"
-          style={{
-            top: -2, left: "50%",
-            background: `rgba(139,92,246,${0.5 - i * 0.1})`,
-            boxShadow: `0 0 6px rgba(139,92,246,0.8)`,
-          }}
-        />
-      </motion.div>
-    ))}
-  </div>
-);
-
-/** Floating XP / event badges that drift and fade */
-const FloatingBadges = () => {
-  const [visible, setVisible] = useState<number[]>([]);
-
+// ─── Live XP ticker ───────────────────────────────────────────────────────────
+const XpTicker = () => {
+  const [val, setVal] = useState(3240);
   useEffect(() => {
-    const show = (idx: number) => {
-      setVisible((v) => [...v, idx]);
-      setTimeout(() => setVisible((v) => v.filter((x) => x !== idx)), 3200);
-    };
-    const schedule = () => {
-      const delays = FLOATING_BADGES.map((_, i) => i * 1800 + Math.random() * 600);
-      delays.forEach((d, i) => setTimeout(() => show(i), d));
-      setTimeout(schedule, FLOATING_BADGES.length * 1800 + 1200);
-    };
-    const t = setTimeout(schedule, 2000);
-    return () => clearTimeout(t);
-  }, []);
-
-  return (
-    <div className="absolute inset-0 pointer-events-none" aria-hidden>
-      {FLOATING_BADGES.map((b, i) => (
-        <AnimatePresence key={i}>
-          {visible.includes(i) && (
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.88 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.92 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-widest border"
-              style={{
-                left: `${b.x}%`, top: `${b.y}%`,
-                color: b.color,
-                borderColor: `${b.color}35`,
-                background: `${b.color}0f`,
-                backdropFilter: "blur(12px)",
-                boxShadow: `0 0 18px ${b.color}22`,
-              }}
-            >
-              {b.label}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      ))}
-    </div>
-  );
-};
-
-/** Live animated XP tick counter */
-const XpTicker = ({ base = 284_320 }: { base?: number }) => {
-  const [xp, setXp] = useState(base);
-  useEffect(() => {
-    const id = setInterval(() => setXp((v) => v + Math.floor(Math.random() * 12 + 3)), 900);
+    const id = setInterval(() => setVal(v => v + Math.floor(Math.random() * 7 + 1)), 2600);
     return () => clearInterval(id);
   }, []);
   return (
     <AnimatePresence mode="popLayout">
-      <motion.span
-        key={xp}
-        initial={{ y: -10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 10, opacity: 0 }}
-        transition={{ duration: 0.22 }}
-        className="tabular-nums"
-      >
-        {xp.toLocaleString()}
+      <motion.span key={val}
+        initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 10, opacity: 0 }}
+        transition={{ duration: 0.22 }} className="tabular-nums inline-block">
+        +{val.toLocaleString()}
       </motion.span>
     </AnimatePresence>
   );
 };
 
-/** Boot-sequence text reveal */
-const BootLine = ({ text, delay }: { text: string; delay: number }) => {
-  const [shown, setShown] = useState("");
-  useEffect(() => {
-    const t = setTimeout(() => {
-      let i = 0;
-      const tick = setInterval(() => {
-        setShown(text.slice(0, ++i));
-        if (i >= text.length) clearInterval(tick);
-      }, 28);
-      return () => clearInterval(tick);
-    }, delay);
-    return () => clearTimeout(t);
-  }, [text, delay]);
-  return <span>{shown}<span className="animate-pulse">_</span></span>;
-};
+// ─── The Orb — layered CSS black-hole / energy mass ──────────────────────────
+const Orb = () => (
+  <div className="absolute inset-x-0 flex justify-center pointer-events-none select-none"
+    style={{ top: "120px", zIndex: 1 }}>
 
-/** The dashboard preview panel with 3D tilt + live internals */
-const DashboardPreview = () => {
-  const [completedIdx, setCompletedIdx] = useState<number | null>(null);
-  const [xpBar, setXpBar] = useState(79);
-  const [sessionXp, setSessionXp] = useState(3240);
+    {/* === Outermost atmospheric haze === */}
+    <div className="absolute rounded-full"
+      style={{
+        width: 900, height: 900,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, -38%)",
+        background: "radial-gradient(ellipse at 50% 50%, rgba(109,40,217,0.18) 0%, rgba(76,29,149,0.06) 45%, transparent 70%)",
+        filter: "blur(60px)",
+      }} />
 
-  useEffect(() => {
-    // Pulse a "just completed" quest highlight every ~4s
-    const id = setInterval(() => {
-      const i = Math.floor(Math.random() * QUESTS.length);
-      setCompletedIdx(i);
-      setTimeout(() => setCompletedIdx(null), 1400);
-    }, 4000);
-    return () => clearInterval(id);
-  }, []);
+    {/* === Wide purple disk sweep — the accretion field === */}
+    <div className="absolute"
+      style={{
+        width: 820, height: 260,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, 10%)",
+        borderRadius: "50%",
+        background: "radial-gradient(ellipse at 50% 40%, rgba(139,92,246,0.55) 0%, rgba(109,40,217,0.3) 35%, rgba(76,29,149,0.08) 65%, transparent 80%)",
+        filter: "blur(28px)",
+      }} />
 
+    {/* === Secondary disk — tighter, brighter === */}
+    <div className="absolute"
+      style={{
+        width: 560, height: 120,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, 38%)",
+        borderRadius: "50%",
+        background: "radial-gradient(ellipse at 50% 50%, rgba(192,132,252,0.7) 0%, rgba(139,92,246,0.45) 40%, rgba(109,40,217,0.1) 70%, transparent 85%)",
+        filter: "blur(12px)",
+      }} />
+
+    {/* === Photon ring — bright horizontal arc === */}
+    <div className="absolute"
+      style={{
+        width: 380, height: 60,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, 52%)",
+        borderRadius: "50%",
+        background: "radial-gradient(ellipse at 50% 50%, rgba(245,243,255,0.0) 0%, rgba(216,180,254,0.95) 40%, rgba(167,139,250,0.7) 60%, transparent 80%)",
+        filter: "blur(3px)",
+      }} />
+
+    {/* === Ultra-bright core ring line === */}
+    <div className="absolute"
+      style={{
+        width: 320, height: 44,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, 64%)",
+        borderRadius: "50%",
+        border: "2px solid rgba(245,243,255,0.7)",
+        boxShadow: "0 0 18px 4px rgba(192,132,252,0.8), 0 0 60px 12px rgba(139,92,246,0.4), inset 0 0 20px rgba(216,180,254,0.15)",
+        filter: "blur(0.5px)",
+      }} />
+
+    {/* === Second ring — softer, wider === */}
+    <div className="absolute"
+      style={{
+        width: 430, height: 60,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, 50%)",
+        borderRadius: "50%",
+        border: "1px solid rgba(167,139,250,0.35)",
+        boxShadow: "0 0 24px 4px rgba(139,92,246,0.25)",
+        filter: "blur(1px)",
+      }} />
+
+    {/* === Disk floor glow — pools beneath === */}
+    <div className="absolute"
+      style={{
+        width: 680, height: 200,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, 55%)",
+        borderRadius: "50%",
+        background: "radial-gradient(ellipse at 50% 0%, rgba(109,40,217,0.45) 0%, rgba(76,29,149,0.2) 45%, transparent 70%)",
+        filter: "blur(24px)",
+      }} />
+
+    {/* === The void — black sphere === */}
+    <div className="absolute rounded-full"
+      style={{
+        width: 220, height: 220,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, 0%)",
+        background: "radial-gradient(circle at 40% 38%, #0a0518 0%, #03010a 55%, #000005 100%)",
+        boxShadow: "0 0 0 1px rgba(109,40,217,0.15), 0 0 40px 8px rgba(0,0,5,0.9), inset 0 0 30px rgba(0,0,10,1)",
+      }} />
+
+    {/* === Void inner rim glow === */}
+    <div className="absolute rounded-full"
+      style={{
+        width: 220, height: 220,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, 0%)",
+        border: "1px solid rgba(139,92,246,0.18)",
+        boxShadow: "0 0 20px 2px rgba(109,40,217,0.12)",
+      }} />
+
+    {/* === Upper lensing arc — light bending over the top === */}
+    <div className="absolute overflow-hidden"
+      style={{
+        width: 280, height: 140,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, -50%)",
+      }}>
+      <div style={{
+        width: 280, height: 280,
+        borderRadius: "50%",
+        border: "1.5px solid rgba(167,139,250,0.22)",
+        boxShadow: "0 0 12px rgba(139,92,246,0.18)",
+        position: "absolute", top: 0, left: 0,
+      }} />
+    </div>
+
+    {/* === Horizontal lens flare streak === */}
+    <div className="absolute"
+      style={{
+        width: 700, height: 2,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, 680%)",
+        background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.0) 15%, rgba(167,139,250,0.6) 38%, rgba(245,243,255,0.9) 50%, rgba(167,139,250,0.6) 62%, rgba(139,92,246,0.0) 85%, transparent 100%)",
+        filter: "blur(0.8px)",
+      }} />
+
+    {/* === Soft bloom above headline area === */}
+    <div className="absolute"
+      style={{
+        width: 600, height: 300,
+        top: "50%", left: "50%",
+        transform: "translate(-50%, -90%)",
+        background: "radial-gradient(ellipse at 50% 80%, rgba(109,40,217,0.12) 0%, transparent 65%)",
+        filter: "blur(40px)",
+      }} />
+  </div>
+);
+
+// ─── Dashboard preview ────────────────────────────────────────────────────────
+const Dashboard = () => {
+  const [xpWidth, setXpWidth] = useState(79);
   useEffect(() => {
-    const id = setInterval(() => {
-      setSessionXp((v) => v + Math.floor(Math.random() * 7 + 2));
-      setXpBar((v) => Math.min(v + 0.06, 100));
-    }, 1100);
+    const id = setInterval(() => setXpWidth(v => Math.min(v + 0.1, 100)), 1800);
     return () => clearInterval(id);
   }, []);
 
   return (
-    <div
-      className="relative rounded-2xl border border-white/[0.09] overflow-hidden w-full"
+    <div className="relative w-full rounded-xl overflow-hidden"
       style={{
-        background: "linear-gradient(160deg, rgba(11,6,24,0.98) 0%, rgba(5,1,10,0.99) 100%)",
-        backdropFilter: "blur(40px)",
-        boxShadow:
-          "0 0 0 1px rgba(139,92,246,0.1), 0 50px 120px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 80px rgba(139,92,246,0.03)",
-      }}
-    >
-      {/* Window chrome */}
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/[0.05]">
-        {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-          <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />
+        background: "rgba(8,4,20,0.92)",
+        border: "1px solid rgba(255,255,255,0.09)",
+        boxShadow: "0 0 0 1px rgba(139,92,246,0.07), 0 32px 80px rgba(0,0,0,0.7), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+        backdropFilter: "blur(20px)",
+      }}>
+
+      {/* Chrome bar */}
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.06]"
+        style={{ background: "rgba(5,2,14,0.8)" }}>
+        {["#3a3a3a","#484848","#565656"].map(c => (
+          <div key={c} className="w-3 h-3 rounded-full" style={{ background: c }} />
         ))}
         <div className="flex-1 flex justify-center">
-          <div
-            className="flex items-center gap-2 px-4 py-1 rounded-full border border-white/[0.07]"
-            style={{ background: "rgba(255,255,255,0.03)" }}
-          >
-            <motion.div
-              className="w-1.5 h-1.5 rounded-full bg-emerald-400"
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 1.4, repeat: Infinity }}
-            />
-            <span className="text-[10px] font-mono text-white/20 tracking-widest">kyzen.app · dashboard</span>
+          <div className="flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-mono"
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", color: "#4B5563" }}>
+            <motion.div className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+              animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2, repeat: Infinity }} />
+            kyzen.app / dashboard
           </div>
-        </div>
-        {/* System status pill */}
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/8 border border-emerald-500/15">
-          <span className="text-[9px] font-mono text-emerald-400/70 tracking-widest">SYS LIVE</span>
         </div>
       </div>
 
-      <div className="flex min-h-0">
+      <div className="flex">
         {/* Sidebar */}
-        <div
-          className="hidden sm:flex w-44 shrink-0 flex-col p-4 gap-0.5 border-r border-white/[0.04]"
-          style={{ background: "rgba(0,0,0,0.2)" }}
-        >
-          <div className="text-[9px] font-mono text-white/15 tracking-[0.25em] uppercase mb-3 px-2">
-            KYZEN OS v2.1
+        <div className="hidden sm:flex w-44 shrink-0 flex-col p-3 gap-0.5 border-r border-white/[0.05]"
+          style={{ background: "rgba(3,1,10,0.5)" }}>
+          <div className="text-[9px] font-mono tracking-[0.2em] uppercase px-2 mb-3" style={{ color: "#374151" }}>
+            Navigation
           </div>
           {[
             { icon: "⚡", label: "Dashboard", active: true  },
@@ -310,144 +224,104 @@ const DashboardPreview = () => {
             { icon: "🧠", label: "Skills",    active: false },
             { icon: "🔥", label: "Streaks",   active: false },
             { icon: "⚔",  label: "Guild",    active: false },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-mono cursor-pointer transition-all ${
-                item.active
-                  ? "text-purple-300 border border-purple-500/25"
-                  : "text-white/18 hover:text-white/35"
-              }`}
-              style={item.active ? { background: "rgba(139,92,246,0.12)" } : {}}
-            >
-              <span className="text-sm">{item.icon}</span>
+          ].map(item => (
+            <div key={item.label}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-mono"
+              style={{
+                color:      item.active ? "#a78bfa" : "#374151",
+                background: item.active ? "rgba(99,102,241,0.1)" : "transparent",
+                border:     item.active ? "1px solid rgba(99,102,241,0.18)" : "1px solid transparent",
+              }}>
+              <span className="opacity-60 text-sm">{item.icon}</span>
               {item.label}
             </div>
           ))}
 
-          <div className="mt-auto pt-4 border-t border-white/[0.04]">
-            <div
-              className="px-3 py-3 rounded-xl border border-white/[0.05]"
-              style={{ background: "rgba(139,92,246,0.06)" }}
-            >
-              <div className="flex justify-between text-[9px] font-mono text-white/25 mb-2">
+          {/* XP bar */}
+          <div className="mt-auto pt-3 border-t border-white/[0.05]">
+            <div className="p-2.5 rounded-lg" style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.1)" }}>
+              <div className="flex justify-between text-[9px] font-mono mb-1.5" style={{ color: "#4B5563" }}>
                 <span>LVL 42</span>
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={Math.floor(sessionXp / 50)}
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="text-emerald-400/70"
-                  >
-                    +{sessionXp.toLocaleString()}
-                  </motion.span>
-                </AnimatePresence>
+                <span style={{ color: "#818cf8" }}>{Math.round(xpWidth)}%</span>
               </div>
-              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden mb-1">
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ background: "linear-gradient(90deg,#7c3aed,#a855f7,#e879f9)", width: `${xpBar}%` }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                />
+              <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
+                <motion.div className="h-full rounded-full"
+                  style={{ background: "linear-gradient(90deg,#6366f1,#818cf8)", width: `${xpWidth}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }} />
               </div>
-              <div className="text-[9px] font-mono text-white/12">14,320 / 18,000 XP</div>
+              <div className="text-[8px] font-mono mt-1" style={{ color: "#374151" }}>14,320 / 18,000 XP</div>
             </div>
           </div>
         </div>
 
-        {/* Main content */}
-        <div className="flex-1 p-5 min-w-0 space-y-4">
+        {/* Main panel */}
+        <div className="flex-1 p-5 space-y-4 min-w-0">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-white font-black text-sm mb-0.5" style={{ fontFamily: "'Syne',sans-serif" }}>
+              <div className="text-sm font-bold mb-0.5" style={{ color: "#F5F3FF", fontFamily: "'Syne',sans-serif" }}>
                 Good morning, Dev.
               </div>
-              <div className="text-white/25 text-[10px] font-mono">
-                Quest board refreshed · 4 active
+              <div className="text-[10px] font-mono" style={{ color: "#4B5563" }}>
+                Quest board refreshed · 4 active today
               </div>
             </div>
             <motion.div
-              animate={{ opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full shrink-0 border border-emerald-500/15"
-              style={{ background: "rgba(34,197,94,0.08)" }}
-            >
-              <motion.div
-                className="w-1.5 h-1.5 rounded-full bg-emerald-400"
-                animate={{ scale: [1, 1.4, 1] }}
-                transition={{ duration: 1.4, repeat: Infinity }}
-              />
-              <span className="text-emerald-400 text-[9px] font-mono">
-                +<XpTicker base={3240} /> XP live
-              </span>
+              animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2.5, repeat: Infinity }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-mono shrink-0"
+              style={{ color: "#22c55e", background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.14)" }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              +<XpTicker /> XP live
             </motion.div>
           </div>
 
           {/* Stat chips */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "Streak", value: "34🔥", color: "#fb923c" },
-              { label: "Done",   value: "12 ✓", color: "#34d399" },
-              { label: "Rank",   value: "ARCH·III", color: "#a78bfa" },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="p-2.5 rounded-xl border border-white/[0.04] text-center"
-                style={{ background: "rgba(255,255,255,0.02)" }}
-              >
-                <div className="text-[9px] font-mono text-white/20 uppercase tracking-widest mb-1">{s.label}</div>
-                <div
-                  className="font-black text-xs"
-                  style={{ color: s.color, fontFamily: "'Syne',sans-serif" }}
-                >
-                  {s.value}
-                </div>
+              { label: "Streak", value: "34 day",   color: "#f97316" },
+              { label: "Done",   value: "12 / 16",  color: "#22c55e" },
+              { label: "Rank",   value: "ARCH · III", color: "#818cf8" },
+            ].map(s => (
+              <div key={s.label} className="p-2.5 rounded-lg text-center"
+                style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="text-[8px] font-mono tracking-widest uppercase mb-1" style={{ color: "#4B5563" }}>{s.label}</div>
+                <div className="font-bold text-[11px]" style={{ color: s.color, fontFamily: "'Syne',sans-serif" }}>{s.value}</div>
               </div>
             ))}
           </div>
 
           {/* Quest list */}
           <div>
-            <div className="text-[9px] font-mono text-white/15 uppercase tracking-widest mb-2">
+            <div className="text-[8px] font-mono tracking-[0.2em] uppercase mb-2" style={{ color: "#374151" }}>
               Active Quests
             </div>
             <div className="space-y-1.5">
               {QUESTS.map((q, i) => (
-                <motion.div
-                  key={i}
-                  animate={
-                    completedIdx === i
-                      ? { backgroundColor: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.3)" }
-                      : { backgroundColor: q.done ? "rgba(34,197,94,0.03)" : "rgba(255,255,255,0.012)", borderColor: q.done ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.04)" }
-                  }
-                  transition={{ duration: 0.3 }}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg border"
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  style={{ transitionProperty: "background-color, border-color" }}
-                >
-                  <div
-                    className={`w-3.5 h-3.5 rounded flex-shrink-0 flex items-center justify-center text-[9px] font-bold transition-all ${
-                      q.done ? "bg-emerald-500 text-black" : "border border-white/15"
-                    }`}
-                  >
-                    {q.done ? "✓" : ""}
+                <motion.div key={i}
+                  initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.0 + i * 0.08, duration: 0.4 }}
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg"
+                  style={{
+                    background: q.done ? "rgba(34,197,94,0.04)" : "rgba(255,255,255,0.018)",
+                    border:     q.done ? "1px solid rgba(34,197,94,0.1)" : "1px solid rgba(255,255,255,0.05)",
+                  }}>
+                  <div className="w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center"
+                    style={{ background: q.done ? "#22c55e" : "transparent", border: q.done ? "none" : "1px solid rgba(255,255,255,0.18)" }}>
+                    {q.done && (
+                      <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                        <path d="M1 3l2 2 4-4" stroke="#03010a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
                   </div>
-                  <span
-                    className={`flex-1 text-[10px] font-mono truncate transition-all ${
-                      q.done ? "text-white/18 line-through" : "text-white/55"
-                    }`}
-                  >
+                  <span className="flex-1 text-[10px] font-mono truncate"
+                    style={{ color: q.done ? "#374151" : "#A1A1AA", textDecoration: q.done ? "line-through" : "none" }}>
                     {q.title}
                   </span>
-                  <span
-                    className="text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0"
-                    style={{ color: "#a78bfa", background: "rgba(167,139,250,0.08)" }}
-                  >
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0"
+                    style={{ color: "#818cf8", background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.14)" }}>
                     {q.tag}
                   </span>
-                  <span className="text-[9px] font-mono text-yellow-400/45 shrink-0 hidden md:block">
+                  <span className="text-[9px] font-mono shrink-0 hidden md:block" style={{ color: "#374151" }}>
                     +{q.xp}
                   </span>
                 </motion.div>
@@ -460,429 +334,250 @@ const DashboardPreview = () => {
   );
 };
 
-// ─── Main Hero component ──────────────────────────────────────────────────────
+// ─── HERO ─────────────────────────────────────────────────────────────────────
 const Hero = () => {
-  const { scrollY } = useScroll();
-  const containerRef = useRef<HTMLElement>(null);
-
-  // Parallax transforms
-  const previewY     = useTransform(scrollY, [0, 700], [0, 90]);
-  const heroOpacity  = useTransform(scrollY, [0, 520], [1, 0]);
-  const orbScale     = useTransform(scrollY, [0, 600], [1, 1.18]);
-
-  // Mouse-follow radial light
-  const mouseX = useMotionValue(0.5);
-  const mouseY = useMotionValue(0.5);
-  const springX = useSpring(mouseX, { stiffness: 60, damping: 20 });
-  const springY = useSpring(mouseY, { stiffness: 60, damping: 20 });
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const el = containerRef.current;
-    if (!el) return;
-    const { left, top, width, height } = el.getBoundingClientRect();
-    mouseX.set((e.clientX - left) / width);
-    mouseY.set((e.clientY - top) / height);
-  }, [mouseX, mouseY]);
-
-  // Boot sequence state
-  const [booted, setBooted] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setBooted(true), 200);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Headline gradient animation
-  const [gradientAngle, setGradientAngle] = useState(135);
-  useEffect(() => {
-    let frame: number;
-    let t = 0;
-    const animate = () => {
-      t += 0.003;
-      setGradientAngle(135 + Math.sin(t) * 25);
-      frame = requestAnimationFrame(animate);
-    };
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
   return (
-    <section
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      className="relative min-h-screen flex flex-col overflow-hidden select-none"
-      style={{ background: "linear-gradient(180deg, #05010a 0%, #0b0618 45%, #140a2a 100%)" }}
-    >
-      {/* ── Layer 0: noise grain texture (CSS-only) ── */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
-          opacity: 0.022,
-          mixBlendMode: "overlay",
-          zIndex: 0,
-        }}
-      />
+    <section className="relative min-h-screen flex flex-col overflow-hidden"
+      style={{ background: "#05010A" }}>
 
-      {/* ── Layer 1: starfield ── */}
-      <div style={{ zIndex: 1 }} className="absolute inset-0">
-        <Starfield />
+      {/* ── Background layers ── */}
+
+      {/* Base radial — deep indigo well */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(circle at 50% 42%, #12082e 0%, #07031a 35%, #05010a 70%)" }} />
+
+      {/* Wide atmospheric bloom */}
+      <div className="absolute inset-0 pointer-events-none flex justify-center"
+        style={{ top: "0%" }}>
+        <div style={{
+          width: 1100, height: 600, borderRadius: "50%", marginTop: -80,
+          background: "radial-gradient(ellipse at 50% 40%, rgba(88,28,235,0.2) 0%, rgba(67,20,180,0.08) 50%, transparent 72%)",
+          filter: "blur(80px)",
+        }} />
       </div>
 
-      {/* ── Layer 2: orbit rings ── */}
-      <div style={{ zIndex: 2 }} className="absolute inset-0">
-        <OrbitRings />
-      </div>
+      {/* Top vignette */}
+      <div className="absolute inset-x-0 top-0 h-40 pointer-events-none"
+        style={{ background: "linear-gradient(to bottom, #05010a, transparent)" }} />
 
-      {/* ── Layer 3: atmospheric orb system ── */}
+      {/* ── The Orb — center stage ── */}
       <motion.div
-        style={{ scale: orbScale, zIndex: 3 }}
-        className="absolute inset-x-0 top-0 pointer-events-none flex justify-center"
-      >
-        {/* Deep outer halo */}
-        <div
-          className="absolute left-1/2 -translate-x-1/2 rounded-full"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        transition={{ duration: 1.4, delay: 0.3 }}
+        className="absolute inset-x-0 pointer-events-none select-none"
+        style={{ top: "52px", zIndex: 1 }}>
+
+        {/* Outer wide haze */}
+        <div className="absolute left-1/2 -translate-x-1/2 rounded-full"
           style={{
-            top: "-140px",
-            width: "1300px", height: "650px",
-            background: "radial-gradient(ellipse at 50% 28%, rgba(109,40,217,0.5) 0%, rgba(76,29,149,0.18) 40%, transparent 68%)",
+            width: 1000, height: 520, marginTop: 80,
+            background: "radial-gradient(ellipse at 50% 38%, rgba(109,40,217,0.22) 0%, rgba(76,29,149,0.07) 55%, transparent 72%)",
             filter: "blur(70px)",
-          }}
-        />
-        {/* Mid orb — primary glow */}
+          }} />
+
+        {/* Main accretion disk — wide purple sweep */}
+        <div className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            width: 760, height: 200, marginTop: 285,
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse at 50% 38%, rgba(139,92,246,0.6) 0%, rgba(109,40,217,0.35) 38%, rgba(76,29,149,0.1) 65%, transparent 80%)",
+            filter: "blur(22px)",
+          }} />
+
+        {/* Inner bright disk */}
+        <div className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            width: 480, height: 90, marginTop: 325,
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse at 50% 50%, rgba(216,180,254,0.75) 0%, rgba(167,139,250,0.5) 40%, rgba(109,40,217,0.12) 70%, transparent 85%)",
+            filter: "blur(8px)",
+          }} />
+
+        {/* Photon ring — bright arc */}
+        <div className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            width: 340, height: 48, marginTop: 345,
+            borderRadius: "50%",
+            border: "2px solid rgba(245,243,255,0.65)",
+            boxShadow: "0 0 16px 6px rgba(192,132,252,0.7), 0 0 48px 12px rgba(139,92,246,0.35)",
+            filter: "blur(0.4px)",
+          }} />
+
+        {/* Second ring */}
+        <div className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            width: 420, height: 62, marginTop: 330,
+            borderRadius: "50%",
+            border: "1px solid rgba(167,139,250,0.3)",
+            boxShadow: "0 0 20px 2px rgba(139,92,246,0.2)",
+            filter: "blur(0.8px)",
+          }} />
+
+        {/* Floor glow — light pooling downward */}
+        <div className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            width: 680, height: 280, marginTop: 360,
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse at 50% 0%, rgba(109,40,217,0.5) 0%, rgba(76,29,149,0.22) 45%, transparent 70%)",
+            filter: "blur(28px)",
+          }} />
+
+        {/* The void */}
         <motion.div
           className="absolute left-1/2 -translate-x-1/2 rounded-full"
-          style={{ top: "-60px", width: "600px", height: "380px", filter: "blur(44px)" }}
-          animate={{
-            background: [
-              "radial-gradient(ellipse at 50% 40%, rgba(192,132,252,0.52) 0%, rgba(139,92,246,0.22) 45%, transparent 70%)",
-              "radial-gradient(ellipse at 50% 40%, rgba(139,92,246,0.6) 0%, rgba(192,132,252,0.2) 45%, transparent 70%)",
-              "radial-gradient(ellipse at 50% 40%, rgba(192,132,252,0.52) 0%, rgba(139,92,246,0.22) 45%, transparent 70%)",
-            ],
+          style={{
+            width: 210, height: 210, marginTop: 210,
+            background: "radial-gradient(circle at 38% 36%, #06021a 0%, #02010a 60%, #000007 100%)",
+            boxShadow: "0 0 0 1.5px rgba(109,40,217,0.12), 0 0 60px 16px rgba(0,0,8,0.95), inset 0 0 40px rgba(0,0,12,1)",
           }}
+          animate={{ boxShadow: [
+            "0 0 0 1.5px rgba(109,40,217,0.12), 0 0 60px 16px rgba(0,0,8,0.95), inset 0 0 40px rgba(0,0,12,1)",
+            "0 0 0 1.5px rgba(139,92,246,0.18), 0 0 70px 18px rgba(0,0,8,0.95), inset 0 0 40px rgba(0,0,12,1)",
+            "0 0 0 1.5px rgba(109,40,217,0.12), 0 0 60px 16px rgba(0,0,8,0.95), inset 0 0 40px rgba(0,0,12,1)",
+          ]}}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
         />
-        {/* Bright inner core */}
-        <motion.div
-          className="absolute left-1/2 -translate-x-1/2 rounded-full"
-          style={{ top: "-20px", width: "260px", height: "200px" }}
-          animate={{ opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <div className="w-full h-full rounded-full"
-            style={{
-              background: "radial-gradient(ellipse at 50% 50%, rgba(245,208,254,0.7) 0%, rgba(192,132,252,0.4) 35%, transparent 65%)",
-              filter: "blur(22px)",
-            }}
-          />
-        </motion.div>
-        {/* Horizon rim line */}
-        <motion.div
-          className="absolute left-1/2 -translate-x-1/2"
-          style={{ top: "180px", width: "500px", height: "1px" }}
-          initial={{ scaleX: 0, opacity: 0 }}
-          animate={{ scaleX: 1, opacity: 1 }}
-          transition={{ delay: 0.9, duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="w-full h-full"
-            style={{ background: "linear-gradient(90deg, transparent 0%, rgba(216,180,254,0.55) 40%, rgba(139,92,246,0.8) 50%, rgba(216,180,254,0.55) 60%, transparent 100%)" }}
-          />
-        </motion.div>
-      </motion.div>
 
-      {/* ── Layer 4: perspective grid ── */}
-      <div style={{ zIndex: 4 }} className="absolute inset-0">
-        <HorizonGrid />
-      </div>
-
-      {/* ── Layer 5: mouse-follow radial light ── */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 5,
-          background: useTransform(
-            [springX, springY],
-            ([x, y]: number[]) =>
-              `radial-gradient(600px circle at ${x * 100}% ${y * 100}%, rgba(139,92,246,0.06) 0%, transparent 60%)`
-          ),
-        }}
-      />
-
-      {/* ── Layer 6: vignette ── */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          zIndex: 6,
-          background: "radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(5,1,10,0.75) 100%)",
-        }}
-      />
-
-      {/* ── Layer 7: floating XP badges ── */}
-      <div style={{ zIndex: 7 }} className="absolute inset-0">
-        <FloatingBadges />
-      </div>
-
-      {/* Gradient fades */}
-      <div className="absolute inset-x-0 top-[300px] h-48 pointer-events-none"
-        style={{ zIndex: 8, background: "linear-gradient(to bottom, transparent, #0b0618)" }} />
-      <div className="absolute inset-x-0 bottom-0 h-36 pointer-events-none"
-        style={{ zIndex: 8, background: "linear-gradient(to top, #05010a, transparent)" }} />
-
-      {/* ── Layer 9: boot init lines (top-left) ── */}
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-        className="absolute top-20 left-6 hidden lg:block pointer-events-none font-mono text-[10px] space-y-0.5"
-        style={{ zIndex: 9, color: "rgba(139,92,246,0.35)" }}
-      >
-        <div><BootLine text="KYZEN OS v2.1.0 — initializing..." delay={300} /></div>
-        <div><BootLine text="► Loading quest engine............. OK" delay={1100} /></div>
-        <div><BootLine text="► XP ledger synced................. OK" delay={1900} /></div>
-        <div><BootLine text="► Guild network connected........... OK" delay={2700} /></div>
-      </motion.div>
-
-      {/* ── Layer 9: system status (top-right) ── */}
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 }}
-        className="absolute top-20 right-6 hidden lg:flex flex-col items-end gap-1 pointer-events-none"
-        style={{ zIndex: 9 }}
-      >
-        {[
-          { label: "UPTIME",  value: "99.98%", color: "#22c55e" },
-          { label: "LATENCY", value: "12ms",   color: "#06b6d4" },
-          { label: "SYNC",    value: "LIVE",   color: "#a78bfa"  },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-2 font-mono text-[10px]">
-            <span style={{ color: "rgba(255,255,255,0.2)" }}>{s.label}</span>
-            <span className="font-bold" style={{ color: s.color }}>{s.value}</span>
-          </div>
-        ))}
-      </motion.div>
-
-      {/* ── FOREGROUND: hero content ── */}
-      <motion.div
-        style={{ opacity: heroOpacity, zIndex: 10 }}
-        className="relative flex flex-col items-center text-center w-full px-6 pt-32 pb-0"
-      >
-        {/* Badge pill */}
-        <motion.div
-          initial={{ opacity: 0, y: 16, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[11px] font-mono tracking-[0.2em] mb-8 uppercase"
+        {/* Void rim glow */}
+        <div className="absolute left-1/2 -translate-x-1/2 rounded-full"
           style={{
-            borderColor: "rgba(139,92,246,0.3)",
-            background: "rgba(139,92,246,0.08)",
-            color: "rgba(192,132,252,0.9)",
-            backdropFilter: "blur(16px)",
-            boxShadow: "0 0 24px rgba(139,92,246,0.15), inset 0 1px 0 rgba(255,255,255,0.06)",
-          }}
-        >
-          <motion.span
-            className="w-1.5 h-1.5 rounded-full bg-purple-400"
-            animate={{ opacity: [1, 0.25, 1] }}
-            transition={{ duration: 1.2, repeat: Infinity }}
-          />
-          ⚡ Season 01 · System Online
+            width: 210, height: 210, marginTop: 210,
+            border: "1px solid rgba(139,92,246,0.15)",
+          }} />
+
+        {/* Upper lensing arc — bends over the top */}
+        <div className="absolute left-1/2 -translate-x-1/2 rounded-full overflow-hidden"
+          style={{ width: 270, height: 135, marginTop: 210 }}>
+          <div style={{
+            width: 270, height: 270, borderRadius: "50%",
+            border: "1.5px solid rgba(167,139,250,0.2)",
+            boxShadow: "0 0 10px rgba(139,92,246,0.15)",
+          }} />
+        </div>
+
+        {/* Horizon line */}
+        <div className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            width: 720, height: 1, marginTop: 370,
+            background: "linear-gradient(90deg, transparent 0%, rgba(109,40,217,0) 12%, rgba(167,139,250,0.55) 35%, rgba(245,243,255,0.9) 50%, rgba(167,139,250,0.55) 65%, rgba(109,40,217,0) 88%, transparent 100%)",
+          }} />
+
+        {/* Horizon bloom */}
+        <div className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            width: 580, height: 36, marginTop: 354,
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.22) 0%, transparent 70%)",
+            filter: "blur(12px)",
+          }} />
+      </motion.div>
+
+      {/* Bottom fade — pulls page into dashboard */}
+      <div className="absolute inset-x-0 bottom-0 pointer-events-none"
+        style={{ height: "45%", background: "linear-gradient(to top, #05010a 0%, transparent 100%)", zIndex: 2 }} />
+
+      {/* ── CONTENT ── */}
+      <div className="relative flex flex-col items-center text-center px-6 pt-28 pb-0 w-full" style={{ zIndex: 10 }}>
+
+        {/* Badge */}
+        <motion.div {...fadeUp(0.2)}>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-mono tracking-[0.18em] uppercase mb-8"
+            style={{ color: "#818cf8", background: "rgba(99,102,241,0.09)", border: "1px solid rgba(99,102,241,0.22)" }}>
+            <motion.span className="w-1.5 h-1.5 rounded-full" style={{ background: "#6366f1" }}
+              animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 2.2, repeat: Infinity }} />
+            Season 01 · System Online
+          </div>
         </motion.div>
 
         {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 26 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="font-black tracking-tight leading-[1.03] mb-5 max-w-[740px]"
-          style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(2.5rem, 6.5vw, 4.8rem)" }}
-        >
-          <span
-            className="block"
-            style={{ color: "#f5f3ff", textShadow: "0 0 80px rgba(139,92,246,0.2)" }}
-          >
-            Turn Your Life Into a
-          </span>
-          <span
-            className="block bg-clip-text text-transparent"
-            style={{
-              backgroundImage: `linear-gradient(${gradientAngle}deg, #ddd6fe 0%, #a78bfa 38%, #e879f9 72%, #c084fc 100%)`,
-              filter: "drop-shadow(0 0 28px rgba(168,85,247,0.45))",
-            }}
-          >
-            Game Engine.
-          </span>
+        <motion.h1 {...fadeUp(0.32)}
+          className="font-black tracking-tight leading-[1.03] mb-5 max-w-[680px]"
+          style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(2.8rem, 6.5vw, 5rem)", color: "#F5F3FF", letterSpacing: "-0.02em" }}>
+          Turn Your Life Into
+          <br />a Game Engine.
         </motion.h1>
 
         {/* Subtext */}
-        <motion.p
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.75, delay: 0.44 }}
-          className="max-w-[460px] mx-auto mb-10 font-light leading-relaxed tracking-wide"
-          style={{ fontSize: "clamp(0.9rem, 2vw, 1.05rem)", color: "#a1a1aa" }}
-        >
-          Accept quests, earn XP from every commit and focus session, level your skills, and forge a developer identity that compounds.
+        <motion.p {...fadeUp(0.44)}
+          className="max-w-[400px] mx-auto mb-10 leading-relaxed"
+          style={{ fontSize: "clamp(0.9rem, 2vw, 1rem)", color: "#A1A1AA", fontWeight: 400 }}>
+          Accept quests, earn XP from every commit and focus session,
+          level your skills, and forge a developer identity that compounds.
         </motion.p>
 
         {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, delay: 0.56 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8"
-        >
+        <motion.div {...fadeUp(0.54)} className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-5">
           <motion.button
-            whileHover={{
-              scale: 1.06,
-              boxShadow: "0 0 60px rgba(139,92,246,0.65), 0 0 120px rgba(139,92,246,0.25)",
-            }}
+            whileHover={{ scale: 1.04, filter: "brightness(1.15)" }}
             whileTap={{ scale: 0.97 }}
-            className="relative px-9 py-3.5 rounded-xl font-bold text-[11px] tracking-widest uppercase text-white overflow-hidden transition-all"
-            style={{
-              background: "linear-gradient(135deg, #6d28d9 0%, #8b5cf6 50%, #a855f7 80%, #c026d3 100%)",
-              boxShadow: "0 0 32px rgba(139,92,246,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",
-            }}
-          >
-            {/* Button shimmer */}
-            <motion.span
-              className="absolute inset-0 rounded-xl pointer-events-none"
-              style={{
-                background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%)",
-                backgroundSize: "200% 100%",
-              }}
-              animate={{ backgroundPosition: ["200% 0%", "-200% 0%"] }}
-              transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.5, ease: "easeInOut" }}
-            />
+            transition={{ duration: 0.16 }}
+            className="px-8 py-3.5 rounded-lg font-semibold text-[12px] uppercase"
+            style={{ background: "#6366f1", color: "#F5F3FF", letterSpacing: "0.1em" }}>
             Initialize Character
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.03, borderColor: "rgba(255,255,255,0.22)" }}
-            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl border border-white/10 text-[11px] tracking-widest uppercase transition-all"
-            style={{
-              color: "rgba(161,161,170,0.8)",
-              backdropFilter: "blur(12px)",
-              background: "rgba(255,255,255,0.025)",
-            }}
-          >
-            <span
-              className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center shrink-0"
-            >
-              <span
-                className="w-0 h-0 ml-0.5"
-                style={{
-                  borderTop: "4px solid transparent",
-                  borderBottom: "4px solid transparent",
-                  borderLeft: "6px solid rgba(255,255,255,0.5)",
-                }}
-              />
+            whileHover={{ scale: 1.02, borderColor: "rgba(255,255,255,0.2)" }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.16 }}
+            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-lg text-[12px] uppercase font-medium"
+            style={{ color: "#A1A1AA", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", letterSpacing: "0.1em" }}>
+            <span className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0"
+              style={{ borderColor: "rgba(255,255,255,0.25)" }}>
+              <span style={{ width:0, height:0, marginLeft:1,
+                borderTop:"3.5px solid transparent", borderBottom:"3.5px solid transparent",
+                borderLeft:"5.5px solid rgba(255,255,255,0.5)" }} />
             </span>
             Watch Demo
           </motion.button>
         </motion.div>
 
-        {/* Live stats strip */}
+        {/* Stat line */}
+        <motion.p {...fadeUp(0.64)} className="text-[11px] font-mono mb-16" style={{ color: "#4B5563" }}>
+          <span style={{ color: "#22c55e", fontWeight: 600 }}>+2,431 XP</span> earned today ·{" "}
+          <span style={{ color: "#6B7280" }}>31,420 developers</span> online
+        </motion.p>
+
+        {/* Dashboard preview */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.72, duration: 0.6 }}
-          className="flex items-center gap-0 mb-12 rounded-2xl border border-white/[0.06] overflow-hidden"
-          style={{
-            background: "rgba(255,255,255,0.02)",
-            backdropFilter: "blur(16px)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
-          }}
-        >
-          {LIVE_STATS.map((s, i) => (
-            <div
-              key={s.label}
-              className={`flex items-center gap-2.5 px-5 py-2.5 ${i < LIVE_STATS.length - 1 ? "border-r border-white/[0.06]" : ""}`}
-            >
-              <motion.span
-                className="text-sm"
-                animate={{ opacity: [0.6, 1, 0.6] }}
-                transition={{ duration: 2 + i * 0.4, repeat: Infinity }}
-                style={{ color: s.accent }}
-              >
-                {s.icon}
-              </motion.span>
-              <div>
-                <div className="text-[9px] font-mono text-white/25 tracking-widest uppercase mb-0.5">{s.label}</div>
-                <div className="font-black text-xs" style={{ color: s.accent, fontFamily: "'Syne',sans-serif" }}>
-                  {s.label === "XP/hr" ? <XpTicker base={2840} /> : s.value}
-                </div>
-              </div>
-            </div>
-          ))}
-          {/* Trust avatars */}
-          <div className="flex items-center gap-2.5 px-5 py-2.5 border-l border-white/[0.06]">
-            <div className="flex -space-x-1.5">
-              {["#7c3aed","#6366f1","#a855f7","#8b5cf6","#c026d3"].map((c, i) => (
-                <div
-                  key={i}
-                  className="w-5 h-5 rounded-full border border-[#05010a] flex items-center justify-center text-[7px] text-white/70 font-bold"
-                  style={{ background: `linear-gradient(135deg, ${c}bb, ${c})` }}
-                >
-                  {["M","K","A","J","R"][i]}
-                </div>
-              ))}
-            </div>
-            <span className="text-[9px] font-mono text-white/25 tracking-wide whitespace-nowrap">31,420+ devs</span>
-          </div>
-        </motion.div>
-
-        {/* ── Dashboard preview ── */}
-        <motion.div
-          style={{ y: previewY }}
+          transition={{ duration: 1.0, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="relative w-full max-w-4xl mx-auto"
-          initial={{ opacity: 0, y: 60, rotateX: 6 }}
-          animate={{ opacity: 1, y: 0, rotateX: 0 }}
-          transition={{ duration: 1.2, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        >
-          {/* Depth glow behind card */}
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              inset: "-32px",
-              background: "radial-gradient(ellipse at 50% 0%, rgba(109,40,217,0.4) 0%, rgba(76,29,149,0.12) 50%, transparent 70%)",
-              filter: "blur(32px)",
-            }}
-          />
-          {/* Secondary side glows */}
-          <div className="absolute -left-8 top-1/2 -translate-y-1/2 w-32 h-64 pointer-events-none"
-            style={{ background: "radial-gradient(ellipse, rgba(139,92,246,0.15), transparent 70%)", filter: "blur(20px)" }} />
-          <div className="absolute -right-8 top-1/2 -translate-y-1/2 w-32 h-64 pointer-events-none"
-            style={{ background: "radial-gradient(ellipse, rgba(192,132,252,0.12), transparent 70%)", filter: "blur(20px)" }} />
+          style={{ zIndex: 10 }}>
 
-          {/* Float animation wrapper */}
+          {/* Glow above card */}
+          <div className="absolute pointer-events-none"
+            style={{
+              inset: "-20px", top: "-32px",
+              background: "radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.12) 0%, transparent 65%)",
+              filter: "blur(16px)",
+            }} />
+
+          {/* Float */}
           <motion.div
-            animate={{ y: [0, -7, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <DashboardPreview />
+            animate={{ y: [0, -3, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
+            <Dashboard />
           </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
 
-      {/* Scroll indicator */}
+      {/* Scroll cue */}
       <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        style={{ zIndex: 11 }}
-      >
-        <motion.div
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-          className="flex flex-col items-center gap-2"
-        >
-          <div
-            className="w-5 h-8 rounded-full border border-white/10 flex items-start justify-center pt-1.5"
-            style={{ background: "rgba(255,255,255,0.02)" }}
-          >
-            <div className="w-1 h-2 rounded-full" style={{ background: "rgba(139,92,246,0.6)" }} />
-          </div>
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2, duration: 0.8 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2" style={{ zIndex: 20 }}>
+        <motion.div animate={{ y: [0, 5, 0] }} transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+          className="w-5 h-8 rounded-full flex items-start justify-center pt-1.5"
+          style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="w-1 h-2 rounded-full" style={{ background: "rgba(99,102,241,0.5)" }} />
         </motion.div>
       </motion.div>
 
-      {/* Global styles */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=JetBrains+Mono:wght@300;400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+        * { font-family: 'JetBrains Mono', monospace; }
+        h1 { font-family: 'Syne', sans-serif !important; }
       `}</style>
     </section>
   );
