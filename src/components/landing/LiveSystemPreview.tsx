@@ -1,10 +1,6 @@
-import { motion, useInView, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { STATS } from "../../constants/stats";
-import { QUESTS } from "../../constants/quests";
-import { SKILLS } from "../../constants/skills";
 
-// ─── Shared fade-up animation ─────────────────────────────────────────────────
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 36 },
   whileInView: { opacity: 1, y: 0 },
@@ -12,279 +8,243 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.72, delay, ease: [0.22, 1, 0.36, 1] as any },
 });
 
-// ─── Glass card base ──────────────────────────────────────────────────────────
+/* ── Diamond floater ── */
+function Diamond({ style }: { style: React.CSSProperties }) {
+  return (
+    <motion.div
+      className="absolute pointer-events-none"
+      style={{
+        width: 9, height: 9,
+        background: "rgba(139,92,246,0.45)",
+        rotate: 45,
+        ...style,
+      }}
+      animate={{ y: [0, -12, 0], opacity: [0.35, 0.8, 0.35] }}
+      transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
+
+/* ── Feature bullet row ── */
+function Bullet({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="text-purple-400/60 text-sm flex-shrink-0">{icon}</span>
+      <span className="text-[13px]" style={{ color: "rgba(200,185,240,0.55)" }}>{text}</span>
+    </div>
+  );
+}
+
+/* ── Icon box ── */
+function IconBox({ children, color = "rgba(109,40,217,0.3)" }: { children: React.ReactNode; color?: string }) {
+  return (
+    <div
+      className="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 flex-shrink-0"
+      style={{
+        background: color,
+        border: "1px solid rgba(139,92,246,0.3)",
+        boxShadow: "0 0 20px rgba(109,40,217,0.2)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ── Bento card ── */
 function BentoCard({
   children,
   className = "",
   delay = 0,
-  accentColor = "rgba(124,58,237,0.12)",
-  accentPos = "30% 0%",
+  glowColor = "rgba(109,40,217,0.12)",
+  glowPos = "50% 0%",
+  featured = false,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
-  accentColor?: string;
-  accentPos?: string;
+  glowColor?: string;
+  glowPos?: string;
+  featured?: boolean;
 }) {
   return (
     <motion.div
       {...fadeUp(delay)}
-      whileHover={{ scale: 1.014, y: -5 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      whileHover={{ scale: 1.012, y: -4 }}
+      transition={{ type: "spring", stiffness: 280, damping: 28 }}
       className={`relative rounded-2xl overflow-hidden flex flex-col ${className}`}
       style={{
-        background: "rgba(10, 5, 28, 0.55)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        backdropFilter: "blur(28px)",
-        WebkitBackdropFilter: "blur(28px)",
-        boxShadow:
-          "0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+        background: featured
+          ? "rgba(18, 8, 45, 0.9)"
+          : "rgba(10, 5, 28, 0.7)",
+        border: featured
+          ? "1px solid rgba(139,92,246,0.45)"
+          : "1px solid rgba(255,255,255,0.07)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        boxShadow: featured
+          ? "0 0 40px rgba(109,40,217,0.2), 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)"
+          : "0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
       }}
     >
-      {/* Radial glow accent */}
+      {/* Top glow */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse at ${accentPos}, ${accentColor}, transparent 65%)`,
-        }}
+        style={{ background: `radial-gradient(ellipse at ${glowPos}, ${glowColor}, transparent 60%)` }}
       />
       {/* Top edge shimmer */}
       <div
         className="absolute top-0 inset-x-0 h-px pointer-events-none"
         style={{
-          background:
-            "linear-gradient(90deg, transparent 10%, rgba(139,92,246,0.3) 50%, transparent 90%)",
+          background: featured
+            ? "linear-gradient(90deg, transparent 5%, rgba(139,92,246,0.7) 50%, transparent 95%)"
+            : "linear-gradient(90deg, transparent 10%, rgba(139,92,246,0.25) 50%, transparent 90%)",
         }}
       />
-      <div className="relative z-10 flex flex-col h-full p-6">
+      <div className="relative z-10 h-full p-6 flex flex-col">
         {children}
       </div>
     </motion.div>
   );
 }
 
-// ─── Card header helper ───────────────────────────────────────────────────────
-function CardHeader({
-  eyebrow,
-  title,
-  eyebrowColor = "rgba(167,139,250,0.5)",
-}: {
-  eyebrow: string;
-  title: string;
-  eyebrowColor?: string;
-}) {
+/* ── Placeholder visual (isometric-style SVG placeholders) ── */
+function QuestIllustration() {
   return (
-    <div className="mb-3">
-      <p
-        className="text-[10px] font-mono tracking-[0.28em] uppercase mb-1.5"
-        style={{ color: eyebrowColor }}
-      >
-        {eyebrow}
-      </p>
-      <h3
-        className="text-xl font-extrabold text-white leading-tight"
-        style={{ fontFamily: "'Sora', sans-serif", letterSpacing: "-0.02em" }}
-      >
-        {title}
-      </h3>
-    </div>
-  );
-}
-
-// ─── Animated progress bar ────────────────────────────────────────────────────
-function AnimatedBar({
-  value,
-  color,
-  delay,
-}: {
-  value: number;
-  color: string;
-  delay: number;
-}) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true });
-  return (
-    <div
-      ref={ref}
-      className="h-1.5 rounded-full overflow-hidden"
-      style={{ background: "rgba(255,255,255,0.05)" }}
-    >
-      <motion.div
-        initial={{ width: 0 }}
-        animate={inView ? { width: `${value}%` } : {}}
-        transition={{ duration: 1.3, delay, ease: "easeOut" }}
-        className="h-full rounded-full"
-        style={{
-          background: `linear-gradient(90deg, ${color}66, ${color})`,
-          boxShadow: `0 0 8px ${color}55`,
-        }}
-      />
-    </div>
-  );
-}
-
-// ─── Streak calendar grid ─────────────────────────────────────────────────────
-function StreakCalendar() {
-  const weeks = 8;
-  const days = 7;
-  const data = useRef(
-    Array.from({ length: weeks * days }, () => Math.random())
-  ).current;
-
-  return (
-    <div
-      className="grid gap-[3px]"
-      style={{ gridTemplateColumns: `repeat(${weeks}, 1fr)` }}
-    >
-      {Array.from({ length: weeks }).map((_, w) => (
-        <div key={w} className="flex flex-col gap-[3px]">
-          {Array.from({ length: days }).map((_, d) => {
-            const v = data[w * days + d];
-            return (
-              <motion.div
-                key={d}
-                initial={{ opacity: 0, scale: 0.5 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.15 + (w * days + d) * 0.005 }}
-                className="w-full aspect-square rounded-[3px]"
-                style={{
-                  background:
-                    v > 0.7
-                      ? "rgba(168,85,247,0.95)"
-                      : v > 0.4
-                      ? "rgba(139,92,246,0.55)"
-                      : v > 0.15
-                      ? "rgba(99,102,241,0.22)"
-                      : "rgba(255,255,255,0.04)",
-                  boxShadow: v > 0.7 ? "0 0 5px rgba(168,85,247,0.5)" : "none",
-                }}
-              />
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Skill row ────────────────────────────────────────────────────────────────
-function SkillRow({ skill, delay }: { skill: any; delay: number }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true });
-
-  return (
-    <div ref={ref} className="flex items-center gap-3">
-      <span className="text-[11px] text-white/35 font-mono tracking-wide w-28 truncate">
-        {skill.name}
-      </span>
-      <div className="flex gap-[3px] flex-1">
-        {Array.from({ length: skill.max }).map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, scaleY: 0.3 }}
-            animate={inView ? { opacity: 1, scaleY: 1 } : {}}
-            transition={{ delay: delay + i * 0.045, duration: 0.28 }}
-            className="flex-1 h-1.5 rounded-sm"
-            style={{
-              background:
-                i < skill.level
-                  ? `linear-gradient(90deg, ${skill.color}77, ${skill.color})`
-                  : "rgba(255,255,255,0.05)",
-              boxShadow:
-                i < skill.level ? `0 0 5px ${skill.color}44` : "none",
-            }}
-          />
-        ))}
-      </div>
-      <span
-        className="text-[11px] font-mono w-4 text-right"
-        style={{ color: skill.color }}
-      >
-        {skill.level}
-      </span>
-    </div>
-  );
-}
-
-// ─── Network visualization ────────────────────────────────────────────────────
-function NetworkViz() {
-  const nodes = [
-    { cx: 100, cy: 90, r: 22, icon: "⚡", color: "#a855f7" },
-    { cx: 30, cy: 38, r: 14, icon: "📦", color: "#818cf8" },
-    { cx: 170, cy: 38, r: 14, icon: "🔮", color: "#c084fc" },
-    { cx: 170, cy: 142, r: 14, icon: "⚔", color: "#7dd3fc" },
-    { cx: 30, cy: 142, r: 14, icon: "🏆", color: "#e879f9" },
-  ];
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <svg viewBox="0 0 200 180" className="w-full max-w-[200px]">
+    <div className="flex-1 flex items-end justify-center min-h-[140px] relative">
+      {/* Scroll/document shape */}
+      <svg viewBox="0 0 160 140" className="w-36 h-32 opacity-80">
         <defs>
-          {nodes.slice(1).map((n, i) => (
-            <filter key={i} id={`glow-${i}`}>
-              <feGaussianBlur stdDeviation="2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          ))}
+          <radialGradient id="scrollGlow" cx="50%" cy="80%" r="60%">
+            <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id="scrollBody" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#4c1d95" />
+            <stop offset="100%" stopColor="#2e1065" />
+          </linearGradient>
         </defs>
-        {nodes.slice(1).map((n, i) => (
-          <motion.line
-            key={i}
-            x1={nodes[0].cx}
-            y1={nodes[0].cy}
-            x2={n.cx}
-            y2={n.cy}
-            stroke={n.color}
-            strokeOpacity="0.35"
-            strokeWidth="1"
-            strokeDasharray="4 4"
+        <ellipse cx="80" cy="125" rx="55" ry="10" fill="url(#scrollGlow)" />
+        <rect x="42" y="20" width="76" height="90" rx="6" fill="url(#scrollBody)" stroke="rgba(139,92,246,0.5)" strokeWidth="1" />
+        <rect x="36" y="14" width="88" height="16" rx="8" fill="#3b0764" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
+        <rect x="36" y="90" width="88" height="16" rx="8" fill="#3b0764" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
+        {[35,47,59,71].map((y, i) => (
+          <rect key={i} x="54" y={y} width={30 + (i % 2) * 14} height="3" rx="1.5" fill="rgba(139,92,246,0.35)" />
+        ))}
+        <circle cx="80" cy="78" r="14" fill="rgba(109,40,217,0.4)" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
+        <text x="80" y="83" textAnchor="middle" fontSize="14" fill="rgba(196,181,253,0.9)">✦</text>
+      </svg>
+    </div>
+  );
+}
+
+function XPIllustration() {
+  return (
+    <div className="flex-1 flex items-end justify-center min-h-[160px] relative">
+      <svg viewBox="0 0 180 170" className="w-44 h-40">
+        <defs>
+          <radialGradient id="xpGlow" cx="50%" cy="85%" r="50%">
+            <stop offset="0%" stopColor="#9333ea" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#9333ea" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id="topFace" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#a855f7" />
+            <stop offset="100%" stopColor="#7c3aed" />
+          </linearGradient>
+          <linearGradient id="leftFace" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#6d28d9" />
+            <stop offset="100%" stopColor="#4c1d95" />
+          </linearGradient>
+          <linearGradient id="rightFace" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#5b21b6" />
+            <stop offset="100%" stopColor="#3b0764" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="90" cy="150" rx="60" ry="12" fill="url(#xpGlow)" />
+        {/* Isometric box */}
+        <polygon points="90,50 140,75 90,100 40,75" fill="url(#topFace)" stroke="rgba(196,181,253,0.4)" strokeWidth="0.8" />
+        <polygon points="40,75 90,100 90,140 40,115" fill="url(#leftFace)" stroke="rgba(139,92,246,0.3)" strokeWidth="0.8" />
+        <polygon points="140,75 90,100 90,140 140,115" fill="url(#rightFace)" stroke="rgba(109,40,217,0.4)" strokeWidth="0.8" />
+        {/* Arrow up */}
+        <polygon points="90,18 108,42 98,42 98,65 82,65 82,42 72,42" fill="#c084fc" opacity="0.9" stroke="rgba(232,121,249,0.5)" strokeWidth="0.8" />
+        {/* XP label */}
+        <text x="90" y="120" textAnchor="middle" fontSize="20" fontWeight="900" fill="white" fontFamily="Barlow, sans-serif" opacity="0.95">03</text>
+        <text x="90" y="132" textAnchor="middle" fontSize="7" fill="rgba(196,181,253,0.6)" letterSpacing="3">LEVEL</text>
+      </svg>
+      {/* Ring glow under */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-28 h-4 rounded-full"
+        style={{ background: "radial-gradient(ellipse, rgba(139,92,246,0.5) 0%, transparent 70%)", filter: "blur(6px)" }} />
+    </div>
+  );
+}
+
+function StreakIllustration() {
+  return (
+    <div className="flex-1 flex items-end justify-center min-h-[140px] relative">
+      <svg viewBox="0 0 160 150" className="w-36 h-36">
+        <defs>
+          <radialGradient id="fireGlow" cx="50%" cy="90%" r="55%">
+            <stop offset="0%" stopColor="#9333ea" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#9333ea" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id="flame1" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor="#7c3aed" />
+            <stop offset="60%" stopColor="#a855f7" />
+            <stop offset="100%" stopColor="#e9d5ff" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="80" cy="136" rx="45" ry="9" fill="url(#fireGlow)" />
+        {/* Flame shape */}
+        <path d="M80,22 C80,22 105,50 108,80 C111,100 100,118 80,124 C60,118 49,100 52,80 C55,50 80,22 80,22Z"
+          fill="url(#flame1)" opacity="0.9" />
+        <path d="M80,45 C80,45 95,65 96,85 C97,98 89,108 80,111 C71,108 63,98 64,85 C65,65 80,45 80,45Z"
+          fill="rgba(232,121,249,0.5)" />
+        {/* Ring */}
+        <circle cx="80" cy="92" r="28" fill="none" stroke="rgba(139,92,246,0.35)" strokeWidth="1.5" strokeDasharray="5 4" />
+        {/* Streak badge */}
+        <rect x="108" y="55" width="40" height="46" rx="8" fill="rgba(15,8,40,0.9)" stroke="rgba(139,92,246,0.5)" strokeWidth="1" />
+        <text x="128" y="72" textAnchor="middle" fontSize="7" fill="rgba(167,139,250,0.6)" letterSpacing="1">STREAK</text>
+        <text x="128" y="90" textAnchor="middle" fontSize="18" fontWeight="900" fill="white" fontFamily="Barlow, sans-serif">14</text>
+        <text x="128" y="100" textAnchor="middle" fontSize="6" fill="rgba(167,139,250,0.5)" letterSpacing="1">DAYS</text>
+      </svg>
+    </div>
+  );
+}
+
+function SkillTreeIllustration() {
+  const nodes = [
+    { cx: 100, cy: 30, label: "🧠", size: 22 },
+    { cx: 55, cy: 75, label: "💪", size: 18 },
+    { cx: 145, cy: 75, label: "📖", size: 18 },
+    { cx: 40, cy: 125, label: "❤️", size: 16 },
+    { cx: 100, cy: 125, label: "🔒", size: 16 },
+    { cx: 160, cy: 125, label: "🎯", size: 16 },
+  ];
+  const edges = [[0,1],[0,2],[1,3],[1,4],[2,5]];
+  return (
+    <div className="flex-1 flex items-center justify-center min-h-[140px]">
+      <svg viewBox="0 0 200 155" className="w-40 h-36">
+        {edges.map(([a,b],i) => (
+          <motion.line key={i}
+            x1={nodes[a].cx} y1={nodes[a].cy} x2={nodes[b].cx} y2={nodes[b].cy}
+            stroke="rgba(139,92,246,0.4)" strokeWidth="1.5" strokeDasharray="4 3"
             initial={{ pathLength: 0 }}
             whileInView={{ pathLength: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 1.1, delay: 0.4 + i * 0.12 }}
+            transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }}
           />
         ))}
         {nodes.map((n, i) => (
-          <motion.g
-            key={i}
+          <motion.g key={i}
             initial={{ opacity: 0, scale: 0 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.25 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ delay: 0.2 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
             style={{ transformOrigin: `${n.cx}px ${n.cy}px` }}
           >
-            {/* Glow ring */}
-            <circle
-              cx={n.cx}
-              cy={n.cy}
-              r={n.r + 4}
-              fill="none"
-              stroke={n.color}
-              strokeOpacity="0.12"
-              strokeWidth="1"
-            />
-            <circle
-              cx={n.cx}
-              cy={n.cy}
-              r={n.r}
-              fill={`${n.color}18`}
-              stroke={n.color}
-              strokeOpacity="0.5"
-              strokeWidth="1"
-            />
-            <circle cx={n.cx} cy={n.cy} r={n.r * 0.5} fill={`${n.color}35`} />
-            <text
-              x={n.cx}
-              y={n.cy + 5}
-              textAnchor="middle"
-              fontSize={i === 0 ? 13 : 9}
-              fill="white"
-            >
-              {n.icon}
-            </text>
+            <circle cx={n.cx} cy={n.cy} r={n.size + 4} fill="none" stroke="rgba(139,92,246,0.15)" strokeWidth="1" />
+            <circle cx={n.cx} cy={n.cy} r={n.size} fill="rgba(88,28,220,0.35)" stroke="rgba(139,92,246,0.5)" strokeWidth="1" />
+            <text x={n.cx} y={n.cy + 5} textAnchor="middle" fontSize={n.size * 0.85}>{n.label}</text>
           </motion.g>
         ))}
       </svg>
@@ -292,400 +252,234 @@ function NetworkViz() {
   );
 }
 
-// ─── Stat badge (streak / done) ───────────────────────────────────────────────
-function StatBadge({
-  label,
-  value,
-  colorClass,
-  borderClass,
-  bgClass,
-}: {
-  label: string;
-  value: string;
-  colorClass: string;
-  borderClass: string;
-  bgClass: string;
-}) {
+function DevIllustration() {
   return (
-    <div
-      className={`flex-1 p-3 rounded-xl text-center ${bgClass} ${borderClass} border`}
-      style={{ backdropFilter: "blur(12px)" }}
-    >
-      <div className={`text-[9px] font-mono uppercase tracking-widest mb-0.5 ${colorClass} opacity-60`}>
-        {label}
+    <div className="flex-1 flex items-end justify-end min-h-[140px] relative overflow-hidden">
+      {/* Floating XP badge */}
+      <div className="absolute top-2 right-0 z-20">
+        <div className="px-3 py-2 rounded-xl text-right"
+          style={{ background: "rgba(10,5,28,0.9)", border: "1px solid rgba(139,92,246,0.35)", backdropFilter: "blur(12px)" }}>
+          <div className="text-[9px] font-mono tracking-widest uppercase mb-0.5" style={{ color: "rgba(167,139,250,0.55)" }}>TOTAL XP</div>
+          <div className="text-2xl font-black text-white" style={{ fontFamily: "Barlow, sans-serif", lineHeight: 1 }}>2,450</div>
+          <div className="text-[10px] font-mono" style={{ color: "#a855f7" }}>+250 today</div>
+        </div>
       </div>
-      <div className={`text-lg font-extrabold ${colorClass}`}
-        style={{ fontFamily: "'Sora', sans-serif" }}>
-        {value}
+      {/* Code window mockup */}
+      <div className="w-48 rounded-xl overflow-hidden"
+        style={{ background: "rgba(8,4,22,0.9)", border: "1px solid rgba(139,92,246,0.25)" }}>
+        <div className="flex items-center gap-1.5 px-3 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          {["#ff5f57","#febc2e","#28c840"].map(c => (
+            <div key={c} className="w-2 h-2 rounded-full" style={{ background: c, opacity: 0.7 }} />
+          ))}
+        </div>
+        <div className="p-3 font-mono text-[9px] leading-5">
+          <div><span style={{ color: "#c084fc" }}>const</span> <span style={{ color: "#7dd3fc" }}>xp</span> <span style={{ color: "white" }}>= </span><span style={{ color: "#86efac" }}>2450</span></div>
+          <div><span style={{ color: "#c084fc" }}>function</span> <span style={{ color: "#fbbf24" }}>commit</span><span style={{ color: "white" }}>()</span></div>
+          <div style={{ paddingLeft: 10 }}><span style={{ color: "#86efac" }}>"+250 XP"</span></div>
+          {/* Contribution grid */}
+          <div className="mt-2 flex flex-wrap gap-[2px]">
+            {Array.from({ length: 40 }).map((_, i) => {
+              const v = Math.random();
+              return <div key={i} className="w-2 h-2 rounded-[1px]"
+                style={{ background: v > 0.65 ? "rgba(168,85,247,0.9)" : v > 0.35 ? "rgba(109,40,217,0.5)" : "rgba(255,255,255,0.06)" }} />;
+            })}
+          </div>
+        </div>
+        {/* GitHub logo */}
+        <div className="flex items-center justify-center py-2" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <svg viewBox="0 0 24 24" className="w-6 h-6" fill="rgba(139,92,246,0.7)">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+          </svg>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Section label ────────────────────────────────────────────────────────────
-function SectionLabel({ index, text }: { index: string; text: string }) {
-  return (
-    <div className="flex items-center justify-center gap-3 mb-4">
-      <div className="h-px w-10 bg-gradient-to-r from-transparent to-violet-500/40" />
-      <span
-        className="text-[10px] font-mono tracking-[0.3em] uppercase"
-        style={{ color: "rgba(167,139,250,0.5)" }}
-      >
-        {index} · {text}
-      </span>
-      <div className="h-px w-10 bg-gradient-to-l from-transparent to-violet-500/40" />
-    </div>
-  );
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
+/* ── Main Section ── */
 const LiveSystemPreview = () => {
   const sectionRef = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  });
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const headerY = useTransform(scrollYProgress, [0, 0.3], [50, 0]);
   const headerOpacity = useTransform(scrollYProgress, [0, 0.22], [0, 1]);
 
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen flex flex-col justify-center py-28 overflow-hidden"
-      style={{ background: "#060412", fontFamily: "'Sora', sans-serif" }}
+      className="relative py-28 overflow-hidden"
+      style={{ background: "#07041a" }}
     >
-      {/* ── Background atmosphere ── */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 120% 60% at 50% 50%, rgba(88,28,220,0.12) 0%, rgba(6,4,18,0) 65%)",
-        }}
-      />
-      {/* Corner orbs */}
-      <div
-        className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(109,40,217,0.12) 0%, transparent 65%)",
-          filter: "blur(80px)",
-        }}
-      />
-      <div
-        className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(79,22,220,0.1) 0%, transparent 65%)",
-          filter: "blur(90px)",
-        }}
-      />
+      {/* Fonts */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
+      `}</style>
 
-      {/* Dot grid */}
-      <div
-        className="absolute inset-0 pointer-events-none"
+      {/* Background */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse 100% 60% at 50% 40%, rgba(88,28,220,0.13) 0%, transparent 65%)" }} />
+      <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(109,40,217,0.1) 0%, transparent 65%)", filter: "blur(80px)" }} />
+      <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(79,22,220,0.09) 0%, transparent 65%)", filter: "blur(90px)" }} />
+      <div className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage:
-            "radial-gradient(circle, rgba(139,92,246,0.055) 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, rgba(139,92,246,0.05) 1px, transparent 1px)",
           backgroundSize: "44px 44px",
-          maskImage:
-            "radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 85%)",
-        }}
-      />
+          maskImage: "radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 85%)",
+        }} />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 w-full">
-        {/* ── Section header ── */}
-        <motion.div
-          style={{ y: headerY, opacity: headerOpacity }}
-          className="text-center mb-16"
-        >
-          <SectionLabel index="01" text="Live System" />
+      {/* Floating diamonds */}
+      <Diamond style={{ top: "15%", left: "8%", width: 8, height: 8 }} />
+      <Diamond style={{ top: "35%", right: "6%", width: 10, height: 10 }} />
+      <Diamond style={{ top: "65%", left: "5%", width: 7, height: 7 }} />
+      <Diamond style={{ bottom: "20%", right: "10%", width: 9, height: 9 }} />
+      <Diamond style={{ top: "20%", right: "18%", width: 6, height: 6 }} />
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 w-full">
+
+        {/* ── Section Header ── */}
+        <motion.div style={{ y: headerY, opacity: headerOpacity }} className="text-center mb-14">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6"
+            style={{ background: "rgba(109,40,217,0.12)", border: "1px solid rgba(139,92,246,0.28)" }}>
+            <span style={{ color: "#a78bfa", fontSize: 12 }}>✦</span>
+            <span className="font-medium tracking-widest uppercase"
+              style={{ fontSize: 10, color: "rgba(167,139,250,0.85)", letterSpacing: "0.14em", fontFamily: "'DM Sans', sans-serif" }}>
+              Built for Growth
+            </span>
+          </div>
+
           <h2
-            className="text-5xl md:text-6xl font-extrabold text-white leading-[1.06] mb-4"
-            style={{ letterSpacing: "-0.04em" }}
+            className="font-black uppercase text-white leading-none mb-5"
+            style={{ fontSize: "clamp(2.8rem,7vw,5.5rem)", fontFamily: "'Barlow', sans-serif", letterSpacing: "-0.02em" }}
           >
-            Life as an{" "}
-            <span
-              style={{
-                background:
-                  "linear-gradient(125deg, #ddd6fe 0%, #a78bfa 30%, #7c3aed 60%, #c084fc 90%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              RPG
+            Level Up Your{" "}
+            <span style={{
+              background: "linear-gradient(135deg,#7c3aed 0%,#9333ea 40%,#a855f7 70%,#c084fc 100%)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+            }}>
+              System
             </span>
           </h2>
-          <p
-            className="text-sm max-w-md mx-auto leading-relaxed"
-            style={{ color: "rgba(200,190,230,0.4)" }}
-          >
-            Your habits, goals, and work sessions converted into game mechanics.
-            Progress isn't abstract — it's measurable.
+
+          <p className="max-w-xl mx-auto leading-relaxed text-center"
+            style={{ fontSize: "clamp(0.88rem,1.4vw,1rem)", color: "rgba(190,175,230,0.5)", fontFamily: "'DM Sans', sans-serif" }}>
+            Build habits, earn XP, and evolve your character.<br />
+            Kyzen turns your daily grind into a progression system that actually feels rewarding.
           </p>
         </motion.div>
 
-        {/* ── Bento grid ── */}
-        <div className="grid grid-cols-12 gap-4">
+        {/* ── Bento Grid ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
 
-          {/* ── XP / Stats card ── */}
-          <BentoCard
-            delay={0.08}
-            accentColor="rgba(124,58,237,0.18)"
-            accentPos="40% 0%"
-            className="col-span-12 md:col-span-4 row-span-2"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <CardHeader eyebrow="Daily XP" title="⚡ Experience" />
-              <span
-                className="px-2.5 py-1 rounded-full text-[9px] font-mono tracking-widest flex-shrink-0 mt-0.5"
-                style={{
-                  background: "rgba(124,58,237,0.15)",
-                  border: "1px solid rgba(124,58,237,0.3)",
-                  color: "#c4b5fd",
-                }}
-              >
-                ACTIVE
-              </span>
-            </div>
-
-            <p className="text-xs leading-relaxed mb-5" style={{ color: "rgba(200,185,240,0.35)" }}>
-              Every commit, focus session, and completed task earns XP. Your
-              effort is never invisible.
+          {/* Card 1: Daily Quests */}
+          <BentoCard delay={0.1} glowColor="rgba(99,102,241,0.12)" glowPos="30% 0%">
+            <IconBox>📋</IconBox>
+            <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
+              Daily Quests &amp; Missions
+            </h3>
+            <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+              Turn tasks into structured quests with rewards.
             </p>
+            <div className="space-y-2.5 mb-4">
+              <Bullet icon="◎" text="Daily / Weekly challenges" />
+              <Bullet icon="✦" text="XP rewards on completion" />
+              <Bullet icon="▐" text="Dynamic difficulty scaling" />
+            </div>
+            <QuestIllustration />
+          </BentoCard>
 
-            {/* Stat bars */}
-            <div className="space-y-3.5 mb-6">
-              {STATS.map((s, i) => (
-                <div key={s.label} className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <span
-                      className="text-[10px] font-mono tracking-widest uppercase"
-                      style={{ color: "rgba(255,255,255,0.3)" }}
-                    >
-                      {s.label}
-                    </span>
-                    <span
-                      className="text-[10px] font-mono font-bold"
-                      style={{ color: s.color }}
-                    >
-                      {s.value}
-                    </span>
-                  </div>
-                  <AnimatedBar value={s.value} color={s.color} delay={0.2 + i * 0.1} />
+          {/* Card 2: XP & Leveling — FEATURED center */}
+          <BentoCard delay={0.18} featured glowColor="rgba(139,92,246,0.2)" glowPos="50% 10%">
+            <div className="flex items-start gap-3 mb-1">
+              <IconBox color="rgba(139,92,246,0.4)">
+                <span className="text-white font-black text-base" style={{ fontFamily: "'Barlow', sans-serif" }}>XP</span>
+              </IconBox>
+            </div>
+            <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
+              Real-Time XP &amp; Leveling
+            </h3>
+            <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+              Every action contributes to your growth.
+            </p>
+            <div className="space-y-2.5 mb-4">
+              <Bullet icon="⚡" text="Instant XP feedback" />
+              <Bullet icon="↗" text="Level progression system" />
+              <Bullet icon="◎" text="Visual progress tracking" />
+            </div>
+            <XPIllustration />
+          </BentoCard>
+
+          {/* Card 3: Streaks */}
+          <BentoCard delay={0.26} glowColor="rgba(168,85,247,0.1)" glowPos="70% 0%">
+            <IconBox color="rgba(139,92,246,0.3)">🔥</IconBox>
+            <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
+              Streaks &amp; Consistency
+            </h3>
+            <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+              Stay locked in and build momentum.
+            </p>
+            <div className="space-y-2.5 mb-4">
+              <Bullet icon="📅" text="Daily streak tracking" />
+              <Bullet icon="↑" text="Multipliers for consistency" />
+              <Bullet icon="◎" text="Recovery systems (no harsh resets)" />
+            </div>
+            <StreakIllustration />
+          </BentoCard>
+        </div>
+
+        {/* ── Bottom Row ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Card 4: Skill Trees */}
+          <BentoCard delay={0.14} glowColor="rgba(192,132,252,0.1)" glowPos="20% 50%">
+            <div className="flex flex-col md:flex-row gap-6 h-full">
+              <div className="flex-1">
+                <IconBox>🔗</IconBox>
+                <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                  Skill Trees &amp; Stats
+                </h3>
+                <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+                  Upgrade real-life abilities like a game.
+                </p>
+                <div className="space-y-2.5">
+                  <Bullet icon="🧠" text="Logic, Discipline, Health, Focus" />
+                  <Bullet icon="↑" text="Level-based progression" />
+                  <Bullet icon="🔒" text="Unlock advanced perks" />
                 </div>
-              ))}
+              </div>
+              <div className="flex-1 flex items-center justify-center">
+                <SkillTreeIllustration />
+              </div>
             </div>
+          </BentoCard>
 
-            {/* Level progress */}
-            <div className="mt-auto space-y-3">
-              <div>
-                <div
-                  className="flex justify-between text-[10px] font-mono mb-1.5"
-                  style={{ color: "rgba(255,255,255,0.25)" }}
-                >
-                  <span>LVL 42</span>
-                  <span>14,320 / 18,000 XP</span>
-                </div>
-                <div
-                  className="h-2 rounded-full overflow-hidden"
-                  style={{ background: "rgba(255,255,255,0.05)" }}
-                >
-                  <motion.div
-                    initial={{ width: 0 }}
-                    whileInView={{ width: "79%" }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 1.6, delay: 0.4, ease: "easeOut" }}
-                    className="h-full rounded-full"
-                    style={{
-                      background:
-                        "linear-gradient(90deg,#7c3aed,#a855f7,#e879f9)",
-                      boxShadow: "0 0 14px rgba(168,85,247,0.55)",
-                    }}
-                  />
+          {/* Card 5: Built for Developers */}
+          <BentoCard delay={0.22} glowColor="rgba(125,211,252,0.07)" glowPos="80% 50%">
+            <div className="flex flex-col md:flex-row gap-6 h-full">
+              <div className="flex-1">
+                <IconBox color="rgba(88,28,220,0.35)">
+                  <span className="text-[13px] font-mono" style={{ color: "rgba(196,181,253,0.9)" }}>{"</>"}</span>
+                </IconBox>
+                <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                  Built for Developers
+                </h3>
+                <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+                  Connect your actual work to your progress.
+                </p>
+                <div className="space-y-2.5">
+                  <Bullet icon="⬡" text="GitHub activity → XP" />
+                  <Bullet icon="◇" text="Coding time tracking" />
+                  <Bullet icon="▐" text="Real productivity signals" />
                 </div>
               </div>
-
-              {/* Streak + Done badges */}
-              <div className="flex gap-2">
-                <StatBadge
-                  label="Streak"
-                  value="34 🔥"
-                  colorClass="text-orange-400"
-                  bgClass="bg-orange-500/10"
-                  borderClass="border-orange-500/20"
-                />
-                <StatBadge
-                  label="Done"
-                  value="12 ✓"
-                  colorClass="text-emerald-400"
-                  bgClass="bg-emerald-500/10"
-                  borderClass="border-emerald-500/20"
-                />
+              <div className="flex-1 flex items-end justify-end">
+                <DevIllustration />
               </div>
-            </div>
-          </BentoCard>
-
-          {/* ── Quest System ── */}
-          <BentoCard
-            delay={0.18}
-            accentColor="rgba(99,102,241,0.14)"
-            accentPos="70% 0%"
-            className="col-span-12 md:col-span-5"
-          >
-            <CardHeader
-              eyebrow="Quest System"
-              title="🏹 Active Quests"
-              eyebrowColor="rgba(129,140,248,0.55)"
-            />
-            <p className="text-xs leading-relaxed mb-4" style={{ color: "rgba(200,185,240,0.35)" }}>
-              Auto-generated from your GitHub activity, calendar, and goals.
-            </p>
-            <div className="space-y-2">
-              {QUESTS.map((q, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -12 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.25 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-                  style={{
-                    background: q.done
-                      ? "rgba(16,185,129,0.07)"
-                      : "rgba(255,255,255,0.025)",
-                    border: q.done
-                      ? "1px solid rgba(16,185,129,0.18)"
-                      : "1px solid rgba(255,255,255,0.05)",
-                    backdropFilter: "blur(10px)",
-                  }}
-                >
-                  {/* Checkbox */}
-                  <div
-                    className="w-4 h-4 rounded-md flex items-center justify-center flex-shrink-0 text-[9px] font-bold"
-                    style={{
-                      background: q.done
-                        ? "rgba(16,185,129,0.9)"
-                        : "rgba(255,255,255,0.05)",
-                      border: q.done ? "none" : "1px solid rgba(255,255,255,0.15)",
-                      color: q.done ? "#000" : "transparent",
-                    }}
-                  >
-                    ✓
-                  </div>
-                  <span
-                    className="flex-1 text-xs truncate"
-                    style={{
-                      color: q.done ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.72)",
-                      textDecoration: q.done ? "line-through" : "none",
-                    }}
-                  >
-                    {q.title}
-                  </span>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span
-                      className="text-[9px] font-mono px-1.5 py-0.5 rounded"
-                      style={{
-                        color: "#a78bfa",
-                        background: "rgba(167,139,250,0.1)",
-                        border: "1px solid rgba(167,139,250,0.15)",
-                      }}
-                    >
-                      {q.tag}
-                    </span>
-                    <span className="text-[10px] font-mono" style={{ color: "rgba(250,204,21,0.65)" }}>
-                      +{q.xp}
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </BentoCard>
-
-          {/* ── Streak card ── */}
-          <BentoCard
-            delay={0.28}
-            accentColor="rgba(234,88,12,0.1)"
-            accentPos="50% 100%"
-            className="col-span-12 md:col-span-3"
-          >
-            <CardHeader
-              eyebrow="Streak Engine"
-              title="🔥 Streaks"
-              eyebrowColor="rgba(251,146,60,0.55)"
-            />
-            <p className="text-[11px] leading-relaxed mb-4" style={{ color: "rgba(200,185,240,0.35)" }}>
-              Maintain momentum chains. Break one and your score drops.
-            </p>
-            <div className="flex-1 mb-5">
-              <StreakCalendar />
-            </div>
-            <div
-              className="text-center py-3 rounded-xl"
-              style={{
-                background: "rgba(234,88,12,0.08)",
-                border: "1px solid rgba(234,88,12,0.15)",
-              }}
-            >
-              <div
-                className="text-3xl font-extrabold text-orange-400"
-                style={{ fontFamily: "'Sora', sans-serif" }}
-              >
-                34
-              </div>
-              <div className="text-[9px] font-mono tracking-widest uppercase mt-0.5" style={{ color: "rgba(251,146,60,0.5)" }}>
-                day streak
-              </div>
-            </div>
-          </BentoCard>
-
-          {/* ── Skill Trees ── */}
-          <BentoCard
-            delay={0.14}
-            accentColor="rgba(192,132,252,0.12)"
-            accentPos="20% 50%"
-            className="col-span-12 md:col-span-5"
-          >
-            <CardHeader
-              eyebrow="Skill Trees"
-              title="🧠 Mastery"
-              eyebrowColor="rgba(192,132,252,0.55)"
-            />
-            <p className="text-xs leading-relaxed mb-6" style={{ color: "rgba(200,185,240,0.35)" }}>
-              Unlock branches in DSA, System Design, Deep Work. Your growth, mapped visually.
-            </p>
-            <div className="space-y-3 mt-auto">
-              {SKILLS.map((s, i) => (
-                <SkillRow key={i} skill={s} delay={0.2 + i * 0.06} />
-              ))}
-            </div>
-          </BentoCard>
-
-          {/* ── Guild Network ── */}
-          <BentoCard
-            delay={0.34}
-            accentColor="rgba(125,211,252,0.08)"
-            accentPos="50% 80%"
-            className="col-span-12 md:col-span-3"
-          >
-            <CardHeader
-              eyebrow="Guild Network"
-              title="⚔ Social"
-              eyebrowColor="rgba(125,211,252,0.5)"
-            />
-            <p className="text-[11px] leading-relaxed mb-3" style={{ color: "rgba(200,185,240,0.35)" }}>
-              Form parties, compete in weekly wars, share quests with your guild.
-            </p>
-            <div className="flex-1 flex items-center justify-center min-h-[150px]">
-              <NetworkViz />
             </div>
           </BentoCard>
         </div>
       </div>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-      `}</style>
     </section>
   );
 };

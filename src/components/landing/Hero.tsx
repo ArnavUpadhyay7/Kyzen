@@ -28,10 +28,14 @@ const DIAMONDS = [
   { top: "32%", left: "74%", width: 6,  height: 6  },
 ];
 
-const fadeUp = (delay) => ({
+const fadeUp = (delay: number) => ({
   initial: { opacity: 0, y: 28 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] },
+  transition: {
+    duration: 0.7,
+    delay,
+    ease: [0.16, 1, 0.3, 1] as const,
+  },
 });
 
 /* ── Stat card ── */
