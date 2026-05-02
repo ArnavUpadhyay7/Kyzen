@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
-/* ── Floating diamond shapes ── */
 function Diamond({ style }) {
   return (
     <motion.div
@@ -38,7 +37,6 @@ const fadeUp = (delay: number) => ({
   },
 });
 
-/* ── Stat card ── */
 function StatCard({ children, style, className = "" }) {
   return (
     <motion.div

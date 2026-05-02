@@ -8,7 +8,6 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.72, delay, ease: [0.22, 1, 0.36, 1] as any },
 });
 
-/* ── Diamond floater ── */
 function Diamond({ style }: { style: React.CSSProperties }) {
   return (
     <motion.div
@@ -25,7 +24,6 @@ function Diamond({ style }: { style: React.CSSProperties }) {
   );
 }
 
-/* ── Feature bullet row ── */
 function Bullet({ icon, text }: { icon: string; text: string }) {
   return (
     <div className="flex items-center gap-2.5">
@@ -35,7 +33,6 @@ function Bullet({ icon, text }: { icon: string; text: string }) {
   );
 }
 
-/* ── Icon box ── */
 function IconBox({ children, color = "rgba(109,40,217,0.3)" }: { children: React.ReactNode; color?: string }) {
   return (
     <div
@@ -51,7 +48,6 @@ function IconBox({ children, color = "rgba(109,40,217,0.3)" }: { children: React
   );
 }
 
-/* ── Bento card ── */
 function BentoCard({
   children,
   className = "",
@@ -108,11 +104,9 @@ function BentoCard({
   );
 }
 
-/* ── Placeholder visual (isometric-style SVG placeholders) ── */
 function QuestIllustration() {
   return (
-    <div className="flex-1 flex items-end justify-center min-h-[140px] relative">
-      {/* Scroll/document shape */}
+    <div className="flex-1 flex items-end justify-center min-h-35 relative">
       <svg viewBox="0 0 160 140" className="w-36 h-32 opacity-80">
         <defs>
           <radialGradient id="scrollGlow" cx="50%" cy="80%" r="60%">
@@ -296,7 +290,6 @@ function DevIllustration() {
   );
 }
 
-/* ── Main Section ── */
 const LiveSystemPreview = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
