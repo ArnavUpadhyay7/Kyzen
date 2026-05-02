@@ -12,7 +12,7 @@ import Footer from "../components/global/Footer";
 import Hero from "../components/landing/Hero";
 import { RANKS } from "../constants/rank";
 import { SKILLS } from "../constants/skills";
-import LiveSystemPreview from "../components/landing/LiveSystemPreview";
+import LiveSystemPreview from "../components/landing/Features";
 
 function useLenis() {
   useEffect(() => {

@@ -122,7 +122,7 @@ function QuestIllustration() {
         <rect x="42" y="20" width="76" height="90" rx="6" fill="url(#scrollBody)" stroke="rgba(139,92,246,0.5)" strokeWidth="1" />
         <rect x="36" y="14" width="88" height="16" rx="8" fill="#3b0764" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
         <rect x="36" y="90" width="88" height="16" rx="8" fill="#3b0764" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
-        {[35,47,59,71].map((y, i) => (
+        {[35, 47, 59, 71].map((y, i) => (
           <rect key={i} x="54" y={y} width={30 + (i % 2) * 14} height="3" rx="1.5" fill="rgba(139,92,246,0.35)" />
         ))}
         <circle cx="80" cy="78" r="14" fill="rgba(109,40,217,0.4)" stroke="rgba(139,92,246,0.6)" strokeWidth="1" />
@@ -214,11 +214,11 @@ function SkillTreeIllustration() {
     { cx: 100, cy: 125, label: "🔒", size: 16 },
     { cx: 160, cy: 125, label: "🎯", size: 16 },
   ];
-  const edges = [[0,1],[0,2],[1,3],[1,4],[2,5]];
+  const edges = [[0, 1], [0, 2], [1, 3], [1, 4], [2, 5]];
   return (
     <div className="flex-1 flex items-center justify-center min-h-[140px]">
       <svg viewBox="0 0 200 155" className="w-40 h-36">
-        {edges.map(([a,b],i) => (
+        {edges.map(([a, b], i) => (
           <motion.line key={i}
             x1={nodes[a].cx} y1={nodes[a].cy} x2={nodes[b].cx} y2={nodes[b].cy}
             stroke="rgba(139,92,246,0.4)" strokeWidth="1.5" strokeDasharray="4 3"
@@ -262,7 +262,7 @@ function DevIllustration() {
       <div className="w-48 rounded-xl overflow-hidden"
         style={{ background: "rgba(8,4,22,0.9)", border: "1px solid rgba(139,92,246,0.25)" }}>
         <div className="flex items-center gap-1.5 px-3 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-          {["#ff5f57","#febc2e","#28c840"].map(c => (
+          {["#ff5f57", "#febc2e", "#28c840"].map(c => (
             <div key={c} className="w-2 h-2 rounded-full" style={{ background: c, opacity: 0.7 }} />
           ))}
         </div>
@@ -290,7 +290,7 @@ function DevIllustration() {
   );
 }
 
-const LiveSystemPreview = () => {
+const Features = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const headerY = useTransform(scrollYProgress, [0, 0.3], [50, 0]);
@@ -346,11 +346,18 @@ const LiveSystemPreview = () => {
             className="font-black uppercase text-white leading-none mb-5"
             style={{ fontSize: "clamp(2.8rem,7vw,5.5rem)", fontFamily: "'Barlow', sans-serif", letterSpacing: "-0.02em" }}
           >
-            Level Up Your{" "}
-            <span style={{
-              background: "linear-gradient(135deg,#7c3aed 0%,#9333ea 40%,#a855f7 70%,#c084fc 100%)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-            }}>
+            Level Up Your
+            <span
+              className="block font-black uppercase"
+              style={{
+                fontSize: "clamp(3.6rem,8vw,6.4rem)",
+                fontFamily: "'Barlow', sans-serif",
+                background: "linear-gradient(135deg,#7c3aed 0%,#9333ea 40%,#a855f7 70%,#c084fc 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
               System
             </span>
           </h2>
@@ -477,4 +484,4 @@ const LiveSystemPreview = () => {
   );
 };
 
-export default LiveSystemPreview;
+export default Features;
