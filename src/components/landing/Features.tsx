@@ -1,12 +1,8 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import { gradients, borders, shadows, anim, typography } from "../../design-system";
 
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 36 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.72, delay, ease: [0.22, 1, 0.36, 1] as any },
-});
+const { fadeUp } = anim;
 
 function Diamond({ style }: { style: React.CSSProperties }) {
   return (
@@ -27,41 +23,28 @@ function Diamond({ style }: { style: React.CSSProperties }) {
 function Bullet({ icon, text }: { icon: string; text: string }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="text-purple-400/60 text-sm flex-shrink-0">{icon}</span>
-      <span className="text-[13px]" style={{ color: "rgba(200,185,240,0.55)" }}>{text}</span>
+      <span style={{ color: "rgba(167,139,250,0.55)", fontSize: 13 }} className="flex-shrink-0">{icon}</span>
+      <span className="text-[13px]" style={{ color: "rgba(200,185,240,0.55)", fontFamily: typography.body }}>{text}</span>
     </div>
   );
 }
 
 function IconBox({ children, color = "rgba(109,40,217,0.3)" }: { children: React.ReactNode; color?: string }) {
   return (
-    <div
-      className="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 flex-shrink-0"
-      style={{
-        background: color,
-        border: "1px solid rgba(139,92,246,0.3)",
-        boxShadow: "0 0 20px rgba(109,40,217,0.2)",
-      }}
-    >
+    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4 flex-shrink-0"
+      style={{ background: color, border: borders.accent, boxShadow: "0 0 20px rgba(109,40,217,0.18)" }}>
       {children}
     </div>
   );
 }
 
+// Unified bento card — uses the same visual language as Card in Landing.tsx
 function BentoCard({
-  children,
-  className = "",
-  delay = 0,
-  glowColor = "rgba(109,40,217,0.12)",
-  glowPos = "50% 0%",
-  featured = false,
+  children, className = "", delay = 0,
+  glowColor = "rgba(109,40,217,0.12)", glowPos = "50% 0%", featured = false,
 }: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-  glowColor?: string;
-  glowPos?: string;
-  featured?: boolean;
+  children: React.ReactNode; className?: string; delay?: number;
+  glowColor?: string; glowPos?: string; featured?: boolean;
 }) {
   return (
     <motion.div
@@ -70,33 +53,19 @@ function BentoCard({
       transition={{ type: "spring", stiffness: 280, damping: 28 }}
       className={`relative rounded-2xl overflow-hidden flex flex-col ${className}`}
       style={{
-        background: featured
-          ? "rgba(18, 8, 45, 0.9)"
-          : "rgba(10, 5, 28, 0.7)",
-        border: featured
-          ? "1px solid rgba(139,92,246,0.45)"
-          : "1px solid rgba(255,255,255,0.07)",
+        background: featured ? "rgba(18,8,45,0.88)" : "rgba(10,5,28,0.65)",
+        border: featured ? borders.featured : borders.subtle,
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
-        boxShadow: featured
-          ? "0 0 40px rgba(109,40,217,0.2), 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07)"
-          : "0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
+        boxShadow: featured ? shadows.cardFeatured : shadows.card,
       }}
     >
-      {/* Top glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: `radial-gradient(ellipse at ${glowPos}, ${glowColor}, transparent 60%)` }}
-      />
-      {/* Top edge shimmer */}
-      <div
-        className="absolute top-0 inset-x-0 h-px pointer-events-none"
-        style={{
-          background: featured
-            ? "linear-gradient(90deg, transparent 5%, rgba(139,92,246,0.7) 50%, transparent 95%)"
-            : "linear-gradient(90deg, transparent 10%, rgba(139,92,246,0.25) 50%, transparent 90%)",
-        }}
-      />
+      {/* Ambient top glow — unique per card but consistent style */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: `radial-gradient(ellipse at ${glowPos}, ${glowColor}, transparent 60%)` }} />
+      {/* Unified top-edge shimmer — same on every card across the app */}
+      <div className="absolute top-0 inset-x-0 h-px pointer-events-none"
+        style={{ background: featured ? gradients.cardEdgeShimmerFeatured : gradients.cardEdgeShimmer }} />
       <div className="relative z-10 h-full p-6 flex flex-col">
         {children}
       </div>
@@ -104,6 +73,7 @@ function BentoCard({
   );
 }
 
+// ─── ILLUSTRATIONS (unchanged — good SVG work) ────────────────────────────────
 function QuestIllustration() {
   return (
     <div className="flex-1 flex items-end justify-center min-h-35 relative">
@@ -155,17 +125,13 @@ function XPIllustration() {
           </linearGradient>
         </defs>
         <ellipse cx="90" cy="150" rx="60" ry="12" fill="url(#xpGlow)" />
-        {/* Isometric box */}
         <polygon points="90,50 140,75 90,100 40,75" fill="url(#topFace)" stroke="rgba(196,181,253,0.4)" strokeWidth="0.8" />
         <polygon points="40,75 90,100 90,140 40,115" fill="url(#leftFace)" stroke="rgba(139,92,246,0.3)" strokeWidth="0.8" />
         <polygon points="140,75 90,100 90,140 140,115" fill="url(#rightFace)" stroke="rgba(109,40,217,0.4)" strokeWidth="0.8" />
-        {/* Arrow up */}
         <polygon points="90,18 108,42 98,42 98,65 82,65 82,42 72,42" fill="#c084fc" opacity="0.9" stroke="rgba(232,121,249,0.5)" strokeWidth="0.8" />
-        {/* XP label */}
         <text x="90" y="120" textAnchor="middle" fontSize="20" fontWeight="900" fill="white" fontFamily="Barlow, sans-serif" opacity="0.95">03</text>
         <text x="90" y="132" textAnchor="middle" fontSize="7" fill="rgba(196,181,253,0.6)" letterSpacing="3">LEVEL</text>
       </svg>
-      {/* Ring glow under */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-28 h-4 rounded-full"
         style={{ background: "radial-gradient(ellipse, rgba(139,92,246,0.5) 0%, transparent 70%)", filter: "blur(6px)" }} />
     </div>
@@ -188,14 +154,9 @@ function StreakIllustration() {
           </linearGradient>
         </defs>
         <ellipse cx="80" cy="136" rx="45" ry="9" fill="url(#fireGlow)" />
-        {/* Flame shape */}
-        <path d="M80,22 C80,22 105,50 108,80 C111,100 100,118 80,124 C60,118 49,100 52,80 C55,50 80,22 80,22Z"
-          fill="url(#flame1)" opacity="0.9" />
-        <path d="M80,45 C80,45 95,65 96,85 C97,98 89,108 80,111 C71,108 63,98 64,85 C65,65 80,45 80,45Z"
-          fill="rgba(232,121,249,0.5)" />
-        {/* Ring */}
+        <path d="M80,22 C80,22 105,50 108,80 C111,100 100,118 80,124 C60,118 49,100 52,80 C55,50 80,22 80,22Z" fill="url(#flame1)" opacity="0.9" />
+        <path d="M80,45 C80,45 95,65 96,85 C97,98 89,108 80,111 C71,108 63,98 64,85 C65,65 80,45 80,45Z" fill="rgba(232,121,249,0.5)" />
         <circle cx="80" cy="92" r="28" fill="none" stroke="rgba(139,92,246,0.35)" strokeWidth="1.5" strokeDasharray="5 4" />
-        {/* Streak badge */}
         <rect x="108" y="55" width="40" height="46" rx="8" fill="rgba(15,8,40,0.9)" stroke="rgba(139,92,246,0.5)" strokeWidth="1" />
         <text x="128" y="72" textAnchor="middle" fontSize="7" fill="rgba(167,139,250,0.6)" letterSpacing="1">STREAK</text>
         <text x="128" y="90" textAnchor="middle" fontSize="18" fontWeight="900" fill="white" fontFamily="Barlow, sans-serif">14</text>
@@ -222,20 +183,13 @@ function SkillTreeIllustration() {
           <motion.line key={i}
             x1={nodes[a].cx} y1={nodes[a].cy} x2={nodes[b].cx} y2={nodes[b].cy}
             stroke="rgba(139,92,246,0.4)" strokeWidth="1.5" strokeDasharray="4 3"
-            initial={{ pathLength: 0 }}
-            whileInView={{ pathLength: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }}
-          />
+            initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }}
+            viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }} />
         ))}
         {nodes.map((n, i) => (
-          <motion.g key={i}
-            initial={{ opacity: 0, scale: 0 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-            style={{ transformOrigin: `${n.cx}px ${n.cy}px` }}
-          >
+          <motion.g key={i} initial={{ opacity: 0, scale: 0 }} whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }} transition={{ delay: 0.2 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+            style={{ transformOrigin: `${n.cx}px ${n.cy}px` }}>
             <circle cx={n.cx} cy={n.cy} r={n.size + 4} fill="none" stroke="rgba(139,92,246,0.15)" strokeWidth="1" />
             <circle cx={n.cx} cy={n.cy} r={n.size} fill="rgba(88,28,220,0.35)" stroke="rgba(139,92,246,0.5)" strokeWidth="1" />
             <text x={n.cx} y={n.cy + 5} textAnchor="middle" fontSize={n.size * 0.85}>{n.label}</text>
@@ -249,20 +203,18 @@ function SkillTreeIllustration() {
 function DevIllustration() {
   return (
     <div className="flex-1 flex items-end justify-end min-h-[140px] relative overflow-hidden">
-      {/* Floating XP badge */}
       <div className="absolute top-2 right-0 z-20">
         <div className="px-3 py-2 rounded-xl text-right"
-          style={{ background: "rgba(10,5,28,0.9)", border: "1px solid rgba(139,92,246,0.35)", backdropFilter: "blur(12px)" }}>
-          <div className="text-[9px] font-mono tracking-widest uppercase mb-0.5" style={{ color: "rgba(167,139,250,0.55)" }}>TOTAL XP</div>
-          <div className="text-2xl font-black text-white" style={{ fontFamily: "Barlow, sans-serif", lineHeight: 1 }}>2,450</div>
-          <div className="text-[10px] font-mono" style={{ color: "#a855f7" }}>+250 today</div>
+          style={{ background: "rgba(10,5,28,0.92)", border: borders.accent, backdropFilter: "blur(12px)" }}>
+          <div className="text-[9px] font-mono tracking-widest uppercase mb-0.5" style={{ color: "rgba(167,139,250,0.55)", fontFamily: typography.mono }}>TOTAL XP</div>
+          <div className="text-2xl font-black text-white" style={{ fontFamily: typography.display, lineHeight: 1 }}>2,450</div>
+          <div className="text-[10px] font-mono" style={{ color: "#a855f7", fontFamily: typography.mono }}>+250 today</div>
         </div>
       </div>
-      {/* Code window mockup */}
       <div className="w-48 rounded-xl overflow-hidden"
-        style={{ background: "rgba(8,4,22,0.9)", border: "1px solid rgba(139,92,246,0.25)" }}>
+        style={{ background: "rgba(8,4,22,0.92)", border: borders.subtle }}>
         <div className="flex items-center gap-1.5 px-3 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-          {["#ff5f57", "#febc2e", "#28c840"].map(c => (
+          {["#ff5f57","#febc2e","#28c840"].map(c => (
             <div key={c} className="w-2 h-2 rounded-full" style={{ background: c, opacity: 0.7 }} />
           ))}
         </div>
@@ -270,7 +222,6 @@ function DevIllustration() {
           <div><span style={{ color: "#c084fc" }}>const</span> <span style={{ color: "#7dd3fc" }}>xp</span> <span style={{ color: "white" }}>= </span><span style={{ color: "#86efac" }}>2450</span></div>
           <div><span style={{ color: "#c084fc" }}>function</span> <span style={{ color: "#fbbf24" }}>commit</span><span style={{ color: "white" }}>()</span></div>
           <div style={{ paddingLeft: 10 }}><span style={{ color: "#86efac" }}>"+250 XP"</span></div>
-          {/* Contribution grid */}
           <div className="mt-2 flex flex-wrap gap-[2px]">
             {Array.from({ length: 40 }).map((_, i) => {
               const v = Math.random();
@@ -279,7 +230,6 @@ function DevIllustration() {
             })}
           </div>
         </div>
-        {/* GitHub logo */}
         <div className="flex items-center justify-center py-2" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
           <svg viewBox="0 0 24 24" className="w-6 h-6" fill="rgba(139,92,246,0.7)">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
@@ -290,6 +240,7 @@ function DevIllustration() {
   );
 }
 
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Features = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
@@ -297,31 +248,10 @@ const Features = () => {
   const headerOpacity = useTransform(scrollYProgress, [0, 0.22], [0, 1]);
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative py-28 overflow-hidden"
-      style={{ background: "#07041a" }}
-    >
-      {/* Fonts */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
-      `}</style>
+    <section ref={sectionRef} className="relative py-28 overflow-hidden">
+      {/* No section background — transparent, global canvas shows through */}
 
-      {/* Background */}
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse 100% 60% at 50% 40%, rgba(88,28,220,0.13) 0%, transparent 65%)" }} />
-      <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(109,40,217,0.1) 0%, transparent 65%)", filter: "blur(80px)" }} />
-      <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(79,22,220,0.09) 0%, transparent 65%)", filter: "blur(90px)" }} />
-      <div className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: "radial-gradient(circle, rgba(139,92,246,0.05) 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-          maskImage: "radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 85%)",
-        }} />
-
-      {/* Floating diamonds */}
+      {/* Floating diamonds — life without color noise */}
       <Diamond style={{ top: "15%", left: "8%", width: 8, height: 8 }} />
       <Diamond style={{ top: "35%", right: "6%", width: 10, height: 10 }} />
       <Diamond style={{ top: "65%", left: "5%", width: 7, height: 7 }} />
@@ -330,55 +260,44 @@ const Features = () => {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 w-full">
 
-        {/* ── Section Header ── */}
+        {/* Section header */}
         <motion.div style={{ y: headerY, opacity: headerOpacity }} className="text-center mb-14">
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6"
-            style={{ background: "rgba(109,40,217,0.12)", border: "1px solid rgba(139,92,246,0.28)" }}>
+            style={{ background: "rgba(109,40,217,0.12)", border: borders.accent }}>
             <span style={{ color: "#a78bfa", fontSize: 12 }}>✦</span>
             <span className="font-medium tracking-widest uppercase"
-              style={{ fontSize: 10, color: "rgba(167,139,250,0.85)", letterSpacing: "0.14em", fontFamily: "'DM Sans', sans-serif" }}>
+              style={{ fontSize: 10, color: "rgba(167,139,250,0.85)", letterSpacing: "0.14em", fontFamily: typography.body }}>
               Built for Growth
             </span>
           </div>
 
-          <h2
-            className="font-black uppercase text-white leading-none mb-5"
-            style={{ fontSize: "clamp(2.8rem,7vw,5.5rem)", fontFamily: "'Barlow', sans-serif", letterSpacing: "-0.02em" }}
-          >
+          <h2 className="font-black uppercase text-white leading-none mb-5"
+            style={{ fontSize: "clamp(2.8rem,7vw,5.5rem)", fontFamily: typography.display, letterSpacing: "-0.02em" }}>
             Level Up Your
-            <span
-              className="block font-black uppercase"
+            <span className="block font-black uppercase"
               style={{
                 fontSize: "clamp(3.6rem,8vw,6.4rem)",
-                fontFamily: "'Barlow', sans-serif",
-                background: "linear-gradient(135deg,#7c3aed 0%,#9333ea 40%,#a855f7 70%,#c084fc 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
+                fontFamily: typography.display,
+                background: gradients.purpleText,
+                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+              }}>
               System
             </span>
           </h2>
 
           <p className="max-w-xl mx-auto leading-relaxed text-center"
-            style={{ fontSize: "clamp(0.88rem,1.4vw,1rem)", color: "rgba(190,175,230,0.5)", fontFamily: "'DM Sans', sans-serif" }}>
+            style={{ fontSize: "clamp(0.88rem,1.4vw,1rem)", color: "rgba(190,175,230,0.5)", fontFamily: typography.body }}>
             Build habits, earn XP, and evolve your character.<br />
             Kyzen turns your daily grind into a progression system that actually feels rewarding.
           </p>
         </motion.div>
 
-        {/* ── Bento Grid ── */}
+        {/* Bento grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-
-          {/* Card 1: Daily Quests */}
           <BentoCard delay={0.1} glowColor="rgba(99,102,241,0.12)" glowPos="30% 0%">
             <IconBox>📋</IconBox>
-            <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
-              Daily Quests &amp; Missions
-            </h3>
-            <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+            <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: typography.display }}>Daily Quests &amp; Missions</h3>
+            <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: typography.body, lineHeight: 1.6 }}>
               Turn tasks into structured quests with rewards.
             </p>
             <div className="space-y-2.5 mb-4">
@@ -389,17 +308,14 @@ const Features = () => {
             <QuestIllustration />
           </BentoCard>
 
-          {/* Card 2: XP & Leveling — FEATURED center */}
           <BentoCard delay={0.18} featured glowColor="rgba(139,92,246,0.2)" glowPos="50% 10%">
             <div className="flex items-start gap-3 mb-1">
               <IconBox color="rgba(139,92,246,0.4)">
-                <span className="text-white font-black text-base" style={{ fontFamily: "'Barlow', sans-serif" }}>XP</span>
+                <span className="text-white font-black text-base" style={{ fontFamily: typography.display }}>XP</span>
               </IconBox>
             </div>
-            <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
-              Real-Time XP &amp; Leveling
-            </h3>
-            <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+            <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: typography.display }}>Real-Time XP &amp; Leveling</h3>
+            <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: typography.body, lineHeight: 1.6 }}>
               Every action contributes to your growth.
             </p>
             <div className="space-y-2.5 mb-4">
@@ -410,13 +326,10 @@ const Features = () => {
             <XPIllustration />
           </BentoCard>
 
-          {/* Card 3: Streaks */}
           <BentoCard delay={0.26} glowColor="rgba(168,85,247,0.1)" glowPos="70% 0%">
             <IconBox color="rgba(139,92,246,0.3)">🔥</IconBox>
-            <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
-              Streaks &amp; Consistency
-            </h3>
-            <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+            <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: typography.display }}>Streaks &amp; Consistency</h3>
+            <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: typography.body, lineHeight: 1.6 }}>
               Stay locked in and build momentum.
             </p>
             <div className="space-y-2.5 mb-4">
@@ -428,18 +341,14 @@ const Features = () => {
           </BentoCard>
         </div>
 
-        {/* ── Bottom Row ── */}
+        {/* Bottom row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-          {/* Card 4: Skill Trees */}
           <BentoCard delay={0.14} glowColor="rgba(192,132,252,0.1)" glowPos="20% 50%">
             <div className="flex flex-col md:flex-row gap-6 h-full">
               <div className="flex-1">
                 <IconBox>🔗</IconBox>
-                <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  Skill Trees &amp; Stats
-                </h3>
-                <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+                <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: typography.display }}>Skill Trees &amp; Stats</h3>
+                <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: typography.body, lineHeight: 1.6 }}>
                   Upgrade real-life abilities like a game.
                 </p>
                 <div className="space-y-2.5">
@@ -454,17 +363,14 @@ const Features = () => {
             </div>
           </BentoCard>
 
-          {/* Card 5: Built for Developers */}
           <BentoCard delay={0.22} glowColor="rgba(125,211,252,0.07)" glowPos="80% 50%">
             <div className="flex flex-col md:flex-row gap-6 h-full">
               <div className="flex-1">
                 <IconBox color="rgba(88,28,220,0.35)">
-                  <span className="text-[13px] font-mono" style={{ color: "rgba(196,181,253,0.9)" }}>{"</>"}</span>
+                  <span className="text-[13px] font-mono" style={{ color: "rgba(196,181,253,0.9)", fontFamily: typography.mono }}>{"</>"}</span>
                 </IconBox>
-                <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  Built for Developers
-                </h3>
-                <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+                <h3 className="font-black text-white text-xl mb-2" style={{ fontFamily: typography.display }}>Built for Developers</h3>
+                <p className="text-sm mb-5" style={{ color: "rgba(190,175,230,0.45)", fontFamily: typography.body, lineHeight: 1.6 }}>
                   Connect your actual work to your progress.
                 </p>
                 <div className="space-y-2.5">
