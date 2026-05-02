@@ -1,9 +1,9 @@
 import { useRef, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import Character1 from "../../assets/Character1.png";
 import Character2 from "../../assets/Character2.png";
 import Character3 from "../../assets/Character3.png";
+import { Link } from "react-router-dom";
 
 interface CardData {
   id: number;
@@ -126,6 +126,7 @@ function CharacterCard({ card, stackIndex, onClick, totalCards }: CharacterCardP
         height: CARD_HEIGHT,
       }}
     >
+      {/* Card shell — fills the entire motion.div */}
       <div
         className="relative w-full h-full overflow-hidden"
         style={{
@@ -139,6 +140,7 @@ function CharacterCard({ card, stackIndex, onClick, totalCards }: CharacterCardP
             : "0 12px 40px rgba(0,0,0,0.6)",
         }}
       >
+        {/* Top shimmer */}
         <div
           className="absolute inset-x-0 top-0 h-px z-20 pointer-events-none"
           style={{
@@ -148,6 +150,7 @@ function CharacterCard({ card, stackIndex, onClick, totalCards }: CharacterCardP
           }}
         />
 
+        {/* Top meta row */}
         <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
           <div>
             <div
@@ -202,6 +205,7 @@ function CharacterCard({ card, stackIndex, onClick, totalCards }: CharacterCardP
           </div>
         </div>
 
+        {/* Character image — covers the full card, anchored to bottom */}
         <img
           src={card.image}
           alt={`Character ${card.id}`}
@@ -214,6 +218,7 @@ function CharacterCard({ card, stackIndex, onClick, totalCards }: CharacterCardP
           }}
         />
 
+        {/* Bottom gradient so XP bar stays readable over image */}
         <div
           className="absolute bottom-0 inset-x-0 z-10 pointer-events-none"
           style={{
@@ -222,6 +227,7 @@ function CharacterCard({ card, stackIndex, onClick, totalCards }: CharacterCardP
           }}
         />
 
+        {/* XP Bar */}
         <div className="absolute bottom-5 left-5 right-5 z-20">
           <div className="flex justify-between items-center mb-1.5">
             <span
@@ -395,7 +401,6 @@ export default function Hero() {
               {...fadeUp(0.32)}
               className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-10"
             >
-              {/* ↓ Only change: wrapped in Link */}
               <Link to="/signup">
                 <motion.button
                   whileHover={{ scale: 1.04 }}
@@ -483,11 +488,13 @@ export default function Hero() {
               style={{ perspective: "1200px" }}
             >
               <motion.div style={{ rotateX: tiltX, rotateY: tiltY, transformStyle: "preserve-3d" }}>
+                {/* Deck container */}
                 <div
                   className="relative cursor-pointer"
                   style={{ width: "clamp(280px,34vw,400px)", height: deckHeight }}
                   onClick={handleCardClick}
                 >
+                  {/* Cards — rendered back-to-front so front sits on top in DOM stacking */}
                   {[...orderedCards].reverse().map((card, reversedIdx) => {
                     const stackIndex = CARDS.length - 1 - reversedIdx;
                     return (
@@ -501,6 +508,7 @@ export default function Hero() {
                     );
                   })}
 
+                  {/* Dot indicators */}
                   <div
                     className="absolute flex gap-2"
                     style={{ bottom: -28, left: "50%", transform: "translateX(-50%)" }}
