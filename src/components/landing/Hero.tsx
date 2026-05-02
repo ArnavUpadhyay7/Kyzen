@@ -1,470 +1,541 @@
 import { useRef } from "react";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-} from "framer-motion";
-import dashboardImg from "../../assets/dashboard_hero.png";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
-function Star({ x, y, size = 2.5, delay = 0 }: { x: string; y: string; size?: number; delay?: number }) {
+/* ── Floating diamond shapes ── */
+function Diamond({ style }) {
   return (
     <motion.div
-      className="absolute rounded-full pointer-events-none"
+      className="absolute pointer-events-none"
       style={{
-        left: x, top: y,
-        width: size, height: size,
-        background: "rgba(180,155,255,0.7)",
-        boxShadow: "0 0 5px 2px rgba(130,80,246,0.35)",
+        width: 10,
+        height: 10,
+        background: "rgba(139,92,246,0.5)",
+        rotate: 45,
+        ...style,
       }}
-      animate={{ opacity: [0.3, 0.9, 0.3], scale: [1, 1.4, 1] }}
-      transition={{ duration: 2.8 + delay * 0.7, repeat: Infinity, ease: "easeInOut", delay }}
+      animate={{ y: [0, -14, 0], opacity: [0.4, 0.85, 0.4] }}
+      transition={{ duration: 3.5 + Math.random() * 2, repeat: Infinity, ease: "easeInOut" }}
     />
   );
 }
 
-function RadialGrid() {
+const DIAMONDS = [
+  { top: "28%", left: "42%", width: 8,  height: 8  },
+  { top: "55%", left: "38%", width: 12, height: 12 },
+  { top: "70%", left: "52%", width: 7,  height: 7  },
+  { top: "40%", left: "62%", width: 10, height: 10 },
+  { top: "62%", left: "70%", width: 8,  height: 8  },
+  { top: "32%", left: "74%", width: 6,  height: 6  },
+];
+
+const fadeUp = (delay) => ({
+  initial: { opacity: 0, y: 28 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] },
+});
+
+/* ── Stat card ── */
+function StatCard({ children, style, className = "" }) {
   return (
-    <svg
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ zIndex: 0, opacity: 0.07 }}
-      preserveAspectRatio="xMidYMid slice"
-      viewBox="0 0 1440 900"
+    <motion.div
+      initial={{ opacity: 0, scale: 0.88 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      className={`absolute rounded-2xl flex flex-col items-center justify-center gap-1 ${className}`}
+      style={{
+        background: "rgba(15,8,40,0.88)",
+        border: "1px solid rgba(139,92,246,0.28)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(139,92,246,0.1)",
+        ...style,
+      }}
     >
-      <defs>
-        <radialGradient id="rg" cx="50%" cy="42%" r="52%">
-          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="1" />
-          <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      {[200, 320, 440, 560, 680, 800, 920].map((r, i) => (
-        <ellipse key={i} cx="720" cy="380" rx={r * 1.75} ry={r * 0.95}
-          fill="none" stroke="url(#rg)" strokeWidth="0.7" />
-      ))}
-      {[0, 30, 60, 90, 120, 150].map((angle, i) => {
-        const rad = (angle * Math.PI) / 180;
-        const len = 1000;
-        return (
-          <line key={i}
-            x1={720} y1={380}
-            x2={720 + Math.cos(rad) * len} y2={380 + Math.sin(rad) * len}
-            stroke="url(#rg)" strokeWidth="0.5" />
-        );
-      })}
-      {[0, 30, 60, 90, 120, 150].map((angle, i) => {
-        const rad = (angle * Math.PI) / 180;
-        const len = 1000;
-        return (
-          <line key={`b${i}`}
-            x1={720} y1={380}
-            x2={720 - Math.cos(rad) * len} y2={380 - Math.sin(rad) * len}
-            stroke="url(#rg)" strokeWidth="0.5" />
-        );
-      })}
-    </svg>
+      {children}
+    </motion.div>
   );
 }
 
 export default function Hero() {
-  const sectionRef = useRef<HTMLElement>(null);
+  const sectionRef = useRef(null);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const gx = useSpring(mouseX, { stiffness: 22, damping: 22 });
-  const gy = useSpring(mouseY, { stiffness: 22, damping: 22 });
+  const gx = useSpring(mouseX, { stiffness: 20, damping: 22 });
+  const gy = useSpring(mouseY, { stiffness: 20, damping: 22 });
+  const tiltX = useTransform(gy, [-10, 10], [2, -2]);
+  const tiltY = useTransform(gx, [-10, 10], [-3, 3]);
 
-  // Subtle tilt for dashboard image
-  const tiltX = useTransform(gy, [-10, 10], [1.5, -1.5]);
-  const tiltY = useTransform(gx, [-10, 10], [-2, 2]);
-
-  const handleMouse = (e: React.MouseEvent) => {
+  const handleMouse = (e) => {
     const r = sectionRef.current?.getBoundingClientRect();
     if (!r) return;
-    mouseX.set((e.clientX - r.left - r.width / 2) * 0.014);
-    mouseY.set((e.clientY - r.top - r.height / 2) * 0.009);
+    mouseX.set((e.clientX - r.left - r.width / 2) * 0.012);
+    mouseY.set((e.clientY - r.top - r.height / 2) * 0.008);
   };
 
-  const fadeUp = (delay: number) => ({
-    initial: { opacity: 0, y: 22 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] as const },
-  });
-
   return (
-    <section
-      ref={sectionRef}
-      onMouseMove={handleMouse}
-      className="relative w-full min-h-screen flex flex-col items-center overflow-hidden"
-      style={{
-        background: "#060412",
-        fontFamily: "'Sora', -apple-system, sans-serif",
-      }}
-    >
-      {/* ── LAYERED BACKGROUND  */}
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
+        .hero-root { font-family: 'DM Sans', sans-serif; }
+        .hero-headline { font-family: 'Barlow', sans-serif; }
+      `}</style>
 
-      {/* Deep space top gradient */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 140% 85% at 50% -8%, #1e0b4a 0%, #0e0528 30%, #060412 58%)",
-        }}
-      />
-
-      {/* Mouse-tracked bloom */}
-      <motion.div
-        className="absolute rounded-full pointer-events-none"
-        style={{
-          width: 1100,
-          height: 650,
-          top: "0%",
-          left: "50%",
-          marginLeft: -550,
-          background:
-            "radial-gradient(ellipse at center, rgba(109,40,217,0.18) 0%, rgba(76,29,149,0.06) 48%, transparent 70%)",
-          filter: "blur(55px)",
-          x: gx,
-          y: gy,
-        }}
-      />
-
-      {/* Left aurora */}
-      <div className="absolute pointer-events-none" style={{
-        width: 560, height: 800, top: "-10%", left: "-10%",
-        background: "radial-gradient(ellipse, rgba(79,22,220,0.14) 0%, transparent 65%)",
-        filter: "blur(90px)",
-      }} />
-
-      {/* Right aurora */}
-      <div className="absolute pointer-events-none" style={{
-        width: 500, height: 650, top: "5%", right: "-8%",
-        background: "radial-gradient(ellipse, rgba(109,40,217,0.12) 0%, transparent 65%)",
-        filter: "blur(95px)",
-      }} />
-
-      {/* Bottom pool — connects dashboard to page */}
-      <div className="absolute pointer-events-none" style={{
-        width: 1100,
-        height: 500,
-        bottom: "-6%",
-        left: "50%",
-        marginLeft: -550,
-        background:
-          "radial-gradient(ellipse at 50% 100%, rgba(109,40,217,0.4) 0%, rgba(76,29,149,0.16) 45%, transparent 68%)",
-        filter: "blur(50px)",
-      }} />
-
-      {/* Subtle side glow strips */}
-      <div className="absolute pointer-events-none inset-y-0 left-0 w-px"
-        style={{ background: "linear-gradient(to bottom, transparent, rgba(124,58,237,0.2) 40%, transparent)" }} />
-      <div className="absolute pointer-events-none inset-y-0 right-0 w-px"
-        style={{ background: "linear-gradient(to bottom, transparent, rgba(124,58,237,0.2) 40%, transparent)" }} />
-
-      {/* Radial grid pattern */}
-      <RadialGrid />
-
-      {/* Dot grid */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, rgba(139,92,246,0.06) 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-          maskImage:
-            "radial-gradient(ellipse 80% 65% at 50% 35%, black 5%, transparent 82%)",
-        }}
-      />
-
-      {/* Top hairline */}
-      <div className="absolute inset-x-0 top-0 h-px pointer-events-none"
-        style={{ background: "linear-gradient(90deg, transparent 5%, rgba(139,92,246,0.5) 50%, transparent 95%)" }} />
-
-      {/* Stars */}
-      <Star x="7%" y="20%" size={2.5} delay={0} />
-      <Star x="13%" y="58%" size={1.8} delay={1.1} />
-      <Star x="5%" y="76%" size={2} delay={2} />
-      <Star x="89%" y="24%" size={2.5} delay={0.5} />
-      <Star x="94%" y="62%" size={1.8} delay={1.7} />
-      <Star x="83%" y="80%" size={2} delay={0.2} />
-      <Star x="21%" y="11%" size={1.6} delay={1.4} />
-      <Star x="77%" y="9%" size={1.6} delay={2.2} />
-      <Star x="38%" y="7%" size={1.4} delay={0.9} />
-      <Star x="61%" y="6%" size={1.4} delay={1.8} />
-
-      {/* ── CONTENT ──────────────────────────────────────────────── */}
-      <div className="relative z-10 flex flex-col items-center text-center w-full px-6 pt-20 md:pt-28 pb-0">
-
-        {/* Headline */}
-        <motion.h1
-          {...fadeUp(0.12)}
-          className="text-white mb-5"
+      <section
+        ref={sectionRef}
+        onMouseMove={handleMouse}
+        className="hero-root relative w-full min-h-screen flex items-center overflow-hidden"
+        style={{ background: "#080610" }}
+      >
+        {/* ── Background layers ── */}
+        <div
+          className="absolute inset-0 pointer-events-none"
           style={{
-            fontFamily: "'Sora', sans-serif",
-            fontSize: "clamp(2.6rem, 6vw, 4.8rem)",
-            fontWeight: 800,
-            lineHeight: 1.08,
-            letterSpacing: "-0.04em",
-            maxWidth: 720,
+            background:
+              "radial-gradient(ellipse 100% 80% at 60% 40%, rgba(88,28,220,0.18) 0%, rgba(55,14,150,0.08) 45%, transparent 70%)",
           }}
-        >
-          Earn your progress
-          <br />
-          <span
-            style={{
-              background:
-                "linear-gradient(125deg, #ddd6fe 0%, #a78bfa 30%, #7c3aed 58%, #c084fc 85%, #e9d5ff 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            Systematically
-          </span>
-        </motion.h1>
-
-        {/* Subtext */}
-        <motion.p
-          {...fadeUp(0.22)}
-          className="mb-10 leading-relaxed"
+        />
+        {/* left dark vignette */}
+        <div
+          className="absolute inset-0 pointer-events-none"
           style={{
-            fontSize: "clamp(0.95rem, 1.8vw, 1.05rem)",
-            color: "rgba(200,190,230,0.5)",
-            fontWeight: 400,
-            maxWidth: 420,
-            letterSpacing: "0.01em",
+            background:
+              "radial-gradient(ellipse 55% 80% at 0% 50%, rgba(0,0,0,0.6) 0%, transparent 60%)",
           }}
-        >
-          A system for turning daily effort into visible, measurable progress — one level at a time.
-        </motion.p>
+        />
+        {/* bottom glow */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            bottom: 0, left: "30%", right: 0, height: "50%",
+            background: "radial-gradient(ellipse 80% 60% at 60% 100%, rgba(88,28,220,0.22) 0%, transparent 65%)",
+            filter: "blur(30px)",
+          }}
+        />
 
-        {/* CTAs */}
+        {/* Mouse bloom */}
         <motion.div
-          {...fadeUp(0.3)}
-          className="flex flex-col sm:flex-row items-center gap-3 mb-4"
-        >
-          {/* Primary button */}
-          <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ duration: 0.15 }}
-            className="relative px-8 py-3.5 rounded-xl font-bold text-white cursor-pointer overflow-hidden"
-            style={{
-              fontFamily: "'Sora', sans-serif",
-              fontSize: 14,
-              letterSpacing: "-0.01em",
-              background: "linear-gradient(145deg, #9333ea 0%, #7c3aed 45%, #5b21b6 100%)",
-              border: "1px solid rgba(167,139,250,0.3)",
-              boxShadow:
-                "0 0 0 1px rgba(124,58,237,0.2), 0 8px 40px rgba(109,40,217,0.45), inset 0 1px 0 rgba(255,255,255,0.12)",
-            }}
-          >
-            {/* Shimmer sweep */}
-            <motion.span
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%)",
-              }}
-              animate={{ x: ["-120%", "220%"] }}
-              transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
-            />
-            Start Your Journey
-          </motion.button>
+          className="absolute pointer-events-none rounded-full"
+          style={{
+            width: 800, height: 500,
+            top: "10%", left: "30%",
+            background: "radial-gradient(ellipse at center, rgba(109,40,217,0.12) 0%, transparent 70%)",
+            filter: "blur(50px)",
+            x: gx, y: gy,
+          }}
+        />
 
-          {/* Ghost button */}
-          <motion.button
-            whileHover={{ scale: 1.03, background: "rgba(255,255,255,0.05)" }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ duration: 0.15 }}
-            className="flex items-center gap-2.5 px-6 py-3.5 rounded-xl font-semibold cursor-pointer"
-            style={{
-              fontFamily: "'Sora', sans-serif",
-              fontSize: 14,
-              letterSpacing: "-0.01em",
-              color: "rgba(220,210,250,0.7)",
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            {/* Play icon */}
-            <span
-              className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+        {/* Floating diamonds */}
+        {DIAMONDS.map((d, i) => (
+          <Diamond key={i} style={d} />
+        ))}
+
+        {/* ── MAIN LAYOUT: left content + right card ── */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-14 flex flex-col lg:flex-row items-center gap-12 lg:gap-0 py-20">
+
+          {/* ── LEFT COLUMN ── */}
+          <div className="flex-1 flex flex-col items-start max-w-xl">
+
+            {/* Badge */}
+            <motion.div
+              {...fadeUp(0.08)}
+              className="flex items-center gap-2 mb-7 px-4 py-2 rounded-full"
               style={{
-                background: "rgba(139,92,246,0.18)",
-                border: "1px solid rgba(139,92,246,0.25)",
+                background: "rgba(109,40,217,0.12)",
+                border: "1px solid rgba(139,92,246,0.28)",
               }}
             >
-              <span style={{
-                width: 0, height: 0, marginLeft: 2,
-                borderTop: "4px solid transparent",
-                borderBottom: "4px solid transparent",
-                borderLeft: "7px solid rgba(167,139,250,0.8)",
-                display: "inline-block",
-              }} />
-            </span>
-            View Demo
-          </motion.button>
-        </motion.div>
+              <span style={{ color: "#a78bfa", fontSize: 13 }}>✦</span>
+              <span
+                className="font-medium tracking-widest uppercase"
+                style={{ fontSize: 11, color: "rgba(167,139,250,0.85)", letterSpacing: "0.14em" }}
+              >
+                Life RPG for Developers &amp; Ambitious People
+              </span>
+            </motion.div>
 
-        {/* Social proof */}
-        <motion.div
-          {...fadeUp(0.38)}
-          className="flex items-center gap-3 mb-12"
-        >
-          {/* Avatar stack */}
-          <div className="flex -space-x-2">
-            {["#8b5cf6", "#6d28d9", "#a78bfa", "#7c3aed"].map((c, i) => (
-              <div
-                key={i}
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+            {/* Headline */}
+            <motion.h1
+              {...fadeUp(0.16)}
+              className="hero-headline mb-6"
+              style={{ lineHeight: 0.92, letterSpacing: "-0.01em" }}
+            >
+              <span
+                className="block text-white font-black uppercase"
+                style={{ fontSize: "clamp(3.6rem,8vw,6.4rem)", fontFamily: "'Barlow', sans-serif" }}
+              >
+                Earn Your
+              </span>
+              <span
+                className="block font-black uppercase"
                 style={{
-                  background: `linear-gradient(135deg, ${c}, ${c}99)`,
-                  border: "1.5px solid rgba(6,4,18,0.9)",
-                  zIndex: 4 - i,
+                  fontSize: "clamp(3.6rem,8vw,6.4rem)",
+                  fontFamily: "'Barlow', sans-serif",
+                  background: "linear-gradient(135deg,#7c3aed 0%,#9333ea 40%,#a855f7 70%,#c084fc 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
                 }}
               >
-                {["A", "J", "S", "K"][i]}
-              </div>
-            ))}
-          </div>
-          <span className="text-[11px]" style={{ color: "rgba(180,170,220,0.45)" }}>
-            Joined by{" "}
-            <span style={{ color: "rgba(200,180,250,0.7)", fontWeight: 600 }}>2,400+</span> builders this month
-          </span>
-        </motion.div>
+                Progress
+              </span>
+            </motion.h1>
 
-        {/* To do's Tilt the frame and slide it under text area */}
-        
-        {/* DASHBOARD FRAME */}
-        <motion.div
-          initial={{ opacity: 0, y: 48 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-5xl mx-auto"
-          style={{ perspective: "1200px", zIndex: 10 }}
-        >
-          {/* Glow halo around the frame */}
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              inset: "-20px -40px",
-              borderRadius: "2rem",
-              background:
-                "radial-gradient(ellipse at 50% 0%, rgba(109,40,217,0.35) 0%, rgba(76,29,149,0.12) 50%, transparent 72%)",
-              filter: "blur(36px)",
-              zIndex: -1,
-            }}
-          />
-
-          {/* Outer glow ring */}
-          <div
-            className="absolute pointer-events-none rounded-3xl"
-            style={{
-              inset: 0,
-              boxShadow: "0 0 0 1px rgba(139,92,246,0.18), 0 0 80px rgba(109,40,217,0.2)",
-              zIndex: 3,
-              borderRadius: "1.5rem",
-            }}
-          />
-
-          {/* Tilt container */}
-          <motion.div
-            style={{ rotateX: tiltX, rotateY: tiltY, transformStyle: "preserve-3d" }}
-            className="relative overflow-hidden rounded-3xl"
-          >
-            {/* Glass frame */}
-            <div
-              className="relative overflow-hidden rounded-3xl"
+            {/* Subtext */}
+            <motion.p
+              {...fadeUp(0.24)}
+              className="mb-9 leading-relaxed"
               style={{
-                background: "rgba(8, 4, 20, 0.75)",
-                border: "1px solid rgba(255,255,255,0.07)",
-                backdropFilter: "blur(16px)",
-                WebkitBackdropFilter: "blur(16px)",
-                boxShadow:
-                  "0 0 0 1px rgba(139,92,246,0.08), 0 50px 120px rgba(0,0,0,0.8), 0 16px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)",
+                fontSize: "clamp(0.95rem,1.5vw,1.05rem)",
+                color: "rgba(190,180,220,0.65)",
+                maxWidth: 430,
               }}
             >
-              {/* Browser chrome */}
-              <div
-                className="flex items-center gap-2 px-5 py-3 border-b"
+              Complete quests, gain XP, build streaks, and level up skills.
+              Turn your daily actions into epic progress.
+            </motion.p>
+
+            {/* CTAs */}
+            <motion.div
+              {...fadeUp(0.32)}
+              className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-10"
+            >
+              {/* Primary */}
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className="relative flex items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold overflow-hidden cursor-pointer"
                 style={{
-                  background: "rgba(4,2,14,0.95)",
-                  borderColor: "rgba(255,255,255,0.05)",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: 15,
+                  background: "linear-gradient(135deg,#7c3aed 0%,#9333ea 60%,#a855f7 100%)",
+                  boxShadow: "0 0 32px rgba(124,58,237,0.55), 0 4px 16px rgba(0,0,0,0.4)",
+                  border: "1px solid rgba(167,139,250,0.2)",
                 }}
               >
-                {/* Traffic lights */}
-                <div className="flex items-center gap-1.5">
-                  {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-                    <div key={c} className="w-2.5 h-2.5 rounded-full"
-                      style={{ background: c, opacity: 0.75 }} />
-                  ))}
-                </div>
-
-                {/* URL bar */}
-                <div className="flex-1 flex justify-center">
-                  <div
-                    className="flex items-center gap-2 px-4 py-1.5 rounded-md"
-                    style={{
-                      background: "rgba(255,255,255,0.025)",
-                      border: "1px solid rgba(255,255,255,0.05)",
-                      fontSize: 11,
-                      color: "#4b5563",
-                      fontFamily: "'JetBrains Mono', monospace",
-                      minWidth: 210,
-                    }}
-                  >
-                    <motion.div
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: "#22c55e" }}
-                      animate={{ opacity: [1, 0.4, 1] }}
-                      transition={{ duration: 2.2, repeat: Infinity }}
-                    />
-                    kyzen.app/dashboard
-                  </div>
-                </div>
-
-                {/* Right side space */}
-                <div className="w-14" />
-              </div>
-              
-
-              {/* Dashboard image */}
-              <div className="relative w-full" style={{ lineHeight: 0 }}>
-                <img
-                  src={dashboardImg}
-                  alt="Kyzen Dashboard"
-                  className="w-full block"
-                  style={{ maxHeight: "65vh", objectFit: "cover", objectPosition: "top" }}
-                />
-
-                {/* Seamless bottom fade — page bleeds through */}
-                <div
-                  className="absolute inset-x-0 bottom-0"
+                <motion.span
+                  className="absolute inset-0 pointer-events-none"
                   style={{
-                    height: "55%",
-                    background:
-                      "linear-gradient(to top, #060412 0%, rgba(6,4,18,0.92) 25%, rgba(6,4,18,0.5) 55%, transparent 100%)",
-                    pointerEvents: "none",
+                    background: "linear-gradient(110deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%)",
                   }}
+                  animate={{ x: ["-120%", "220%"] }}
+                  transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
                 />
+                Start Your Journey
+                <span className="text-lg">→</span>
+              </motion.button>
 
-                {/* Side inner shadows for depth */}
-                <div className="absolute inset-y-0 left-0 w-12 pointer-events-none"
-                  style={{ background: "linear-gradient(to right, rgba(6,4,18,0.4), transparent)" }} />
-                <div className="absolute inset-y-0 right-0 w-12 pointer-events-none"
-                  style={{ background: "linear-gradient(to left, rgba(6,4,18,0.4), transparent)" }} />
+              {/* Ghost */}
+              <motion.button
+                whileHover={{ background: "rgba(255,255,255,0.06)" }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-3 px-6 py-3.5 rounded-xl font-medium cursor-pointer transition-colors"
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: 15,
+                  color: "rgba(210,198,255,0.75)",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                <span
+                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                  style={{
+                    background: "rgba(139,92,246,0.15)",
+                    border: "1px solid rgba(139,92,246,0.3)",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 0, height: 0, marginLeft: 2,
+                      borderTop: "4px solid transparent",
+                      borderBottom: "4px solid transparent",
+                      borderLeft: "7px solid rgba(167,139,250,0.85)",
+                      display: "inline-block",
+                    }}
+                  />
+                </span>
+                See How It Works
+              </motion.button>
+            </motion.div>
+
+            {/* Social proof */}
+            <motion.div {...fadeUp(0.4)} className="flex items-center gap-3">
+              <div className="flex">
+                {[
+                  "https://i.pravatar.cc/40?img=11",
+                  "https://i.pravatar.cc/40?img=32",
+                  "https://i.pravatar.cc/40?img=53",
+                  "https://i.pravatar.cc/40?img=14",
+                ].map((src, i) => (
+                  <img
+                    key={i}
+                    src={src}
+                    alt=""
+                    className="w-8 h-8 rounded-full object-cover"
+                    style={{
+                      border: "2px solid #080610",
+                      marginLeft: i === 0 ? 0 : -10,
+                      zIndex: 4 - i,
+                      position: "relative",
+                    }}
+                  />
+                ))}
               </div>
+              <span style={{ fontSize: 13, color: "rgba(170,158,215,0.55)" }}>
+                Join{" "}
+                <span className="font-semibold" style={{ color: "#a78bfa" }}>
+                  12,847+
+                </span>{" "}
+                players leveling up their lives every day.
+              </span>
+            </motion.div>
+          </div>
 
+          {/* ── RIGHT COLUMN: Character Card ── */}
+          <div className="flex-1 flex justify-center lg:justify-end items-center relative" style={{ minHeight: 560 }}>
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              style={{ perspective: "1200px" }}
+            >
+              <motion.div style={{ rotateX: tiltX, rotateY: tiltY, transformStyle: "preserve-3d" }}>
+                {/* Main card */}
+                <div
+                  className="relative overflow-hidden"
+                  style={{
+                    width: "clamp(300px,36vw,420px)",
+                    height: "clamp(420px,50vw,580px)",
+                    borderRadius: 24,
+                    background: "linear-gradient(160deg,rgba(88,28,220,0.28) 0%,rgba(15,8,40,0.95) 50%)",
+                    border: "1px solid rgba(139,92,246,0.4)",
+                    boxShadow: "0 0 0 1px rgba(139,92,246,0.12), 0 40px 100px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.07), 0 0 80px rgba(109,40,217,0.25)",
+                  }}
+                >
+                  {/* Top meta row */}
+                  <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
+                    <div>
+                      <div className="text-[10px] font-medium tracking-widest uppercase mb-1" style={{ color: "rgba(167,139,250,0.55)" }}>
+                        LEVEL
+                      </div>
+                      <div
+                        className="font-black"
+                        style={{ fontSize: 52, lineHeight: 1, color: "white", fontFamily: "'Barlow',sans-serif" }}
+                      >
+                        03
+                      </div>
+                      <div
+                        className="mt-1 px-3 py-0.5 rounded-full text-center font-semibold"
+                        style={{
+                          fontSize: 10,
+                          background: "rgba(109,40,217,0.55)",
+                          color: "#e9d5ff",
+                          border: "1px solid rgba(139,92,246,0.4)",
+                          letterSpacing: "0.08em",
+                          width: "fit-content",
+                        }}
+                      >
+                        RISING
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] font-medium tracking-widest uppercase mb-1" style={{ color: "rgba(167,139,250,0.55)" }}>
+                        CLASS
+                      </div>
+                      <div className="text-white font-semibold" style={{ fontSize: 15, fontFamily: "'DM Sans',sans-serif" }}>
+                        Developer
+                      </div>
+                      <div
+                        className="mt-2 w-9 h-9 rounded-xl flex items-center justify-center ml-auto"
+                        style={{
+                          background: "rgba(109,40,217,0.35)",
+                          border: "1px solid rgba(139,92,246,0.35)",
+                          fontSize: 13,
+                          color: "rgba(196,181,253,0.85)",
+                          fontFamily: "monospace",
+                        }}
+                      >
+                        {"</>"}
+                      </div>
+                    </div>
+                  </div>
 
+                  {/* Character silhouette area */}
+                  <div
+                    className="absolute inset-0 z-10"
+                    style={{
+                      background:
+                        "radial-gradient(ellipse 90% 70% at 50% 55%, rgba(88,28,220,0.35) 0%, transparent 65%)",
+                    }}
+                  />
+
+                  {/* Character placeholder — gradient silhouette */}
+                  <div
+                    className="absolute z-10"
+                    style={{
+                      bottom: "14%",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: "72%",
+                      height: "65%",
+                      background:
+                        "radial-gradient(ellipse 60% 80% at 50% 30%, rgba(139,92,246,0.15) 0%, transparent 60%), linear-gradient(180deg,rgba(109,40,217,0.08) 0%,transparent 80%)",
+                      borderRadius: "50% 50% 0 0",
+                    }}
+                  />
+
+                  {/* XP Bar */}
+                  <div className="absolute bottom-5 left-5 right-5 z-20">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[11px] font-semibold tracking-wider" style={{ color: "rgba(167,139,250,0.7)" }}>
+                        XP
+                      </span>
+                      <span className="text-[11px]" style={{ color: "rgba(167,139,250,0.5)" }}>
+                        1,250 / 2,000
+                      </span>
+                    </div>
+                    <div
+                      className="w-full rounded-full overflow-hidden"
+                      style={{ height: 7, background: "rgba(109,40,217,0.2)", border: "1px solid rgba(139,92,246,0.15)" }}
+                    >
+                      <motion.div
+                        className="h-full rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: "62.5%" }}
+                        transition={{ duration: 1.4, delay: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                        style={{
+                          background: "linear-gradient(90deg,#6d28d9,#a855f7)",
+                          boxShadow: "0 0 10px rgba(139,92,246,0.7)",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Card glow border top */}
+                  <div
+                    className="absolute inset-x-0 top-0 h-px pointer-events-none z-20"
+                    style={{
+                      background:
+                        "linear-gradient(90deg,transparent 10%,rgba(167,139,250,0.6) 50%,transparent 90%)",
+                    }}
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
+
+            {/* ── XP Stat Card ── */}
+            <StatCard
+              style={{
+                left: "-8%",
+                top: "28%",
+                width: 96,
+                height: 88,
+                padding: "12px 8px",
+              }}
+            >
+              <span className="font-bold text-[11px] tracking-widest uppercase" style={{ color: "rgba(167,139,250,0.65)" }}>
+                XP
+              </span>
+              <span
+                className="font-black"
+                style={{ fontSize: 20, color: "#c084fc", fontFamily: "'Barlow',sans-serif", lineHeight: 1 }}
+              >
+                +250
+              </span>
+            </StatCard>
+
+            {/* ── Streak Card ── */}
+            <StatCard
+              style={{
+                right: "-10%",
+                top: "22%",
+                width: 96,
+                height: 96,
+                padding: "12px 8px",
+              }}
+            >
+              <span className="font-bold text-[10px] tracking-widest uppercase" style={{ color: "rgba(167,139,250,0.55)" }}>
+                STREAK
+              </span>
+              <span className="text-lg">🔥</span>
+              <span
+                className="font-black"
+                style={{ fontSize: 26, color: "white", fontFamily: "'Barlow',sans-serif", lineHeight: 1 }}
+              >
+                14
+              </span>
+            </StatCard>
+
+            {/* ── Skill Card ── */}
+            <StatCard
+              style={{
+                right: "-12%",
+                bottom: "22%",
+                width: 130,
+                height: 72,
+                padding: "10px 14px",
+                flexDirection: "row",
+                gap: 10,
+                justifyContent: "space-between",
+              }}
+            >
+              <div className="flex flex-col">
+                <span className="text-[9px] font-semibold tracking-widest uppercase mb-0.5" style={{ color: "rgba(167,139,250,0.5)" }}>
+                  SKILL
+                </span>
+                <span className="font-bold text-white" style={{ fontSize: 15, fontFamily: "'Barlow',sans-serif" }}>
+                  Logic
+                </span>
+                <span style={{ fontSize: 11, color: "rgba(167,139,250,0.55)" }}>Lv. 4</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span style={{ color: "rgba(167,139,250,0.6)", fontSize: 14 }}>↑</span>
+                <span style={{ color: "rgba(167,139,250,0.6)", fontSize: 14 }}>↑</span>
+              </div>
+            </StatCard>
+
+            {/* Peek cards behind — level 04 and 05 */}
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                right: "-18%",
+                top: "5%",
+                width: "clamp(220px,26vw,290px)",
+                height: "clamp(300px,36vw,400px)",
+                borderRadius: 20,
+                background: "rgba(12,6,32,0.7)",
+                border: "1px solid rgba(139,92,246,0.18)",
+                zIndex: -1,
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "flex-end",
+                padding: 16,
+              }}
+            >
+              <span className="font-black text-3xl" style={{ color: "rgba(255,255,255,0.12)", fontFamily: "'Barlow',sans-serif" }}>04</span>
             </div>
-          </motion.div>
-
-        </motion.div>
-
-      </div>
-
-<style>{`
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-`}</style>
-    </section>
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                right: "-28%",
+                top: "12%",
+                width: "clamp(200px,24vw,260px)",
+                height: "clamp(280px,34vw,370px)",
+                borderRadius: 20,
+                background: "rgba(10,5,26,0.55)",
+                border: "1px solid rgba(139,92,246,0.1)",
+                zIndex: -2,
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "flex-end",
+                padding: 16,
+              }}
+            >
+              <span className="font-black text-3xl" style={{ color: "rgba(255,255,255,0.07)", fontFamily: "'Barlow',sans-serif" }}>05</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

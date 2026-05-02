@@ -1,157 +1,96 @@
-import { useEffect, useState } from "react";
-import { motion, useScroll, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
-const NAV_LINKS = ["Product", "Ranks", "Guilds", "Changelog"];
+const NAV_LINKS = ["Hero", "About", "Features", "Pricing", "Changelog"];
 
-const Navbar = () => {
-  const { scrollY } = useScroll();
-  const [scrolled, setScrolled] = useState(false);
+export default function Navbar() {
+  const [active, setActive] = useState("Hero");
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    const unsub = scrollY.on("change", (v) => setScrolled(v > 50));
-    return unsub;
-  }, [scrollY]);
 
   return (
     <>
-      <motion.nav
-        initial={{ y: -80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed top-0 inset-x-0 z-50 transition-all duration-500"
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap');`}</style>
+
+      {/* Desktop */}
+      <div className="fixed inset-x-0 top-0 z-50 hidden md:flex justify-center pt-5"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <nav
+          className="flex items-center gap-1 px-2 py-2 rounded-full"
+          style={{
+            background: "rgba(18,10,40,0.52)",
+            backdropFilter: "blur(22px)",
+            WebkitBackdropFilter: "blur(22px)",
+            border: "1px solid rgba(139,92,246,0.2)",
+            boxShadow: "0 4px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)",
+          }}
+        >
+          {NAV_LINKS.map((l) => (
+            <a
+              key={l}
+              href="#"
+              onClick={() => setActive(l)}
+              className={`px-5 py-2 rounded-full text-[14px] transition-all duration-200 ${
+                active === l
+                  ? "bg-white/10 text-white/92 font-medium"
+                  : "text-white/45 hover:text-white/75 hover:bg-white/[0.04] font-normal"
+              }`}
+            >
+              {l}
+            </a>
+          ))}
+        </nav>
+      </div>
+
+      {/* Mobile */}
+      <div
+        className="fixed inset-x-0 top-0 z-50 flex md:hidden items-center justify-between px-5 h-14"
         style={{
-          background: scrolled ? "rgba(3,2,14,0.88)" : "transparent",
-          backdropFilter: scrolled ? "blur(28px)" : "none",
-          borderBottom: scrolled ? "1px solid rgba(139,92,246,0.1)" : "none",
-          boxShadow: scrolled ? "0 1px 40px rgba(0,0,0,0.6)" : "none",
+          fontFamily: "'DM Sans', sans-serif",
+          background: "rgba(7,4,26,0.88)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(139,92,246,0.12)",
         }}
       >
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <motion.div
-            whileHover={{ scale: 1.04 }}
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <div
-              className="w-6 h-6 rounded-md flex items-center justify-center text-[10px]"
-              style={{
-                background: "linear-gradient(135deg,#7c3aed,#a855f7)",
-                boxShadow: "0 0 16px rgba(168,85,247,0.5)",
-              }}
-            >
-              ⚡
-            </div>
-            <span
-              className="text-white font-black text-lg tracking-widest"
-              style={{ fontFamily: "'Syne',sans-serif" }}
-            >
-              KYZEN<span className="text-purple-500">.</span>
-            </span>
-          </motion.div>
+        <span className="text-white/50 text-[13px] tracking-widest uppercase font-normal"></span>
+        <button onClick={() => setMobileOpen((p) => !p)} className="flex flex-col gap-[5px] p-2" aria-label="Toggle menu">
+          <span className="block w-[18px] h-px bg-white/50 rounded-full transition-all duration-200"
+            style={{ transform: mobileOpen ? "rotate(45deg) translate(4px,4px)" : "none" }} />
+          <span className="block w-[13px] h-px bg-white/50 rounded-full transition-all duration-200"
+            style={{ opacity: mobileOpen ? 0 : 1 }} />
+          <span className="block w-[18px] h-px bg-white/50 rounded-full transition-all duration-200"
+            style={{ transform: mobileOpen ? "rotate(-45deg) translate(4px,-4px)" : "none" }} />
+        </button>
+      </div>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((l) => (
-              <a
-                key={l}
-                href="#"
-                className="relative text-white/40 text-[11px] font-mono tracking-widest uppercase hover:text-white/80 transition-colors group"
-              >
-                {l}
-                <span className="absolute -bottom-0.5 left-0 w-0 h-px bg-purple-500 group-hover:w-full transition-all duration-300" />
-              </a>
-            ))}
-          </div>
-
-          {/* Actions */}
-          <div className="hidden md:flex items-center gap-3">
-            <button className="text-white/40 text-[11px] font-mono tracking-widest uppercase hover:text-white/80 transition-colors px-3 py-2">
-              Login
-            </button>
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(168,85,247,0.5)" }}
-              whileTap={{ scale: 0.96 }}
-              className="px-5 py-2 rounded-lg text-white text-[11px] font-bold tracking-widest uppercase transition-all"
-              style={{
-                background: "linear-gradient(135deg,#7c3aed,#a855f7,#c026d3)",
-                boxShadow: "0 0 20px rgba(168,85,247,0.3)",
-              }}
-            >
-              Start Free
-            </motion.button>
-          </div>
-
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setMobileOpen((p) => !p)}
-            className="md:hidden flex flex-col gap-1.5 p-2"
-          >
-            {[0, 1, 2].map((i) => (
-              <motion.span
-                key={i}
-                animate={
-                  mobileOpen
-                    ? i === 0
-                      ? { rotate: 45, y: 7 }
-                      : i === 1
-                      ? { opacity: 0 }
-                      : { rotate: -45, y: -7 }
-                    : { rotate: 0, y: 0, opacity: 1 }
-                }
-                transition={{ duration: 0.25 }}
-                className="block w-5 h-px bg-white/50"
-              />
-            ))}
-          </button>
-        </div>
-      </motion.nav>
-
-      {/* Mobile menu */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-x-0 top-16 z-40 md:hidden border-b border-white/5"
-            style={{
-              background: "rgba(3,2,14,0.97)",
-              backdropFilter: "blur(28px)",
-            }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-x-0 top-14 z-40 md:hidden flex flex-col px-5 py-4 gap-0.5"
+            style={{ fontFamily: "'DM Sans', sans-serif", background: "rgba(7,4,26,0.97)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(139,92,246,0.1)" }}
           >
-            <div className="px-6 py-6 flex flex-col gap-4">
-              {NAV_LINKS.map((l, i) => (
-                <motion.a
-                  key={l}
-                  href="#"
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.06 }}
-                  className="text-white/50 text-sm font-mono tracking-widest uppercase hover:text-white transition-colors"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {l}
-                </motion.a>
-              ))}
-              <div className="flex gap-3 pt-2 border-t border-white/5">
-                <button className="flex-1 py-2.5 border border-white/10 rounded-lg text-white/40 text-[11px] font-mono tracking-widest uppercase">
-                  Login
-                </button>
-                <button
-                  className="flex-1 py-2.5 rounded-lg text-white text-[11px] font-bold tracking-widest uppercase"
-                  style={{ background: "linear-gradient(135deg,#7c3aed,#a855f7)" }}
-                >
-                  Start Free
-                </button>
-              </div>
-            </div>
+            {NAV_LINKS.map((l, i) => (
+              <motion.a
+                key={l}
+                href="#"
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.04 }}
+                onClick={() => { setActive(l); setMobileOpen(false); }}
+                className={`py-3 text-[14px] border-b border-white/[0.04] last:border-0 transition-colors ${
+                  active === l ? "text-white/85 font-medium" : "text-white/40 font-normal"
+                }`}
+              >
+                {l}
+              </motion.a>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
     </>
   );
-};
-
-export default Navbar;
+}
