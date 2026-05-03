@@ -3,16 +3,25 @@ import { Routes, Route } from "react-router-dom";
 import Landing from './pages/Landing'
 import Signup from './pages/Signup';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import DashboardLayout from './layouts/DashboardLayout';
+import DashboardHome from './pages/dashboard/DashboardHome';
+import Profile from './pages/dashboard/Profile';
 
 function App() {
   return (
     <div>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<DashboardHome />} />
+          <Route path="quests" element={<DashboardHome />} />
+          <Route path="journal" element={<DashboardHome />} />
+          <Route path="leaderboard" element={<DashboardHome />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="settings" element={<DashboardHome />} />
+        </Route>
       </Routes>
     </div>
   )
