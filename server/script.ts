@@ -1,40 +1,60 @@
 import { prisma } from "./lib/prisma";
 
 async function main() {
-  // Create a new user with a post
-  const user = await prisma.user.create({
+
+  await prisma.user.deleteMany();
+  
+  await prisma.user.create({
     data: {
       name: "Arnav",
-      email: "arnav@prisma.io",
+      email: "arnav@test.com",
       posts: {
-        create: {
-          title: "Heya",
-          content: "Postgres + Prisma Rocks!",
-          published: true,
-        },
+        create: [
+          { title: "Arnav Post 1", content: "Hello world", published: true },
+          { title: "Arnav Post 2", content: "Another post", published: false },
+        ],
       },
     },
-    include: {
-      posts: true,
-    },
   });
-  console.log("Created user:", user);
 
-  // Fetch all users with their posts
-  const allUsers = await prisma.user.findMany({
-    include: {
-      posts: true,
+  await prisma.user.create({
+    data: {
+      name: "Rahul",
+      email: "rahul@test.com",
+      posts: {
+        create: [
+          { title: "Rahul Post 1", content: "First", published: true },
+          { title: "Rahul Post 2", content: "Second", published: true },
+          { title: "Rahul Post 3", content: "Third", published: false },
+        ],
+      },
     },
   });
-  console.log("All users:", JSON.stringify(allUsers, null, 2));
+
+  await prisma.user.create({
+    data: {
+      name: "Priya",
+      email: "priya@test.com",
+      posts: {
+        create: [
+          { title: "Priya Post 1", content: "Hey", published: true },
+          { title: "Priya Post 2", content: "Yo", published: false },
+        ],
+      },
+    },
+  });
+
+  const result = await prisma.user.findMany({
+    include: { posts: true },
+  });
+
+  console.log(JSON.stringify(result, null, 2));
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
+main()  
+  .catch(e => {
     console.error(e);
+  })
+  .finally(async () => {
     await prisma.$disconnect();
-    process.exit(1);
   });
