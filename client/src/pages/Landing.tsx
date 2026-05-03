@@ -9,8 +9,8 @@ import {
 import Lenis from "lenis";
 import Navbar from "../components/global/Navbar";
 import Footer from "../components/global/Footer";
-import Hero from "../components/landing/Hero";
-// import Hero2 from "../components/landing/Hero2";
+// import Hero from "../components/landing/Hero";
+import Hero2 from "../components/landing/Hero2";
 import { RANKS } from "../constants/rank";
 import { SKILLS } from "../constants/skills";
 import LiveSystemPreview from "../components/landing/Features";
@@ -467,8 +467,8 @@ export default function Landing() {
       {/* All page content sits above the ambient layer */}
       <div className="relative z-10">
         <Navbar />
-        <Hero />
-        {/* <Hero2 /> */}
+        {/* <Hero /> */}
+        <Hero2 />
         <SectionTransition />
         <LiveSystemPreview />
         <SectionTransition flip />
