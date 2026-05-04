@@ -49,8 +49,8 @@ function DesktopNavLink({ item }: { item: NavItem }) {
       className={({ isActive }) =>
         `group flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors duration-150 relative ${
           isActive
-            ? "bg-white/[0.06] text-white"
-            : "text-[#666] hover:text-[#aaa] hover:bg-white/[0.03]"
+            ? "bg-white/6 text-white"
+            : "text-[#666] hover:text-[#aaa] hover:bg-white/3"
         }`
       }
       style={{ fontFamily: "'DM Sans', sans-serif" }}
@@ -82,7 +82,7 @@ function SidebarBody() {
       <div className="px-4 pt-5 pb-3">
         <Link to="/">
           <div
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer hover:bg-white/[0.03] transition-colors"
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer hover:bg-white/3 transition-colors"
           >
             <div
               className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
@@ -141,7 +141,7 @@ function SidebarBody() {
       {/* User */}
       <div className="px-4 pb-4">
         <div
-          className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer group hover:bg-white/[0.03] transition-colors"
+          className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer group hover:bg-white/3 transition-colors"
         >
           <div className="relative shrink-0">
             <img
@@ -192,7 +192,7 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
     <>
       {/* Desktop sidebar */}
       <aside
-        className="hidden md:flex flex-col w-[220px] shrink-0 h-screen"
+        className="hidden md:flex flex-col w-55 shrink-0 h-screen"
         style={{
           background: "#0e0e12",
           borderRight: "1px solid rgba(255,255,255,0.05)",
@@ -218,15 +218,15 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
           >
             <KyzenMark />
           </div>
-          <span className="text-[13px] font-semibold text-white tracking-wide" style={{ fontFamily: "'DM Mono', monospace" }}>KYZEN</span>
+          <span className="text-3.25 font-semibold text-white tracking-wide" style={{ fontFamily: "'DM Mono', monospace" }}>KYZEN</span>
         </Link>
 
-        <button onClick={() => setOpen((p) => !p)} className="relative flex flex-col gap-[5px] p-2" aria-label="Toggle menu">
-          <span className="block w-[18px] h-px bg-white/40 rounded-full transition-all duration-200"
+        <button onClick={() => setOpen((p) => !p)} className="relative flex flex-col gap-1.25 p-2" aria-label="Toggle menu">
+          <span className="block w-4.5 h-px bg-white/40 rounded-full transition-all duration-200"
             style={{ transform: open ? "rotate(45deg) translate(4px,4px)" : "none" }} />
-          <span className="block w-[13px] h-px bg-white/40 rounded-full transition-all duration-200"
+          <span className="block w-3.25 h-px bg-white/40 rounded-full transition-all duration-200"
             style={{ opacity: open ? 0 : 1 }} />
-          <span className="block w-[18px] h-px bg-white/40 rounded-full transition-all duration-200"
+          <span className="block w-4.5 h-px bg-white/40 rounded-full transition-all duration-200"
             style={{ transform: open ? "rotate(-45deg) translate(4px,-4px)" : "none" }} />
           {!open && (
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
@@ -273,7 +273,7 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
                     end={item.to === "/dashboard"}
                     onClick={closeDrawer}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-5 py-3 text-[13px] border-b border-white/[0.04] transition-colors ${
+                      `flex items-center gap-3 px-5 py-3 text-[13px] border-b border-white/4 transition-colors ${
                         isActive ? "text-white font-medium" : "text-[#555] font-normal hover:text-[#888]"
                       }`
                     }
@@ -307,7 +307,7 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
               transition={{ delay: 0.06 + userFooterIdx * 0.04, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="mx-4"
             >
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-md group hover:bg-white/[0.03] transition-colors">
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-md group hover:bg-white/3 transition-colors">
                 <div className="relative">
                   <img src="https://i.pravatar.cc/36?u=kyzen" alt="avatar"
                     className="w-7 h-7 rounded-full object-cover"

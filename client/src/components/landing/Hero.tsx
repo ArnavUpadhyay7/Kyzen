@@ -326,7 +326,7 @@ export default function Hero() {
                 letterSpacing: "0.02em",
               }}
             >
-              <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              <span className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: "rgba(139,92,246,0.18)", border: "1px solid rgba(139,92,246,0.32)" }}>
                 <span style={{
                   width: 0, height: 0, marginLeft: 3,
