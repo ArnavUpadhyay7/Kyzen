@@ -1,311 +1,324 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import Character1 from "../../assets/Character1.png";
-import Character2 from "../../assets/Character2.png";
-import Character3 from "../../assets/Character3.png";
 import { Link } from "react-router-dom";
-import { palette, gradients, borders, shadows, typography } from "../../design-system";
+import dashboardHero from "../../assets/dashboard_hero.png";
+import { palette, gradients, shadows, typography } from "../../design-system";
 
-interface CardData {
-  id: number;
-  image: string;
-  level: string;
-  class: string;
-  icon: string;
-  rank: string;
-  xp: string;
-  xpMax: string;
-  xpPct: number;
-}
-
-const CARDS: CardData[] = [
-  { id: 1, image: Character1, level: "03", class: "Developer", icon: "</>", rank: "RISING",  xp: "1,250", xpMax: "2,000", xpPct: 62.5 },
-  { id: 2, image: Character2, level: "07", class: "Architect", icon: "⬡",   rank: "VETERAN", xp: "3,800", xpMax: "5,000", xpPct: 76   },
-  { id: 3, image: Character3, level: "12", class: "Overlord",  icon: "✦",   rank: "ELITE",   xp: "8,100", xpMax: "9,000", xpPct: 90   },
-];
+const fadeUp = (delay: number) => ({
+  initial: { opacity: 0, y: 32 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] as const },
+});
 
 function Diamond({ style }: { style: React.CSSProperties }) {
   return (
-    <motion.div className="absolute pointer-events-none"
-      style={{ width: 10, height: 10, background: "rgba(139,92,246,0.5)", rotate: 45, ...style }}
-      animate={{ y: [0, -14, 0], opacity: [0.4, 0.85, 0.4] }}
-      transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }} />
-  );
-}
-
-const DIAMONDS = [
-  { top: "28%", left: "42%", width: 8, height: 8 },
-  { top: "55%", left: "38%", width: 12, height: 12 },
-  { top: "70%", left: "52%", width: 7, height: 7 },
-  { top: "40%", left: "62%", width: 10, height: 10 },
-  { top: "62%", left: "70%", width: 8, height: 8 },
-  { top: "32%", left: "74%", width: 6, height: 6 },
-];
-
-const fadeUp = (delay: number) => ({
-  initial: { opacity: 0, y: 28 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] as const },
-});
-
-const CARD_HEIGHT = 500;
-const PEEK = 60;
-
-interface CharacterCardProps {
-  card: CardData;
-  stackIndex: number;
-  onClick: () => void;
-  totalCards: number;
-}
-
-function CharacterCard({ card, stackIndex, onClick, totalCards }: CharacterCardProps) {
-  const isFront = stackIndex === 0;
-  const yOffset = stackIndex * PEEK;
-  const scale = 1 - stackIndex * 0.03;
-  const brightness = 1 - stackIndex * 0.3;
-
-  return (
-    <motion.div layout onClick={onClick} initial={false}
-      animate={{ y: yOffset, scale, filter: `brightness(${brightness})`, zIndex: totalCards - stackIndex }}
-      transition={{ type: "spring", stiffness: 320, damping: 34, mass: 1 }}
-      className="absolute top-0 left-0 w-full"
-      style={{ cursor: "pointer", transformOrigin: "top center", height: CARD_HEIGHT }}>
-      <div className="relative w-full h-full overflow-hidden"
-        style={{
-          borderRadius: 24,
-          background: "linear-gradient(160deg,rgba(88,28,220,0.28) 0%,rgba(15,8,40,0.97) 50%)",
-          border: isFront ? borders.featured : "1px solid rgba(139,92,246,0.18)",
-          boxShadow: isFront
-            ? `0 0 0 1px rgba(139,92,246,0.12), 0 40px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.07), ${shadows.glow}`
-            : "0 12px 40px rgba(0,0,0,0.6)",
-        }}>
-        {/* Top-edge shimmer — same token as all cards */}
-        <div className="absolute inset-x-0 top-0 h-px z-20 pointer-events-none"
-          style={{ background: isFront ? gradients.cardEdgeShimmerFeatured : gradients.cardEdgeShimmer }} />
-
-        {/* Meta row */}
-        <div className="absolute top-5 left-5 right-5 flex justify-between items-start z-20">
-          <div>
-            <div className="text-[10px] font-medium tracking-widest uppercase mb-1"
-              style={{ color: "rgba(167,139,250,0.55)", fontFamily: typography.body }}>LEVEL</div>
-            <div className="font-black" style={{ fontSize: 52, lineHeight: 1, color: "white", fontFamily: typography.display }}>
-              {card.level}
-            </div>
-            <div className="mt-1 px-3 py-0.5 rounded-full font-semibold"
-              style={{
-                fontSize: 10, background: "rgba(109,40,217,0.55)", color: "#e9d5ff",
-                border: borders.accent, letterSpacing: "0.08em", width: "fit-content", fontFamily: typography.body,
-              }}>
-              {card.rank}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] font-medium tracking-widest uppercase mb-1"
-              style={{ color: "rgba(167,139,250,0.55)", fontFamily: typography.body }}>CLASS</div>
-            <div className="text-white font-semibold" style={{ fontSize: 15, fontFamily: typography.body }}>{card.class}</div>
-            <div className="mt-2 w-9 h-9 rounded-xl flex items-center justify-center ml-auto text-[13px]"
-              style={{ background: "rgba(109,40,217,0.35)", border: borders.accent, color: "rgba(196,181,253,0.85)", fontFamily: "monospace" }}>
-              {card.icon}
-            </div>
-          </div>
-        </div>
-
-        {/* Character image */}
-        <img src={card.image} alt={`Character ${card.id}`} draggable={false}
-          className="absolute inset-0 w-full h-full select-none z-10"
-          style={{ objectFit: "cover", objectPosition: "top center", pointerEvents: "none" }} />
-
-        {/* Bottom gradient */}
-        <div className="absolute bottom-0 inset-x-0 z-10 pointer-events-none"
-          style={{ height: "45%", background: "linear-gradient(to top, rgba(6,3,20,0.98) 0%, rgba(6,3,20,0.7) 50%, transparent 100%)" }} />
-
-        {/* XP Bar */}
-        <div className="absolute bottom-5 left-5 right-5 z-20">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[11px] font-semibold tracking-wider"
-              style={{ color: "rgba(167,139,250,0.7)", fontFamily: typography.body }}>XP</span>
-            <span className="text-[11px]" style={{ color: "rgba(167,139,250,0.5)", fontFamily: typography.body }}>
-              {card.xp} / {card.xpMax}
-            </span>
-          </div>
-          <div className="w-full rounded-full overflow-hidden"
-            style={{ height: 7, background: "rgba(109,40,217,0.2)", border: "1px solid rgba(139,92,246,0.15)" }}>
-            <motion.div className="h-full rounded-full"
-              initial={{ width: 0 }} animate={{ width: `${card.xpPct}%` }}
-              transition={{ duration: 1.1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              style={{ background: "linear-gradient(90deg,#6d28d9,#a855f7)", boxShadow: "0 0 10px rgba(139,92,246,0.7)" }} />
-          </div>
-        </div>
-      </div>
-    </motion.div>
+    <motion.div
+      className="absolute pointer-events-none"
+      style={{ width: 7, height: 7, background: "rgba(139,92,246,0.45)", rotate: 45, ...style }}
+      animate={{ y: [0, -10, 0], opacity: [0.3, 0.7, 0.3] }}
+      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+    />
   );
 }
 
 export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const gx = useSpring(mouseX, { stiffness: 20, damping: 22 });
-  const gy = useSpring(mouseY, { stiffness: 20, damping: 22 });
-  const tiltX = useTransform(gy, [-10, 10], [2, -2]);
-  const tiltY = useTransform(gx, [-10, 10], [-3, 3]);
+  const gx = useSpring(mouseX, { stiffness: 14, damping: 24 });
+  const gy = useSpring(mouseY, { stiffness: 14, damping: 24 });
+  const imgX = useTransform(gx, [-15, 15], [-8, 8]);
+  const imgY = useTransform(gy, [-15, 15], [-4, 4]);
 
-  const handleMouse = useCallback((e: React.MouseEvent) => {
+  const handleMouse = (e: React.MouseEvent) => {
     const r = sectionRef.current?.getBoundingClientRect();
     if (!r) return;
-    mouseX.set((e.clientX - r.left - r.width / 2) * 0.012);
-    mouseY.set((e.clientY - r.top - r.height / 2) * 0.008);
-  }, [mouseX, mouseY]);
-
-  const handleCardClick = useCallback(() => {
-    setActiveIndex((prev) => (prev + 1) % CARDS.length);
-  }, []);
-
-  const orderedCards = CARDS.map((_, i) => CARDS[(activeIndex + i) % CARDS.length]);
-  const deckHeight = CARD_HEIGHT + PEEK * (CARDS.length - 1);
+    mouseX.set((e.clientX - r.left - r.width / 2) * 0.015);
+    mouseY.set((e.clientY - r.top - r.height / 2) * 0.01);
+  };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
-        .hero-root { font-family: 'DM Sans', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+        .shimmer-btn::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.13) 50%, transparent 65%);
+          background-size: 300% 100%;
+          animation: btn-shimmer 2.8s ease-in-out infinite 1.8s;
+          border-radius: inherit;
+        }
+        @keyframes btn-shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -100% 0; }
+        }
+
+        .badge-dot {
+          animation: dot-pulse 2s ease-in-out infinite;
+        }
+        @keyframes dot-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%       { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .img-frame {
+          box-shadow:
+            0 0 0 1px rgba(139,92,246,0.28),
+            0 0 80px rgba(109,40,217,0.22),
+            0 60px 120px rgba(0,0,0,0.75),
+            0 30px 60px rgba(0,0,0,0.5),
+            inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+
+        .hero-noise-layer {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+          background-repeat: repeat;
+          background-size: 200px;
+        }
       `}</style>
 
-      <section ref={sectionRef} onMouseMove={handleMouse}
-        className="hero-root relative w-full min-h-screen flex items-center overflow-hidden">
-        {/* NO section background — transparent, global layer handles it */}
+      <section
+        ref={sectionRef}
+        onMouseMove={handleMouse}
+        className="relative w-full flex flex-col items-center overflow-hidden"
+        style={{ fontFamily: typography.body, minHeight: "100vh" }}
+      >
+        {/* Grain texture overlay */}
+        <div className="hero-noise-layer absolute inset-0 pointer-events-none z-0" />
 
-        {/* Mouse-reactive bloom — unique to hero, complements global layer */}
-        <motion.div className="absolute pointer-events-none rounded-full"
-          style={{
-            width: 800, height: 500, top: "10%", left: "30%",
-            background: "radial-gradient(ellipse at center, rgba(109,40,217,0.10) 0%, transparent 70%)",
-            filter: "blur(50px)", x: gx, y: gy,
-          }} />
+        {/* Ambient lights */}
+        {/* Primary center orb */}
+        <div className="absolute pointer-events-none" style={{
+          width: 1000, height: 700,
+          top: "-15%", left: "50%", transform: "translateX(-50%)",
+          background: "radial-gradient(ellipse, rgba(109,40,217,0.24) 0%, rgba(88,28,220,0.10) 35%, transparent 65%)",
+          filter: "blur(50px)",
+        }} />
+        {/* Left soft accent */}
+        <div className="absolute pointer-events-none" style={{
+          width: 500, height: 500, top: "5%", left: "-10%",
+          background: "radial-gradient(circle, rgba(232,121,249,0.07) 0%, transparent 70%)",
+          filter: "blur(70px)",
+        }} />
+        {/* Right soft accent */}
+        <div className="absolute pointer-events-none" style={{
+          width: 450, height: 450, top: "8%", right: "-8%",
+          background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)",
+          filter: "blur(70px)",
+        }} />
+        {/* Horizon glow behind dashboard */}
+        <div className="absolute pointer-events-none" style={{
+          width: 1200, height: 600,
+          bottom: "5%", left: "50%", transform: "translateX(-50%)",
+          background: "radial-gradient(ellipse, rgba(88,28,220,0.18) 0%, transparent 60%)",
+          filter: "blur(80px)",
+        }} />
 
-        {DIAMONDS.map((d, i) => <Diamond key={i} style={d} />)}
+        {/* Floating diamonds */}
+        <Diamond style={{ top: "15%", left: "6%" }} />
+        <Diamond style={{ top: "28%", left: "12%" }} />
+        <Diamond style={{ top: "18%", right: "8%" }} />
+        <Diamond style={{ top: "36%", right: "4%" }} />
+        <Diamond style={{ top: "11%", left: "40%" }} />
+        <Diamond style={{ top: "9%",  right: "38%" }} />
 
-        {/* Main layout */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-14 flex flex-col lg:flex-row items-center gap-12 lg:gap-0 py-20">
+        {/* ── TEXT CONTENT ── */}
+        <div className="relative z-10 flex flex-col items-center text-center pt-32 px-4 w-full max-w-4xl mx-auto">
 
-          {/* Left column */}
-          <div className="flex-1 flex flex-col items-start max-w-xl">
-            <motion.div {...fadeUp(0.08)} className="flex items-center gap-2 mb-7 px-4 py-2 rounded-full"
-              style={{ background: "rgba(109,40,217,0.12)", border: borders.accent }}>
-              <span style={{ color: "#a78bfa", fontSize: 13 }}>✦</span>
-              <span className="font-medium tracking-widest uppercase"
-                style={{ fontSize: 11, color: "rgba(167,139,250,0.85)", letterSpacing: "0.14em", fontFamily: typography.body }}>
-                Life RPG for Developers &amp; Ambitious People
+          {/* Badge */}
+          <motion.div {...fadeUp(0.05)} className="relative inline-flex items-center mb-8">
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-full"
+              style={{
+                background: "rgba(109,40,217,0.14)",
+                border: "1px solid rgba(139,92,246,0.32)",
+                backdropFilter: "blur(14px)",
+              }}>
+              <span className="badge-dot w-1.5 h-1.5 rounded-full inline-block" style={{ background: "#a78bfa" }} />
+              <span style={{ fontSize: 12, color: "rgba(196,181,253,0.82)", letterSpacing: "0.03em" }}>
+                Now in public beta —&nbsp;
+                <span style={{ color: "#c084fc", fontWeight: 600 }}>join free today</span>
               </span>
-            </motion.div>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity: 0.45 }}>
+                <path d="M2 5h6M5 2l3 3-3 3" stroke="#c084fc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </motion.div>
 
-            <motion.h1 {...fadeUp(0.16)} style={{ lineHeight: 0.92, letterSpacing: "-0.01em" }} className="mb-6">
-              <span className="block text-white font-black uppercase"
-                style={{ fontSize: "clamp(3.6rem,8vw,6.4rem)", fontFamily: typography.display }}>
-                Earn Your
-              </span>
-              <span className="block font-black uppercase"
+          {/* Headline */}
+          <motion.h1
+            {...fadeUp(0.12)}
+            className="font-black uppercase leading-none mb-5"
+            style={{ fontFamily: typography.display, letterSpacing: "-0.025em" }}
+          >
+            <span className="block text-white" style={{ fontSize: "clamp(3.6rem,8vw,6.8rem)" }}>
+              Turn Grind
+            </span>
+            <span
+              className="block"
+              style={{
+                fontSize: "clamp(3.6rem,8vw,6.8rem)",
+                background: gradients.purpleText,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Into Progress
+            </span>
+          </motion.h1>
+
+          {/* Subtext */}
+          <motion.p
+            {...fadeUp(0.20)}
+            className="mb-10 leading-relaxed"
+            style={{
+              fontSize: "clamp(0.95rem,1.5vw,1.05rem)",
+              color: "rgba(190,175,230,0.52)",
+              maxWidth: 480,
+            }}
+          >
+            Complete quests, earn XP, build streaks. Kyzen is the RPG layer
+            on top of your real developer life — your progress, finally quantified.
+          </motion.p>
+
+          {/* CTAs */}
+          <motion.div {...fadeUp(0.28)} className="flex flex-col sm:flex-row items-center gap-3 mb-14">
+            <Link to="/signup">
+              <motion.button
+                whileHover={{ scale: 1.04, boxShadow: "0 0 52px rgba(124,58,237,0.65), 0 4px 20px rgba(0,0,0,0.4)" }}
+                whileTap={{ scale: 0.97 }}
+                className="shimmer-btn relative overflow-hidden flex items-center gap-2 px-8 py-4 rounded-xl text-white font-semibold cursor-pointer"
                 style={{
-                  fontSize: "clamp(3.6rem,8vw,6.4rem)", fontFamily: typography.display,
-                  background: gradients.purpleText,
-                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-                }}>
-                Progress
-              </span>
-            </motion.h1>
-
-            <motion.p {...fadeUp(0.24)} className="mb-9 leading-relaxed"
-              style={{ fontSize: "clamp(0.95rem,1.5vw,1.05rem)", color: "rgba(190,180,220,0.65)", maxWidth: 430, fontFamily: typography.body }}>
-              Complete quests, gain XP, build streaks, and level up skills.
-              Turn your daily actions into epic progress.
-            </motion.p>
-
-            <motion.div {...fadeUp(0.32)} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-10">
-              <Link to="/signup">
-                <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                  className="relative flex items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold overflow-hidden cursor-pointer"
-                  style={{
-                    fontFamily: typography.body, fontSize: 15,
-                    background: gradients.buttonFill,
-                    boxShadow: shadows.button,
-                    border: "1px solid rgba(167,139,250,0.2)",
-                  }}>
-                  <motion.span className="absolute inset-0 pointer-events-none"
-                    style={{ background: "linear-gradient(110deg,transparent 30%,rgba(255,255,255,0.1) 50%,transparent 70%)" }}
-                    animate={{ x: ["-120%", "220%"] }}
-                    transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }} />
-                  Start Your Journey
-                  <span className="text-lg">→</span>
-                </motion.button>
-              </Link>
-
-              <motion.button whileHover={{ background: "rgba(255,255,255,0.06)" }} whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-3 px-6 py-3.5 rounded-xl font-medium cursor-pointer transition-colors"
-                style={{ fontFamily: typography.body, fontSize: 15, color: "rgba(210,198,255,0.75)", background: "rgba(255,255,255,0.04)", border: borders.medium }}>
-                <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: "rgba(139,92,246,0.15)", border: borders.accent }}>
-                  <span style={{ width: 0, height: 0, marginLeft: 2, borderTop: "4px solid transparent", borderBottom: "4px solid transparent", borderLeft: "7px solid rgba(167,139,250,0.85)", display: "inline-block" }} />
-                </span>
-                See How It Works
+                  fontFamily: typography.body,
+                  fontSize: 15,
+                  background: gradients.buttonFill,
+                  boxShadow: shadows.button,
+                  border: "1px solid rgba(167,139,250,0.22)",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                Start Your Journey
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </motion.button>
-            </motion.div>
+            </Link>
 
-            <motion.div {...fadeUp(0.4)} className="flex items-center gap-3">
-              <div className="flex">
-                {["https://i.pravatar.cc/40?img=11","https://i.pravatar.cc/40?img=32","https://i.pravatar.cc/40?img=53","https://i.pravatar.cc/40?img=14"].map((src, i) => (
-                  <img key={i} src={src} alt="" className="w-8 h-8 rounded-full object-cover"
-                    style={{ border: `2px solid ${palette.canvas}`, marginLeft: i === 0 ? 0 : -10, zIndex: 4 - i, position: "relative" }} />
-                ))}
-              </div>
-              <span style={{ fontSize: 13, color: "rgba(170,158,215,0.55)", fontFamily: typography.body }}>
-                Join{" "}
-                <span className="font-semibold" style={{ color: "#a78bfa" }}>12,847+</span>{" "}
-                players leveling up their lives every day.
+            <motion.button
+              whileHover={{ background: "rgba(255,255,255,0.06)", borderColor: "rgba(139,92,246,0.35)" }}
+              whileTap={{ scale: 0.97 }}
+              className="flex items-center gap-3 px-7 py-4 rounded-xl font-medium cursor-pointer transition-all duration-200"
+              style={{
+                fontFamily: typography.body,
+                fontSize: 15,
+                color: "rgba(210,198,255,0.68)",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              <span className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(139,92,246,0.18)", border: "1px solid rgba(139,92,246,0.32)" }}>
+                <span style={{
+                  width: 0, height: 0, marginLeft: 3,
+                  borderTop: "4px solid transparent",
+                  borderBottom: "4px solid transparent",
+                  borderLeft: "7px solid rgba(167,139,250,0.88)",
+                  display: "inline-block",
+                }} />
               </span>
-            </motion.div>
-          </div>
+              Watch demo
+            </motion.button>
+          </motion.div>
 
-          {/* Right column — card deck */}
-          <div className="flex-1 flex justify-center lg:justify-end items-start pt-10 lg:pt-0">
-            <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              style={{ perspective: "1200px" }}>
-              <motion.div style={{ rotateX: tiltX, rotateY: tiltY, transformStyle: "preserve-3d" }}>
-                <div className="relative cursor-pointer"
-                  style={{ width: "clamp(280px,34vw,400px)", height: deckHeight }}
-                  onClick={handleCardClick}>
-                  {[...orderedCards].reverse().map((card, reversedIdx) => {
-                    const stackIndex = CARDS.length - 1 - reversedIdx;
-                    return (
-                      <CharacterCard key={card.id} card={card} stackIndex={stackIndex}
-                        onClick={handleCardClick} totalCards={CARDS.length} />
-                    );
-                  })}
-
-                  {/* Dot indicators */}
-                  <div className="absolute flex gap-2" style={{ bottom: -28, left: "50%", transform: "translateX(-50%)" }}>
-                    {CARDS.map((_, i) => (
-                      <motion.div key={i}
-                        animate={{ width: i === 0 ? 20 : 6, background: i === 0 ? "rgba(167,139,250,0.9)" : "rgba(139,92,246,0.3)" }}
-                        transition={{ duration: 0.35, ease: "easeOut" }}
-                        className="h-1.5 rounded-full" />
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          </div>
+          {/* Social proof */}
+          <motion.div {...fadeUp(0.34)} className="flex items-center gap-3 mb-20">
+            <div className="flex">
+              {[11, 32, 53, 14, 22].map((n, i) => (
+                <img key={i} src={`https://i.pravatar.cc/40?img=${n}`} alt=""
+                  className="w-8 h-8 rounded-full object-cover"
+                  style={{ border: `2px solid ${palette.canvas}`, marginLeft: i === 0 ? 0 : -10, position: "relative", zIndex: 5 - i }} />
+              ))}
+            </div>
+            <span style={{ fontSize: 12.5, color: "rgba(190,175,230,0.42)" }}>
+              <span style={{ color: "#a78bfa", fontWeight: 600 }}>12,847+</span> players leveling up today
+            </span>
+          </motion.div>
         </div>
 
-        {/*
-         * SEAMLESS BOTTOM FADE — critical for no hard section breaks.
-         * Dissolves the hero into the next section instead of cutting.
-         * Uses the canvas color so it's imperceptible.
-         */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-          style={{ background: `linear-gradient(to bottom, transparent 0%, ${palette.canvas}20 60%, ${palette.canvas}80 100%)` }} />
+        {/* ── DASHBOARD IMAGE ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 70, rotateX: "8deg" }}
+          animate={{ opacity: 1, y: 0, rotateX: "3deg" }}
+          transition={{ duration: 1.2, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6"
+          style={{
+            perspective: "1400px",
+            marginTop: "-30px",  // slight overlap so image peeks under text area
+          }}
+        >
+          <motion.div style={{ x: imgX, y: imgY, rotateY: "-1deg", transformStyle: "preserve-3d" }}>
+
+            {/* Bloom behind the image */}
+            <div className="absolute -inset-x-4 -bottom-16 h-48 pointer-events-none"
+              style={{
+                background: "radial-gradient(ellipse 85% 70% at 50% 100%, rgba(109,40,217,0.4) 0%, transparent 70%)",
+                filter: "blur(40px)",
+              }} />
+
+            {/* Card wrapper */}
+            <div className="img-frame relative rounded-2xl overflow-hidden">
+
+              {/* Browser chrome */}
+              <div className="relative flex items-center gap-2 px-4 py-3"
+                style={{
+                  background: "rgba(6,3,18,0.98)",
+                  borderBottom: "1px solid rgba(139,92,246,0.15)",
+                }}>
+                {/* Top shimmer */}
+                <div className="absolute inset-x-0 top-0 h-px"
+                  style={{ background: "linear-gradient(90deg, transparent 5%, rgba(139,92,246,0.55) 50%, transparent 95%)" }} />
+                {["#ff5f57","#febc2e","#28c840"].map(c => (
+                  <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c, opacity: 0.75 }} />
+                ))}
+                <div className="flex-1 flex justify-center">
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    {/* Lock icon */}
+                    <svg width="9" height="9" viewBox="0 0 9 9" fill="none" style={{ opacity: 0.4 }}>
+                      <rect x="1" y="4" width="7" height="5" rx="1" stroke="#a78bfa" strokeWidth="1"/>
+                      <path d="M2.5 4V3a2 2 0 114 0v1" stroke="#a78bfa" strokeWidth="1"/>
+                    </svg>
+                    <span style={{ fontSize: 10, color: "rgba(167,139,250,0.4)", fontFamily: typography.mono, letterSpacing: "0.04em" }}>
+                      app.kyzen.dev/dashboard
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dashboard screenshot */}
+              <img
+                src={dashboardHero}
+                alt="Kyzen dashboard"
+                draggable={false}
+                className="w-full block select-none"
+                style={{
+                  display: "block",
+                  maskImage: "linear-gradient(to bottom, black 65%, rgba(0,0,0,0.3) 85%, transparent 100%)",
+                  WebkitMaskImage: "linear-gradient(to bottom, black 65%, rgba(0,0,0,0.3) 85%, transparent 100%)",
+                }}
+              />
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Bottom dissolve into next section */}
+        <div className="absolute bottom-0 left-0 right-0 h-56 pointer-events-none z-20"
+          style={{ background: `linear-gradient(to bottom, transparent 0%, ${palette.canvas} 100%)` }} />
       </section>
     </>
   );
