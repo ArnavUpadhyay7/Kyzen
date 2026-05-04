@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import axios from "axios";
+import { authApi } from "../api/auth";
+import { toast } from "../components/ui/Toast";
 
 export default function Login() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -15,17 +19,29 @@ export default function Login() {
 
   const handleSubmit = async (e: React.MouseEvent) => {
     e.preventDefault();
+
     if (!form.email || !form.password) {
       setError("Email and password are required.");
       return;
     }
+
     setLoading(true);
     try {
-      // Replace with your actual API call
-      // await api.login({ email: form.email, password: form.password });
-      await new Promise((r) => setTimeout(r, 1000)); // stub
-    } catch {
-      setError("Invalid credentials. Please try again.");
+      await authApi.login({
+        email: form.email.trim(),
+        password: form.password,
+      });
+      toast("Welcome back! 👋", "success");
+      setTimeout(() => navigate("/dashboard"), 800);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message ?? "Login failed. Please try again.";
+        setError(message);
+        toast(message, "error");
+      } else {
+        setError("Something went wrong. Please try again.");
+        toast("Something went wrong. Please try again.", "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -50,7 +66,6 @@ export default function Login() {
             backgroundSize: "200px 200px",
           }}
         />
-
         <div className="relative z-10 flex flex-col justify-end p-10 pb-14 w-full">
           <div className="mb-8 flex items-center gap-2">
             <div className="w-5 h-5 rounded-full border-2 border-white/80 flex items-center justify-center">
@@ -58,14 +73,12 @@ export default function Login() {
             </div>
             <span className="text-white/80 text-sm font-medium tracking-wide">OnlyPipe</span>
           </div>
-
           <h1 className="text-white text-4xl font-semibold leading-tight mb-3">
             Welcome<br />Back
           </h1>
           <p className="text-white/50 text-sm leading-relaxed mb-10">
             Sign in to continue where<br />you left off.
           </p>
-
           <div className="flex flex-col gap-3">
             {[
               { n: 1, label: "Sign up your account" },
@@ -170,10 +183,7 @@ export default function Login() {
 
           <p className="text-white/30 text-sm text-center mt-5">
             Don't have an account?{" "}
-            <Link
-              to="/signup"
-              className="text-white font-medium hover:underline transition-all cursor-pointer"
-            >
+            <Link to="/signup" className="text-white font-medium hover:underline transition-all cursor-pointer">
               Create an account for free →
             </Link>
           </p>

@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import axios from "axios";
+import { authApi } from "../api/auth";
+import { toast } from "../components/ui/Toast";
 
 export default function Signup() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState({ firstName: "", username: "", email: "", password: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -15,21 +19,38 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!form.firstName || !form.username || !form.email || !form.password) {
+
+    if (!form.username || !form.email || !form.password) {
       setError("All fields are required.");
+      return;
+    }
+    if (form.username.trim().length < 3) {
+      setError("Username must be at least 3 characters.");
       return;
     }
     if (form.password.length < 8) {
       setError("Password must be at least 8 characters.");
       return;
     }
+
     setLoading(true);
     try {
-      // Replace with your actual API call
-      // await api.signup({ name: form.firstName, username: form.username, email: form.email, password: form.password });
-      await new Promise((r) => setTimeout(r, 1000)); // stub
-    } catch {
-      setError("Sign up failed. Please try again.");
+      await authApi.signup({
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      });
+      toast("Account created! Welcome aboard 🎉", "success");
+      setTimeout(() => navigate("/dashboard"), 800);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message ?? "Sign up failed. Please try again.";
+        setError(message);
+        toast(message, "error");
+      } else {
+        setError("Something went wrong. Please try again.");
+        toast("Something went wrong. Please try again.", "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -54,7 +75,6 @@ export default function Signup() {
             backgroundSize: "200px 200px",
           }}
         />
-
         <div className="relative z-10 flex flex-col justify-end p-10 pb-14 w-full">
           <div className="mb-8 flex items-center gap-2">
             <div className="w-5 h-5 rounded-full border-2 border-white/80 flex items-center justify-center">
@@ -62,14 +82,12 @@ export default function Signup() {
             </div>
             <span className="text-white/80 text-sm font-medium tracking-wide">OnlyPipe</span>
           </div>
-
           <h1 className="text-white text-4xl font-semibold leading-tight mb-3">
             Get Started<br />with Us
           </h1>
           <p className="text-white/50 text-sm leading-relaxed mb-10">
             Complete these easy steps to register<br />your account.
           </p>
-
           <div className="flex flex-col gap-3">
             {[
               { n: 1, label: "Sign up your account", active: true },
@@ -130,16 +148,6 @@ export default function Signup() {
 
           <div className="flex gap-3 mb-4">
             <div className="flex-1">
-              <label className="block text-white/60 text-xs mb-1.5">First Name</label>
-              <input
-                name="firstName"
-                value={form.firstName}
-                onChange={handleChange}
-                placeholder="eg. John"
-                className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
-              />
-            </div>
-            <div className="flex-1">
               <label className="block text-white/60 text-xs mb-1.5">Username</label>
               <input
                 name="username"
@@ -198,10 +206,7 @@ export default function Signup() {
 
           <p className="text-white/30 text-sm text-center mt-5">
             Already have an account?{" "}
-            <Link
-              to="/login"
-              className="text-white font-medium hover:underline transition-all cursor-pointer"
-            >
+            <Link to="/login" className="text-white font-medium hover:underline transition-all cursor-pointer">
               Log in →
             </Link>
           </p>
