@@ -251,7 +251,7 @@ export default function Hero() {
         <Diamond style={{ top: "9%",  right: "38%" }} />
 
         {/* ── TEXT CONTENT ── */}
-        <div className="relative z-10 flex flex-col items-center text-center pt-32 px-4 w-full max-w-4xl mx-auto">
+        <div className="relative z-10 flex flex-col items-center text-center md:pt-28 pt-20 px-4 w-full max-w-4xl mx-auto">
 
           {/* Headline */}
           <motion.h1
