@@ -21,6 +21,7 @@ function isValidEmail(email: string): boolean {
 function safeUser(user: {
   id: string;
   email: string;
+  username: string;
   password: string | null;
   provider: string;
   xp: number;
@@ -39,15 +40,20 @@ function safeUser(user: {
  * POST /api/auth/signup
  */
 export async function signup(req: Request, res: Response): Promise<void> {
-  const { email, password } = req.body as { email?: string; password?: string };
+  const { email, password, username } = req.body as { email?: string; password?: string; username?: string };
 
-  if (!email || !password) {
-    res.status(400).json({ message: "Email and password are required." });
+  if (!email || !password || !username) {
+    res.status(400).json({ message: "All the fields are required." });
     return;
   }
 
   if (!isValidEmail(email)) {
     res.status(400).json({ message: "Invalid email address." });
+    return;
+  }
+
+  if (username.trim().length < 3) {
+    res.status(400).json({ message: "Username must be at least 3 characters." });
     return;
   }
 
@@ -57,9 +63,15 @@ export async function signup(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
+    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    if (existingEmail) {
       res.status(400).json({ message: "An account with that email already exists." });
+      return;
+    }
+
+    const existingUsername = await prisma.user.findUnique({ where: { username } });
+    if (existingUsername) {
+      res.status(400).json({ message: "That username is already taken." });
       return;
     }
 
@@ -67,6 +79,7 @@ export async function signup(req: Request, res: Response): Promise<void> {
 
     const user = await prisma.user.create({
       data: {
+        username,
         email,
         password: hashed,
         provider: "local",
@@ -135,7 +148,6 @@ export async function logout(_req: Request, res: Response): Promise<void> {
 
 /**
  * DELETE /api/auth/signout  (protected)
- * Permanently deletes the authenticated user and all their data.
  */
 export async function signout(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.userId!;
