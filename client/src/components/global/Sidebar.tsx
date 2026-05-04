@@ -10,139 +10,62 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  Search,
 } from "lucide-react";
 
-/* ─── Types ─── */
 type NavSection = { label: string; items: NavItem[] };
 type NavItem = { icon: React.ReactNode; label: string; to: string; badge?: string | number };
 interface SidebarProps { onClose?: () => void }
 
-/* ─── Data ─── */
 const NAV_SECTIONS: NavSection[] = [
   {
-    label: "MAIN MENU",
+    label: "Main Menu",
     items: [
-      { icon: <LayoutDashboard size={16} />, label: "Dashboard", to: "/dashboard" },
-      { icon: <Swords size={16} />,          label: "Quests",    to: "/dashboard/quests",  badge: 3 },
-      { icon: <ScrollText size={16} />,      label: "Journal",   to: "/dashboard/journal" },
+      { icon: <LayoutDashboard size={15} />, label: "Dashboard", to: "/dashboard" },
+      { icon: <Swords size={15} />, label: "Quests", to: "/dashboard/quests", badge: 3 },
+      { icon: <ScrollText size={15} />, label: "Journal", to: "/dashboard/journal" },
     ],
   },
   {
-    label: "PROGRESS",
+    label: "Progress",
     items: [
-      { icon: <Trophy size={16} />, label: "Leaderboard", to: "/dashboard/leaderboard" },
-      { icon: <User size={16} />,   label: "Profile",     to: "/dashboard/profile" },
+      { icon: <Trophy size={15} />, label: "Leaderboard", to: "/dashboard/leaderboard" },
+      { icon: <User size={15} />, label: "Profile", to: "/dashboard/profile" },
     ],
   },
   {
-    label: "SETTINGS",
+    label: "Settings",
     items: [
-      { icon: <Settings size={16} />, label: "Settings", to: "/dashboard/settings" },
+      { icon: <Settings size={15} />, label: "Settings", to: "/dashboard/settings" },
     ],
   },
 ];
 
-/* ─── All nav items flat for mobile stagger ─── */
-const ALL_NAV_ITEMS: (NavItem & { sectionLabel?: string; isFirstInSection?: boolean })[] = NAV_SECTIONS.flatMap((s) =>
-  s.items.map((item, idx) => ({ ...item, sectionLabel: idx === 0 ? s.label : undefined, isFirstInSection: idx === 0 }))
-);
-
-/* ─── Desktop sidebar body ─── */
-function SidebarBody({ onNavClick }: { onNavClick?: () => void }) {
-  return (
-    <>
-      <div
-        className="absolute top-0 left-0 w-40 h-40 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at top left, rgba(109,40,217,0.18) 0%, transparent 70%)" }}
-      />
-
-      <Link to="/" className="px-4 pt-5 pb-4 block">
-        <div
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer"
-          style={{ border: "1px solid rgba(139,92,246,0.15)", background: "rgba(109,40,217,0.08)" }}
-        >
-          <LogoIcon />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-100 truncate" style={{ fontFamily: "'Barlow', sans-serif", letterSpacing: "0.04em" }}>KYZEN</p>
-            <p className="text-[10px] text-violet-400/60 truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>Free Plan</p>
-          </div>
-          <ChevronDown size={13} className="text-slate-500 shrink-0" />
-        </div>
-      </Link>
-
-      <div className="px-4 mb-5">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-text"
-          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <SearchSVG />
-          <span className="text-slate-500 text-xs flex-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>Search</span>
-          <kbd className="text-[9px] px-1.5 py-0.5 rounded"
-            style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.2)", color: "rgba(167,139,250,0.6)", fontFamily: "monospace" }}>
-            ⌘K
-          </kbd>
-        </div>
-      </div>
-
-      <nav className="flex-1 px-3 flex flex-col gap-5">
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.label}>
-            <p className="text-[9px] font-semibold tracking-widest mb-2 px-3"
-              style={{ color: "rgba(139,92,246,0.4)", fontFamily: "'DM Sans', sans-serif" }}>
-              {section.label}
-            </p>
-            <div className="flex flex-col gap-0.5">
-              {section.items.map((item) => (
-                <DesktopNavLink key={item.to} item={item} onClick={onNavClick} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </nav>
-
-      <div className="mx-4 my-3" style={{ height: 1, background: "rgba(139,92,246,0.1)" }} />
-
-      <div className="px-4 pb-5">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer group hover:bg-white/4 transition-colors"
-          style={{ border: "1px solid rgba(255,255,255,0.05)" }}>
-          <UserAvatar />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-slate-200 truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>Ethan Reynolds</p>
-            <p className="text-[10px] text-slate-500 truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>ethan@kyzen.gg</p>
-          </div>
-          <LogOut size={13} className="text-slate-600 group-hover:text-violet-400 transition-colors shrink-0" />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function DesktopNavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
+function DesktopNavLink({ item }: { item: NavItem }) {
   return (
     <NavLink
       to={item.to}
       end={item.to === "/dashboard"}
-      onClick={onClick}
       className={({ isActive }) =>
-        `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
+        `group flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors duration-150 relative ${
           isActive
-            ? "bg-violet-600/20 text-violet-200 border border-violet-500/30"
-            : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"
+            ? "bg-white/[0.06] text-white"
+            : "text-[#666] hover:text-[#aaa] hover:bg-white/[0.03]"
         }`
       }
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       {({ isActive }) => (
         <>
-          {isActive && (
-            <motion.div layoutId="sidebar-active" className="absolute inset-0 rounded-xl"
-              style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.18) 0%, rgba(139,92,246,0.08) 100%)", boxShadow: "inset 0 0 20px rgba(139,92,246,0.06)" }}
-              transition={{ type: "spring", stiffness: 380, damping: 36 }} />
-          )}
-          <span className={`relative z-10 transition-colors ${isActive ? "text-violet-400" : "text-slate-500 group-hover:text-slate-300"}`}>
+          <span className={isActive ? "text-[#8b5cf6]" : "text-[#444] group-hover:text-[#666] transition-colors"}>
             {item.icon}
           </span>
-          <span className="relative z-10 flex-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>{item.label}</span>
+          <span className="flex-1">{item.label}</span>
           {item.badge && (
-            <span className="relative z-10 text-[10px] font-bold px-1.5 py-0.5 rounded-md"
-              style={{ background: "rgba(139,92,246,0.25)", color: "#c4b5fd", border: "1px solid rgba(139,92,246,0.35)" }}>
+            <span
+              className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+              style={{ background: "rgba(139,92,246,0.12)", color: "#8b5cf6" }}
+            >
               {item.badge}
             </span>
           )}
@@ -152,7 +75,97 @@ function DesktopNavLink({ item, onClick }: { item: NavItem; onClick?: () => void
   );
 }
 
-/* ─── Main export ─── */
+function SidebarBody() {
+  return (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="px-4 pt-5 pb-3">
+        <Link to="/">
+          <div
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer hover:bg-white/[0.03] transition-colors"
+          >
+            <div
+              className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+              style={{ background: "#1a1a24", border: "1px solid rgba(139,92,246,0.25)" }}
+            >
+              <KyzenMark />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-white tracking-wide" style={{ fontFamily: "'DM Mono', monospace" }}>KYZEN</p>
+              <p className="text-[10px] text-[#444]" style={{ fontFamily: "'DM Sans', sans-serif" }}>Free Plan</p>
+            </div>
+            <ChevronDown size={12} className="text-[#333] shrink-0" />
+          </div>
+        </Link>
+      </div>
+
+      {/* Search */}
+      <div className="px-4 mb-4">
+        <div
+          className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-text"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <Search size={12} className="text-[#444] shrink-0" />
+          <span className="text-[12px] text-[#333] flex-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>Search</span>
+          <kbd
+            className="text-[9px] px-1 py-0.5 rounded"
+            style={{ background: "rgba(255,255,255,0.04)", color: "#444", fontFamily: "'DM Mono', monospace" }}
+          >
+            ⌘K
+          </kbd>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 flex flex-col gap-5 overflow-y-auto">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label}>
+            <p
+              className="text-[10px] font-medium tracking-wider mb-1.5 px-3 uppercase"
+              style={{ color: "#333", fontFamily: "'DM Sans', sans-serif" }}
+            >
+              {section.label}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {section.items.map((item) => (
+                <DesktopNavLink key={item.to} item={item} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* Divider */}
+      <div className="mx-4 my-3" style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
+
+      {/* User */}
+      <div className="px-4 pb-4">
+        <div
+          className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer group hover:bg-white/[0.03] transition-colors"
+        >
+          <div className="relative shrink-0">
+            <img
+              src="https://i.pravatar.cc/36?u=kyzen"
+              alt="avatar"
+              className="w-7 h-7 rounded-full object-cover"
+              style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+            />
+            <span
+              className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full"
+              style={{ background: "#22c55e", border: "1.5px solid #0B0B0F" }}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] font-medium text-[#ccc] truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>Ethan Reynolds</p>
+            <p className="text-[10px] text-[#444] truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>ethan@kyzen.gg</p>
+          </div>
+          <LogOut size={13} className="text-[#333] group-hover:text-[#666] transition-colors shrink-0" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
   const [open, setOpen] = useState(false);
 
@@ -166,157 +179,112 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
     _externalClose?.();
   };
 
-  // Build flat list with section labels for mobile rendering
   let flatIdx = 0;
   const mobileItems: { item: NavItem; sectionLabel?: string; staggerIdx: number }[] = [];
   NAV_SECTIONS.forEach((section) => {
     section.items.forEach((item, i) => {
-      mobileItems.push({
-        item,
-        sectionLabel: i === 0 ? section.label : undefined,
-        staggerIdx: flatIdx++,
-      });
+      mobileItems.push({ item, sectionLabel: i === 0 ? section.label : undefined, staggerIdx: flatIdx++ });
     });
   });
-  // +1 for user footer
   const userFooterIdx = flatIdx;
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap');`}</style>
-
-      {/* ══════ DESKTOP sidebar ══════ */}
+      {/* Desktop sidebar */}
       <aside
-        className="hidden md:flex flex-col w-[230px] shrink-0 h-screen overflow-y-auto overflow-x-hidden relative"
+        className="hidden md:flex flex-col w-[220px] shrink-0 h-screen"
         style={{
-          background: "linear-gradient(180deg, rgba(10,7,28,0.98) 0%, rgba(8,5,22,0.99) 100%)",
-          borderRight: "1px solid rgba(139,92,246,0.12)",
+          background: "#0e0e12",
+          borderRight: "1px solid rgba(255,255,255,0.05)",
         }}
       >
         <SidebarBody />
       </aside>
 
-      {/* ══════ MOBILE top bar ══════ */}
+      {/* Mobile top bar */}
       <div
         className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-5 h-14 md:hidden"
         style={{
-          background: "rgba(8,5,22,0.88)",
-          borderBottom: "1px solid rgba(139,92,246,0.13)",
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
+          background: "rgba(11,11,15,0.95)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
         }}
       >
-        {/* Left: logo */}
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-2">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{
-              background: "linear-gradient(135deg, rgba(109,40,217,0.7), rgba(139,92,246,0.4))",
-              border: "1px solid rgba(139,92,246,0.45)",
-              boxShadow: "0 0 10px rgba(139,92,246,0.28)",
-            }}
+            className="w-6 h-6 rounded-md flex items-center justify-center"
+            style={{ background: "#1a1a24", border: "1px solid rgba(139,92,246,0.25)" }}
           >
             <KyzenMark />
           </div>
-          <span className="text-sm font-bold text-slate-100" style={{ fontFamily: "'Barlow', sans-serif", letterSpacing: "0.06em" }}>
-            KYZEN
-          </span>
+          <span className="text-[13px] font-semibold text-white tracking-wide" style={{ fontFamily: "'DM Mono', monospace" }}>KYZEN</span>
         </Link>
 
-        {/* Right: hamburger — same style as Navbar */}
-        <button
-          onClick={() => setOpen((p) => !p)}
-          className="relative flex flex-col gap-[5px] p-2"
-          aria-label="Toggle menu"
-        >
-          <span
-            className="block w-[18px] h-px bg-white/50 rounded-full transition-all duration-200"
-            style={{ transform: open ? "rotate(45deg) translate(4px,4px)" : "none" }}
-          />
-          <span
-            className="block w-[13px] h-px bg-white/50 rounded-full transition-all duration-200"
-            style={{ opacity: open ? 0 : 1 }}
-          />
-          <span
-            className="block w-[18px] h-px bg-white/50 rounded-full transition-all duration-200"
-            style={{ transform: open ? "rotate(-45deg) translate(4px,-4px)" : "none" }}
-          />
-          {/* Quest notification dot */}
+        <button onClick={() => setOpen((p) => !p)} className="relative flex flex-col gap-[5px] p-2" aria-label="Toggle menu">
+          <span className="block w-[18px] h-px bg-white/40 rounded-full transition-all duration-200"
+            style={{ transform: open ? "rotate(45deg) translate(4px,4px)" : "none" }} />
+          <span className="block w-[13px] h-px bg-white/40 rounded-full transition-all duration-200"
+            style={{ opacity: open ? 0 : 1 }} />
+          <span className="block w-[18px] h-px bg-white/40 rounded-full transition-all duration-200"
+            style={{ transform: open ? "rotate(-45deg) translate(4px,-4px)" : "none" }} />
           {!open && (
-            <span
-              className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
-              style={{ background: "#a855f7", border: "1.5px solid rgba(8,5,22,0.99)", boxShadow: "0 0 6px rgba(168,85,247,0.65)" }}
-            />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+              style={{ background: "#8b5cf6", border: "1.5px solid #0B0B0F" }} />
           )}
         </button>
       </div>
 
-      {/* Spacer so page content clears the fixed top bar */}
       <div className="block md:hidden h-14 shrink-0" />
 
-      {/* ══════ MOBILE dropdown menu (same style as Navbar) ══════ */}
+      {/* Mobile menu */}
       <AnimatePresence>
         {open && (
           <motion.div
             key="mob-menu"
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="fixed inset-x-0 top-14 z-40 md:hidden flex flex-col pb-4"
             style={{
               fontFamily: "'DM Sans', sans-serif",
-              background: "rgba(7,4,26,0.97)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-              borderBottom: "1px solid rgba(139,92,246,0.1)",
+              background: "rgba(11,11,15,0.98)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
             }}
           >
-            {/* Nav sections */}
             {mobileItems.map(({ item, sectionLabel, staggerIdx }) => (
               <div key={item.to}>
-                {/* Section label */}
                 {sectionLabel && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.06 + staggerIdx * 0.038, duration: 0.25 }}
-                    className="text-[9px] font-semibold tracking-widest px-5 pt-4 pb-1"
-                    style={{ color: "rgba(139,92,246,0.4)" }}
-                  >
+                  <p className="text-[10px] font-medium tracking-wider uppercase px-5 pt-4 pb-1"
+                    style={{ color: "#333" }}>
                     {sectionLabel}
-                  </motion.p>
+                  </p>
                 )}
-
-                {/* Nav item */}
                 <motion.div
-                  initial={{ opacity: 0, x: -8 }}
+                  initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.07 + staggerIdx * 0.045, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ delay: 0.04 + staggerIdx * 0.04, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <NavLink
                     to={item.to}
                     end={item.to === "/dashboard"}
                     onClick={closeDrawer}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-5 py-3 text-[14px] border-b border-white/[0.04] transition-colors ${
-                        isActive
-                          ? "text-violet-300 font-medium"
-                          : "text-white/40 font-normal hover:text-white/70"
+                      `flex items-center gap-3 px-5 py-3 text-[13px] border-b border-white/[0.04] transition-colors ${
+                        isActive ? "text-white font-medium" : "text-[#555] font-normal hover:text-[#888]"
                       }`
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        <span className={`transition-colors ${isActive ? "text-violet-400" : "text-white/25"}`}>
-                          {item.icon}
-                        </span>
+                        <span className={isActive ? "text-[#8b5cf6]" : "text-[#333]"}>{item.icon}</span>
                         <span className="flex-1">{item.label}</span>
                         {item.badge && (
-                          <span
-                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
-                            style={{ background: "rgba(139,92,246,0.25)", color: "#c4b5fd", border: "1px solid rgba(139,92,246,0.35)" }}
-                          >
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                            style={{ background: "rgba(139,92,246,0.12)", color: "#8b5cf6" }}>
                             {item.badge}
                           </span>
                         )}
@@ -327,32 +295,31 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
               </div>
             ))}
 
-            {/* Divider */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.06 + userFooterIdx * 0.045, duration: 0.25 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              transition={{ delay: 0.04 + userFooterIdx * 0.04 }}
               className="mx-5 my-3"
-              style={{ height: 1, background: "rgba(139,92,246,0.1)" }}
+              style={{ height: 1, background: "rgba(255,255,255,0.05)" }}
             />
 
-            {/* User footer */}
             <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.08 + userFooterIdx * 0.045, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.06 + userFooterIdx * 0.04, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="mx-4"
             >
-              <div
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer group hover:bg-white/5 transition-colors"
-                style={{ border: "1px solid rgba(255,255,255,0.05)" }}
-              >
-                <UserAvatar />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-200 truncate">Ethan Reynolds</p>
-                  <p className="text-[10px] text-slate-500 truncate">ethan@kyzen.gg</p>
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-md group hover:bg-white/[0.03] transition-colors">
+                <div className="relative">
+                  <img src="https://i.pravatar.cc/36?u=kyzen" alt="avatar"
+                    className="w-7 h-7 rounded-full object-cover"
+                    style={{ border: "1px solid rgba(255,255,255,0.08)" }} />
+                  <span className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full"
+                    style={{ background: "#22c55e", border: "1.5px solid #0B0B0F" }} />
                 </div>
-                <LogOut size={13} className="text-slate-600 group-hover:text-violet-400 transition-colors shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-[#ccc] truncate">Ethan Reynolds</p>
+                  <p className="text-[10px] text-[#444] truncate">ethan@kyzen.gg</p>
+                </div>
+                <LogOut size={13} className="text-[#333] group-hover:text-[#666] transition-colors shrink-0" />
               </div>
             </motion.div>
           </motion.div>
@@ -362,44 +329,11 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
   );
 }
 
-/* ─── Atoms ─── */
 function KyzenMark() {
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-      <path d="M3 3L8 8L3 13" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 3L13 8L8 13" stroke="#c4b5fd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+      <path d="M3 3L8 8L3 13" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 3L13 8L8 13" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.4" />
     </svg>
-  );
-}
-
-function LogoIcon() {
-  return (
-    <div
-      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-      style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.6), rgba(139,92,246,0.3))", border: "1px solid rgba(139,92,246,0.4)", boxShadow: "0 0 12px rgba(139,92,246,0.3)" }}
-    >
-      <KyzenMark />
-    </div>
-  );
-}
-
-function SearchSVG() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="text-slate-500 shrink-0">
-      <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M11 11L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function UserAvatar() {
-  return (
-    <div className="relative">
-      <img src="https://i.pravatar.cc/36?u=kyzen" alt="avatar"
-        className="w-8 h-8 rounded-full object-cover"
-        style={{ border: "2px solid rgba(139,92,246,0.4)" }} />
-      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full"
-        style={{ background: "#22c55e", border: "1.5px solid rgba(8,5,22,0.99)" }} />
-    </div>
   );
 }
