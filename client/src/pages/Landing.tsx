@@ -54,7 +54,6 @@ const COMMITS = [4,7,2,9,5,12,8,3,11,6,9,14,7,5,10,13,8,6,11,15,9,7,12,10,4,8,13
 const { fadeUp } = anim;
 
 // ─── SHARED PRIMITIVES ───────────────────────────────────────────────────────
-// SectionBadge and SectionHeading are IDENTICAL across all sections — unified.
 
 const SectionBadge = ({ text }: { text: string }) => (
   <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5"
@@ -83,7 +82,7 @@ const SectionHeading = ({ white, purple, sub }: { white: string; purple: string;
   </>
 );
 
-// ─── CARD WRAPPER — consistent across ALL sections ───────────────────────────
+// ─── CARD WRAPPER ─────────────────────────────────────────────────────────────
 type CardProps = {
   children: React.ReactNode;
   className?: string;
@@ -100,17 +99,15 @@ const Card = ({ children, className = "", delay = 0, featured = false, accentCol
     transition={{ type: "spring", stiffness: 280, damping: 28 }}
     className={`relative rounded-2xl overflow-hidden ${className}`}
     style={{
-      background: featured ? "rgba(18,8,45,0.85)" : "rgba(10,5,28,0.65)",
+      background: featured ? "rgba(14,6,38,0.85)" : "rgba(10,5,28,0.65)",
       border: featured ? borders.featured : borders.subtle,
       backdropFilter: "blur(20px)",
       WebkitBackdropFilter: "blur(20px)",
       boxShadow: featured ? shadows.cardFeatured : shadows.card,
     }}
   >
-    {/* Unified top-edge shimmer — same on every card */}
     <div className="absolute inset-x-0 top-0 h-px pointer-events-none z-10"
       style={{ background: featured ? gradients.cardEdgeShimmerFeatured : gradients.cardEdgeShimmer }} />
-    {/* Optional ambient glow from accent color */}
     {accentColor && (
       <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-400"
         style={{ background: `radial-gradient(ellipse at 50% 0%, ${accentColor}18, transparent 55%)` }} />
@@ -157,12 +154,19 @@ const HowItWorks = () => {
 
   return (
     <section ref={sectionRef} className={`relative ${spacing.sectionY} overflow-hidden`}>
-      {/* NO background color — canvas shows through */}
-      {/* Floating atmospheric orbs — different positions = distinct spatial feel, same palette */}
-      <div className="absolute w-[500px] h-[350px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(99,102,241,0.09) 0%, transparent 70%)", filter: "blur(80px)", top: 0, right: "-5%" }} />
-      <div className="absolute w-[400px] h-[300px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(109,40,217,0.07) 0%, transparent 70%)", filter: "blur(90px)", bottom: 0, left: "-5%" }} />
+      {/* Ambient — unique positions per section, shared palette */}
+      <div className="absolute pointer-events-none rounded-full"
+        style={{
+          width: 600, height: 400, top: "-5%", right: "-8%",
+          background: "radial-gradient(circle, rgba(99,102,241,0.09) 0%, transparent 70%)",
+          filter: "blur(80px)",
+        }} />
+      <div className="absolute pointer-events-none rounded-full"
+        style={{
+          width: 500, height: 400, bottom: "-5%", left: "-8%",
+          background: "radial-gradient(circle, rgba(109,40,217,0.08) 0%, transparent 70%)",
+          filter: "blur(90px)",
+        }} />
 
       <div className={`relative z-10 ${spacing.maxWidth} ${spacing.contentX}`}>
         <motion.div style={{ y: headerY, opacity: headerOpacity }} className="text-center mb-16">
@@ -210,8 +214,8 @@ const HowItWorks = () => {
                   className="w-5 h-5 rounded-sm"
                   style={{
                     background: val === 0 ? "rgba(255,255,255,0.03)"
-                      : val < 5 ? "rgba(99,102,241,0.3)"
-                      : val < 9 ? "rgba(139,92,246,0.55)"
+                      : val < 5  ? "rgba(99,102,241,0.3)"
+                      : val < 9  ? "rgba(139,92,246,0.55)"
                       : "rgba(168,85,247,0.85)"
                   }} />
               ))}
@@ -249,12 +253,20 @@ const BuildCharacter = () => {
 
   return (
     <section ref={sectionRef} className={`relative min-h-screen flex items-center ${spacing.sectionY} overflow-hidden`}>
-      {/* Centered low ambient light — distinct position from HowItWorks orbs */}
-      <div className="absolute w-[700px] h-[400px] rounded-full pointer-events-none"
+      {/* Ambient — centered bottom, different shape from HowItWorks */}
+      <div className="absolute pointer-events-none rounded-full"
         style={{
+          width: 800, height: 500,
+          bottom: "-10%", left: "50%", transform: "translateX(-50%)",
           background: "radial-gradient(circle, rgba(109,40,217,0.10) 0%, transparent 70%)",
           filter: "blur(100px)",
-          bottom: "-10%", left: "50%", transform: "translateX(-50%)"
+        }} />
+      <div className="absolute pointer-events-none rounded-full"
+        style={{
+          width: 400, height: 400,
+          top: "5%", left: "-5%",
+          background: "radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)",
+          filter: "blur(80px)",
         }} />
 
       <div className={`relative z-10 ${spacing.maxWidth} ${spacing.contentX} w-full`}>
@@ -301,7 +313,7 @@ const BuildCharacter = () => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Skill tree + achievements grid */}
+        {/* Skill tree + achievements */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <Card delay={0.2} className="p-6">
             <div className="text-[11px] font-mono tracking-widest uppercase mb-6"
@@ -316,12 +328,12 @@ const BuildCharacter = () => {
               style={{ color: "rgba(167,139,250,0.35)", fontFamily: typography.body }}>Achievements</div>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { icon: "🏆", name: "First Merge",   rare: "COMMON",    color: "#64748b" },
-                { icon: "⚡", name: "Speed Coder",   rare: "RARE",      color: "#6366f1" },
-                { icon: "🔥", name: "30-Day Flame",  rare: "EPIC",      color: "#a855f7" },
-                { icon: "💎", name: "Deep Worker",   rare: "LEGENDARY", color: "#e879f9" },
-                { icon: "🎯", name: "Zero Bug Day",  rare: "EPIC",      color: "#a855f7" },
-                { icon: "🌌", name: "Night Coder",   rare: "RARE",      color: "#6366f1" },
+                { icon: "🏆", name: "First Merge",  rare: "COMMON",    color: "#64748b" },
+                { icon: "⚡", name: "Speed Coder",  rare: "RARE",      color: "#6366f1" },
+                { icon: "🔥", name: "30-Day Flame", rare: "EPIC",      color: "#a855f7" },
+                { icon: "💎", name: "Deep Worker",  rare: "LEGENDARY", color: "#e879f9" },
+                { icon: "🎯", name: "Zero Bug Day", rare: "EPIC",      color: "#a855f7" },
+                { icon: "🌌", name: "Night Coder",  rare: "RARE",      color: "#6366f1" },
               ].map((ach, i) => (
                 <motion.div key={i}
                   initial={{ opacity: 0, scale: 0.8 }} whileInView={{ opacity: 1, scale: 1 }}
@@ -360,11 +372,19 @@ const SocialProof = () => {
 
   return (
     <section ref={sectionRef} className={`relative ${spacing.sectionY} overflow-hidden`}>
-      {/* Top-right and bottom-left ambient lights — mirror HowItWorks for visual continuity */}
-      <div className="absolute w-[600px] h-[450px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(109,40,217,0.09) 0%, transparent 70%)", filter: "blur(80px)", top: 0, right: "-5%" }} />
-      <div className="absolute w-[500px] h-[350px] rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(79,22,220,0.07) 0%, transparent 70%)", filter: "blur(90px)", bottom: 0, left: "-5%" }} />
+      {/* Ambient — top-right and bottom-left, different from BuildCharacter */}
+      <div className="absolute pointer-events-none rounded-full"
+        style={{
+          width: 700, height: 500, top: "-5%", right: "-8%",
+          background: "radial-gradient(circle, rgba(109,40,217,0.09) 0%, transparent 70%)",
+          filter: "blur(80px)",
+        }} />
+      <div className="absolute pointer-events-none rounded-full"
+        style={{
+          width: 500, height: 400, bottom: "-5%", left: "-8%",
+          background: "radial-gradient(circle, rgba(79,22,220,0.07) 0%, transparent 70%)",
+          filter: "blur(90px)",
+        }} />
 
       <div className={`relative z-10 ${spacing.maxWidth} ${spacing.contentX}`}>
         <motion.div style={{ y, opacity }} className="text-center mb-16">
@@ -412,9 +432,7 @@ const SocialProof = () => {
   );
 };
 
-// ─── SECTION DIVIDER — replaces harsh hard edges ─────────────────────────────
-// A subtle gradient wash that dissolves one section into the next.
-// No visible line. No background color change. Just depth shift.
+// ─── SECTION TRANSITION ───────────────────────────────────────────────────────
 const SectionTransition = ({ flip = false }: { flip?: boolean }) => (
   <div
     className="relative h-32 pointer-events-none -my-1 z-10"
@@ -430,8 +448,14 @@ const SectionTransition = ({ flip = false }: { flip?: boolean }) => (
 export default function Landing() {
   useLenis();
 
+  // Drive Hero scale + dim as the panel scrolls over it
+  const scrollRef = useRef(null);
+  const { scrollY } = useScroll();
+  const heroScale = useTransform(scrollY, [0, window.innerHeight * 0.6], [1, 0.92]);
+  const heroBrightness = useTransform(scrollY, [0, window.innerHeight * 0.5], [1, 0.35]);
+
   return (
-    <div className="min-h-screen overflow-x-hidden" style={{ background: palette.canvas }}>
+    <div className="overflow-x-hidden" style={{ backgroundColor: palette.canvas }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500;600&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
@@ -444,30 +468,86 @@ export default function Landing() {
         ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.4); border-radius: 2px; }
       `}</style>
 
-      <div className="fixed inset-0 pointer-events-none z-0" aria-hidden>
-        {/* Primary scene gradient — broad, soft */}
-        <div className="absolute inset-0"
-          style={{ background: gradients.sceneCenter }} />
-        {/* Left vignette */}
-        <div className="absolute inset-0"
-          style={{ background: gradients.sceneLeft }} />
-        {/* Bottom warmth */}
-        <div className="absolute bottom-0 left-0 right-0 h-screen"
-          style={{ background: gradients.sceneBottom }} />
-        {/* Subtle dot grid — unified texture over entire page */}
-        <div className="absolute inset-0"
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(139,92,246,0.04) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-            maskImage: "radial-gradient(ellipse 80% 60% at 50% 50%, black 20%, transparent 85%)",
-          }} />
+      {/* ── NAVBAR — fixed, always on top ── */}
+      <div className="fixed inset-x-0 top-0 z-[100]">
+        <Navbar />
       </div>
 
-      {/* All page content sits above the ambient layer */}
-      <div className="relative z-10">
-        <Navbar />
+      {/*
+        ── HERO LAYER — truly fixed, never moves ──────────────────────────────
+        Hero is position:fixed so it is completely frozen in the viewport.
+        It scales down and dims as the content panel scrolls over it,
+        giving a cinematic "scene receding behind new content" feel.
+      */}
+      <motion.div
+        className="fixed inset-0 z-[10]"
+        style={{
+          scale: heroScale,
+          filter: useTransform(heroBrightness, (v) => `brightness(${v})`),
+          transformOrigin: "center center",
+          willChange: "transform, filter",
+        }}
+      >
         <Hero />
-        <SectionTransition />
+      </motion.div>
+
+      {/*
+        ── SCROLL SPACER ─────────────────────────────────────────────────────
+        This invisible div is 100vh tall and sits in normal document flow.
+        It creates the scroll distance the user needs to travel before the
+        panel starts appearing — so the page "waits" on the Hero for one
+        full viewport height before anything else comes up.
+      */}
+      <div style={{ height: "100vh" }} aria-hidden />
+
+      {/*
+        ── CONTENT PANEL — slides up over the frozen Hero ────────────────────
+        z-[30] puts it above the Hero (z-10). As the user scrolls past the
+        spacer, this panel naturally rises into view from below the fold.
+        The rounded top corners + glowing edge + deep shadow make it feel
+        like a physical card lifting off the scene beneath.
+      */}
+      <div
+        className="relative"
+        style={{
+          zIndex: 30,
+          backgroundColor: palette.canvas,
+          borderRadius: "32px 32px 0 0",
+          boxShadow: `
+            0 -1px 0 rgba(167,139,250,0.35),
+            0 -2px 0 rgba(124,58,237,0.15),
+            0 -60px 120px rgba(0,0,0,0.9),
+            0 -30px 60px rgba(0,0,0,0.7)
+          `,
+          // Overflow hidden so border-radius clips children at the top
+          overflow: "hidden",
+        }}
+      >
+        {/* ── PANEL TOP EDGE — the glowing lip that appears first ── */}
+        {/* Bright gradient line across the very top */}
+        <div
+          className="absolute inset-x-0 top-0 h-px pointer-events-none z-10"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, rgba(109,40,217,0.4) 15%, rgba(167,139,250,0.9) 40%, rgba(196,181,253,1) 50%, rgba(167,139,250,0.9) 60%, rgba(109,40,217,0.4) 85%, transparent 100%)",
+          }}
+        />
+        {/* Inner bloom below the lip — purple aura bleeding downward */}
+        <div
+          className="absolute inset-x-0 top-0 pointer-events-none z-10"
+          style={{
+            height: 200,
+            background: "radial-gradient(ellipse 70% 100% at 50% 0%, rgba(124,58,237,0.18) 0%, rgba(109,40,217,0.08) 40%, transparent 100%)",
+          }}
+        />
+        {/* Subtle handle pill — visual affordance that there's content below */}
+        <div className="flex justify-center pt-4 pb-0 relative z-10">
+          <div
+            className="w-10 h-1 rounded-full"
+            style={{ background: "rgba(139,92,246,0.4)" }}
+          />
+        </div>
+
+        {/* All sections live inside the panel */}
         <LiveSystemPreview />
         <SectionTransition flip />
         <HowItWorks />

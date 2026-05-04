@@ -38,7 +38,6 @@ function IconBox({ children, color = "rgba(109,40,217,0.3)" }: { children: React
   );
 }
 
-// Unified bento card — uses the same visual language as Card in Landing.tsx
 function BentoCard({
   children, className = "", delay = 0,
   glowColor = "rgba(109,40,217,0.12)", glowPos = "50% 0%", featured = false,
@@ -60,10 +59,8 @@ function BentoCard({
         boxShadow: featured ? shadows.cardFeatured : shadows.card,
       }}
     >
-      {/* Ambient top glow — unique per card but consistent style */}
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: `radial-gradient(ellipse at ${glowPos}, ${glowColor}, transparent 60%)` }} />
-      {/* Unified top-edge shimmer — same on every card across the app */}
       <div className="absolute top-0 inset-x-0 h-px pointer-events-none"
         style={{ background: featured ? gradients.cardEdgeShimmerFeatured : gradients.cardEdgeShimmer }} />
       <div className="relative z-10 h-full p-6 flex flex-col">
@@ -73,7 +70,7 @@ function BentoCard({
   );
 }
 
-// ─── ILLUSTRATIONS (unchanged — good SVG work) ────────────────────────────────
+// ─── ILLUSTRATIONS ────────────────────────────────────────────────────────────
 function QuestIllustration() {
   return (
     <div className="flex-1 flex items-end justify-center min-h-35 relative">
@@ -224,7 +221,7 @@ function DevIllustration() {
           <div style={{ paddingLeft: 10 }}><span style={{ color: "#86efac" }}>"+250 XP"</span></div>
           <div className="mt-2 flex flex-wrap gap-[2px]">
             {Array.from({ length: 40 }).map((_, i) => {
-              const v = Math.random();
+              const v = [0.8,0.3,0.9,0.1,0.7,0.5,0.2,0.85,0.4,0.6,0.75,0.15,0.9,0.35,0.55,0.8,0.25,0.7,0.45,0.95,0.1,0.6,0.8,0.3,0.7,0.5,0.9,0.2,0.65,0.85,0.4,0.75,0.15,0.9,0.5,0.3,0.8,0.6,0.25,0.7][i];
               return <div key={i} className="w-2 h-2 rounded-[1px]"
                 style={{ background: v > 0.65 ? "rgba(168,85,247,0.9)" : v > 0.35 ? "rgba(109,40,217,0.5)" : "rgba(255,255,255,0.06)" }} />;
             })}
@@ -243,23 +240,39 @@ function DevIllustration() {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Features = () => {
   const sectionRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
-  const headerY = useTransform(scrollYProgress, [0, 0.3], [50, 0]);
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.22], [0, 1]);
+
+  // Drive the header reveal off scroll — starts as soon as this section enters view
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+  const headerY = useTransform(scrollYProgress, [0, 0.18], [40, 0]);
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.15], [0, 1]);
 
   return (
-    <section ref={sectionRef} className="relative py-28 overflow-hidden">
-      {/* No section background — transparent, global canvas shows through */}
-
-      {/* Floating diamonds — life without color noise */}
+    <section ref={sectionRef} className="relative pt-20 pb-28 overflow-hidden">
+      {/* Floating diamonds */}
       <Diamond style={{ top: "15%", left: "8%", width: 8, height: 8 }} />
       <Diamond style={{ top: "35%", right: "6%", width: 10, height: 10 }} />
       <Diamond style={{ top: "65%", left: "5%", width: 7, height: 7 }} />
       <Diamond style={{ bottom: "20%", right: "10%", width: 9, height: 9 }} />
       <Diamond style={{ top: "20%", right: "18%", width: 6, height: 6 }} />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 w-full">
+      {/* Ambient orbs — distinct from other sections */}
+      <div className="absolute pointer-events-none rounded-full"
+        style={{
+          width: 700, height: 500, top: "5%", left: "50%", transform: "translateX(-50%)",
+          background: "radial-gradient(circle, rgba(109,40,217,0.09) 0%, transparent 68%)",
+          filter: "blur(90px)",
+        }} />
+      <div className="absolute pointer-events-none rounded-full"
+        style={{
+          width: 400, height: 400, bottom: "10%", right: "-8%",
+          background: "radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 68%)",
+          filter: "blur(80px)",
+        }} />
 
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 w-full">
         {/* Section header */}
         <motion.div style={{ y: headerY, opacity: headerOpacity }} className="text-center mb-14">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6"
