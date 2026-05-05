@@ -277,7 +277,7 @@ export default function Profile() {
               <div className="flex-1 min-w-0 text-center sm:text-left">
                 <motion.p
                   {...fadeUp(0.08)}
-                  className="text-[11px] uppercase tracking-[0.1em] text-[#555] mb-1"
+                  className="text-[11px] uppercase tracking-widest text-[#555] mb-1"
                   style={{ fontFamily: "'DM Mono', monospace" }}
                 >
                   {char.tagline}

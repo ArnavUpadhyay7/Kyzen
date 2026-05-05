@@ -6,115 +6,170 @@ import {
 } from "lucide-react";
 import { useDashboardStore, type Difficulty, type Task } from "../../store/usedashboardstore";
 
-// ─── Heatmap ──────────────────────────────────────────────────────────────────
+// ─── Contribution Graph (GitHub-style) ───────────────────────────────────────
 
-const WEEKS = 26;
-const DAYS  = 7;
+const CELL  = 11;  // cell size px
+const GAP   =  3;  // gap px
+const STEP  = CELL + GAP;
 
 function ContributionGraph({ data }: { data: { date: string; count: number }[] }) {
-  const levels = [
-    "#1a1a24",
-    "rgba(99,102,241,0.28)",
-    "rgba(99,102,241,0.48)",
-    "rgba(99,102,241,0.72)",
-    "#6366f1",
+  const LEVELS = [
+    "rgba(255,255,255,0.05)",   // 0 — empty
+    "rgba(99,102,241,0.25)",    // 1 — light
+    "rgba(99,102,241,0.45)",    // 2
+    "rgba(99,102,241,0.70)",    // 3
+    "#6366f1",                  // 4 — full
   ];
 
-  // Build a date→count lookup
   const lookup: Record<string, number> = {};
   data.forEach((d) => { lookup[d.date] = d.count; });
 
-  // Generate last WEEKS*DAYS days, aligned to week columns
+  // ── Build a full year grid starting from last Sunday ──────────────────────
+  // Find the most recent Sunday on or before today
   const today = new Date();
-  const cells: { iso: string; level: number }[] = [];
-  for (let i = WEEKS * DAYS - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    const count = lookup[iso] ?? 0;
-    const lvl = count === 0 ? 0 : count < 2 ? 1 : count < 4 ? 2 : count < 6 ? 3 : 4;
-    cells.push({ iso, level: lvl });
+  const dayOfWeek = today.getDay(); // 0=Sun
+  const startSunday = new Date(today);
+  startSunday.setDate(today.getDate() - dayOfWeek - 52 * 7);
+  // normalise to midnight
+  startSunday.setHours(0, 0, 0, 0);
+
+  const TOTAL_WEEKS = 53;
+
+  // Build week columns: each column is an array of 7 day-cells (Sun→Sat)
+  type Cell = { iso: string; count: number; level: number; empty: boolean };
+  const weeks: Cell[][] = [];
+
+  for (let w = 0; w < TOTAL_WEEKS; w++) {
+    const week: Cell[] = [];
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(startSunday);
+      date.setDate(startSunday.getDate() + w * 7 + d);
+      if (date > today) {
+        week.push({ iso: "", count: 0, level: 0, empty: true });
+      } else {
+        const iso = date.toISOString().slice(0, 10);
+        const count = lookup[iso] ?? 0;
+        const level = count === 0 ? 0 : count < 2 ? 1 : count < 4 ? 2 : count < 6 ? 3 : 4;
+        week.push({ iso, count, level, empty: false });
+      }
+    }
+    weeks.push(week);
   }
 
-  // Month labels: find first cell of each month
-  const monthLabels: { label: string; col: number }[] = [];
-  cells.forEach(({ iso }, idx) => {
-    const col = Math.floor(idx / DAYS);
-    const day = new Date(iso).getDate();
-    if (day <= 7) {
-      const label = new Date(iso).toLocaleString("en-US", { month: "short" });
+  // ── Month labels: placed at the week column where month first appears ─────
+  const monthLabels: { label: string; weekIdx: number }[] = [];
+  weeks.forEach((week, wi) => {
+    const firstReal = week.find((c) => !c.empty);
+    if (!firstReal) return;
+    const d = new Date(firstReal.iso);
+    if (d.getDate() <= 7) {
+      const label = d.toLocaleString("en-US", { month: "short" });
       if (!monthLabels.find((m) => m.label === label)) {
-        monthLabels.push({ label, col });
+        monthLabels.push({ label, weekIdx: wi });
       }
     }
   });
 
+  // ── SVG dimensions ─────────────────────────────────────────────────────────
+  const DAY_LABEL_W = 28;
+  const svgW = DAY_LABEL_W + TOTAL_WEEKS * STEP;
+  const MONTH_ROW_H = 18;
+  const svgH = MONTH_ROW_H + 7 * STEP;
+
+  // Day labels: only Mon(1), Wed(3), Fri(5)
+  const DAY_LABELS: { row: number; label: string }[] = [
+    { row: 1, label: "Mon" },
+    { row: 3, label: "Wed" },
+    { row: 5, label: "Fri" },
+  ];
+
+  // total tasks this year
+  const totalTasks = data.reduce((s, d) => s + d.count, 0);
+  const currentYear = today.getFullYear();
+
   return (
-    <div className="flex flex-col gap-2">
-      {/* Month labels */}
-      <div className="flex pl-6 overflow-hidden">
-        {monthLabels.map(({ label, col }) => (
-          <div
-            key={label}
-            className="text-[10px] text-[#444] absolute"
-            style={{
-              fontFamily: "'DM Mono', monospace",
-              left: `calc(1.5rem + ${col} * 15px)`,
-              position: "relative",
-              minWidth: 0,
-              marginLeft: col === 0 ? 0 : undefined,
-            }}
-          >
-            {label}
-          </div>
-        ))}
+    <div className="flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] text-[#888]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <span className="text-white font-semibold">{totalTasks}</span> tasks completed in {currentYear}
+        </p>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {/* Day labels */}
-        <div className="flex flex-col justify-between py-px shrink-0" style={{ width: 20 }}>
-          {["M", "W", "F"].map((d) => (
-            <span key={d} className="text-[9px] text-[#3a3a3a] leading-none" style={{ fontFamily: "'DM Mono', monospace" }}>
-              {d}
-            </span>
-          ))}
-        </div>
-
-        {/* Grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateRows: `repeat(${DAYS}, 11px)`,
-            gridTemplateColumns: `repeat(${WEEKS}, 11px)`,
-            gap: "3px",
-          }}
+      {/* Scrollable graph */}
+      <div className="overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
+        <svg
+          width={svgW}
+          height={svgH}
+          style={{ display: "block", fontFamily: "'DM Mono', monospace" }}
         >
-          {cells.map(({ iso, level }, idx) => {
-            const col = Math.floor(idx / DAYS) + 1;
-            const row = (idx % DAYS) + 1;
-            return (
-              <div
-                key={iso}
-                title={`${iso}: ${level} task${level !== 1 ? "s" : ""}`}
-                className="rounded-[2px] transition-all hover:ring-1 hover:ring-indigo-400/60 hover:scale-110 cursor-pointer"
-                style={{
-                  width: 11,
-                  height: 11,
-                  background: levels[level],
-                  gridColumn: col,
-                  gridRow: row,
-                }}
-              />
-            );
-          })}
-        </div>
+          {/* Month labels */}
+          {monthLabels.map(({ label, weekIdx }) => (
+            <text
+              key={label}
+              x={DAY_LABEL_W + weekIdx * STEP}
+              y={12}
+              fontSize={10}
+              fill="#444"
+            >
+              {label}
+            </text>
+          ))}
+
+          {/* Day labels */}
+          {DAY_LABELS.map(({ row, label }) => (
+            <text
+              key={label}
+              x={0}
+              y={MONTH_ROW_H + row * STEP + CELL - 1}
+              fontSize={9}
+              fill="#3a3a3a"
+              textAnchor="start"
+            >
+              {label}
+            </text>
+          ))}
+
+          {/* Cells */}
+          {weeks.map((week, wi) =>
+            week.map((cell, di) => {
+              const x = DAY_LABEL_W + wi * STEP;
+              const y = MONTH_ROW_H + di * STEP;
+              if (cell.empty) {
+                return (
+                  <rect
+                    key={`${wi}-${di}`}
+                    x={x} y={y}
+                    width={CELL} height={CELL}
+                    rx={2} ry={2}
+                    fill="transparent"
+                  />
+                );
+              }
+              return (
+                <rect
+                  key={`${wi}-${di}`}
+                  x={x} y={y}
+                  width={CELL} height={CELL}
+                  rx={2} ry={2}
+                  fill={LEVELS[cell.level]}
+                  style={{ cursor: "pointer", transition: "opacity 0.15s" }}
+                  onMouseEnter={(e) => { (e.target as SVGRectElement).style.opacity = "0.7"; }}
+                  onMouseLeave={(e) => { (e.target as SVGRectElement).style.opacity = "1"; }}
+                >
+                  <title>{cell.iso}: {cell.count} task{cell.count !== 1 ? "s" : ""}</title>
+                </rect>
+              );
+            })
+          )}
+        </svg>
       </div>
 
       {/* Legend */}
       <div className="flex items-center justify-end gap-1.5">
         <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>Less</span>
-        {levels.map((c, i) => (
-          <div key={i} className="w-2.5 h-2.5 rounded-[2px]" style={{ background: c }} />
+        {LEVELS.map((c, i) => (
+          <div key={i} className="w-2.75 h-2.75 rounded-xs" style={{ background: c }} />
         ))}
         <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>More</span>
       </div>
