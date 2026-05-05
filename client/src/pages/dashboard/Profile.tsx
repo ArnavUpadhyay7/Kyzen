@@ -237,7 +237,7 @@ function AccountMenu() {
 function LevelRing({ level, pct }: { level: number; pct: number }) {
   const R = 34, C = 2 * Math.PI * R;
   return (
-    <div className="relative w-[84px] h-[84px] shrink-0">
+    <div className="relative w-21 h-21 shrink-0">
       <svg width="84" height="84" viewBox="0 0 84 84">
         <defs>
           <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -506,7 +506,7 @@ function QuestsTab() {
             <motion.div
               key={q.id}
               {...fadeUp(i * 0.04)}
-              className="flex items-center gap-4 px-5 py-4 group hover:bg-white/[0.02] transition-colors cursor-pointer"
+              className="flex items-center gap-4 px-5 py-4 group hover:bg-white/2 transition-colors cursor-pointer"
               style={{ borderBottom: i < QUESTS.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}
             >
               <div className="w-1.5 h-9 rounded-full shrink-0" style={{ background: `${cat}55` }} />
@@ -815,7 +815,7 @@ export default function Profile() {
               ].map((s, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3.5 px-5 sm:px-6 py-5 hover:bg-white/[0.025] transition-colors cursor-default group"
+                  className="flex items-center gap-3.5 px-5 sm:px-6 py-5 hover:bg-white/25 transition-colors cursor-default group"
                   style={{ borderColor: "rgba(255,255,255,0.06)" }}
                 >
                   <div

@@ -1,524 +1,763 @@
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowUpRight,
   Flame,
-  Swords,
-  Trophy,
-  Clock,
   Plus,
   Zap,
+  Trash2,
+  Pencil,
+  CheckCircle2,
+  X,
+  ChevronDown,
+  History,
+  Circle,
+  Sword,
+  Shield,
   Star,
-  Target,
-  ChevronRight,
 } from "lucide-react";
+import { useDashboardStore, type Difficulty, type Task } from "../../store/usedashboardstore";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-type StatCardProps = {
-  label: string;
-  value: string;
-  sub: string;
-  icon: React.ReactNode;
-  delay: number;
+const DIFF_META: Record<Difficulty, { label: string; color: string; bg: string; xp: number }> = {
+  E: { label: "Easy",   color: "#4ade80", bg: "rgba(74,222,128,0.10)",  xp: 30  },
+  M: { label: "Medium", color: "#facc15", bg: "rgba(250,204,21,0.10)",  xp: 60  },
+  H: { label: "Hard",   color: "#f87171", bg: "rgba(248,113,113,0.10)", xp: 100 },
 };
 
-type Quest = {
-  id: number;
-  title: string;
-  category: string;
-  xp: number;
-  progress: number;
-  due: string;
-  priority: "HIGH" | "MED" | "LOW";
+const CHARACTER_TITLES: Record<number, { title: string; icon: React.ReactNode }> = {
+  1: { title: "Novice",      icon: <Circle size={28} className="text-[#6366f1]" /> },
+  2: { title: "Apprentice",  icon: <Star size={28} className="text-[#6366f1]" /> },
+  3: { title: "Adept",       icon: <Shield size={28} className="text-[#6366f1]" /> },
+  4: { title: "Veteran",     icon: <Sword size={28} className="text-[#6366f1]" /> },
+  5: { title: "Champion",    icon: <Sword size={28} className="text-[#a78bfa]" /> },
 };
+function getCharacter(level: number) {
+  return CHARACTER_TITLES[Math.min(level, 5)] ?? CHARACTER_TITLES[5];
+}
 
-type Activity = {
-  id: number;
-  avatar: string;
-  name: string;
-  action: string;
-  time: string;
-  xp?: number;
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
+function groupByDate(tasks: Task[]): Record<string, Task[]> {
+  return tasks
+    .filter((t) => t.completed && t.completedAt)
+    .reduce<Record<string, Task[]>>((acc, t) => {
+      const date = new Date(t.completedAt!).toLocaleDateString("en-US", {
+        weekday: "short", month: "short", day: "numeric",
+      });
+      (acc[date] ??= []).push(t);
+      return acc;
+    }, {});
+}
 
-const QUESTS: Quest[] = [
-  { id: 1, title: "Flowio — Dashboard Design", category: "Design", xp: 250, progress: 75, due: "Today", priority: "HIGH" },
-  { id: 2, title: "Meeting — Alex B.", category: "Motion Design", xp: 120, progress: 40, due: "Tue, 10", priority: "MED" },
-  { id: 3, title: "Meet with PM", category: "New AI", xp: 80, progress: 20, due: "Wed, 11", priority: "LOW" },
-  { id: 4, title: "Landing Page", category: "Development", xp: 300, progress: 55, due: "Thu, 12", priority: "HIGH" },
-];
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-const ACTIVITY: Activity[] = [
-  { id: 1, avatar: "https://i.pravatar.cc/32?img=11", name: "Alex Brown", action: "Finished the project. Looking forward to feedback.", time: "2m ago", xp: 150 },
-  { id: 2, avatar: "https://i.pravatar.cc/32?img=32", name: "Team Meeting — Liza K.", action: "Call about a new project launching next week.", time: "1h ago" },
-  { id: 3, avatar: "https://i.pravatar.cc/32?img=53", name: "Robert Johnson", action: "New AI updates — team and project finished.", time: "3h ago", xp: 75 },
-];
-
-const SKILL_BARS = [
-  { label: "Development", pct: 82 },
-  { label: "Design", pct: 64 },
-  { label: "Leadership", pct: 47 },
-  { label: "Research", pct: 91 },
-];
-
-const PRIORITY_META: Record<Quest["priority"], { label: string; color: string; bg: string }> = {
-  HIGH: { label: "High",   color: "#e879f9", bg: "rgba(232,121,249,0.08)" },
-  MED:  { label: "Medium", color: "#a3a3a3", bg: "rgba(163,163,163,0.08)" },
-  LOW:  { label: "Low",    color: "#525252", bg: "rgba(82,82,82,0.08)"    },
-};
-
-// ─── Animation ────────────────────────────────────────────────────────────────
-
-const fadeUp = (delay: number) => ({
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] as const },
-});
-
-// ─── Shared card shell ────────────────────────────────────────────────────────
-
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function DiffBadge({ diff }: { diff: Difficulty }) {
+  const m = DIFF_META[diff];
   return (
-    <div
-      className={`rounded-xl ${className}`}
-      style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
+    <span
+      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md tracking-wide"
+      style={{ color: m.color, background: m.bg, fontFamily: "'DM Mono', monospace" }}
     >
-      {children}
-    </div>
+      {m.label}
+    </span>
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function XpPopup({ xp, onDone }: { xp: number; onDone: () => void }) {
   return (
-    <p className="text-[11px] font-medium text-[#444] uppercase tracking-[0.07em]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      {children}
-    </p>
-  );
-}
-
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-
-function StatCard({ label, value, sub, icon, delay }: StatCardProps) {
-  return (
-    <motion.div {...fadeUp(delay)}>
-      <Card className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: "rgba(255,255,255,0.04)", color: "#555" }}
-          >
-            {icon}
-          </div>
-          <ArrowUpRight size={12} className="text-[#333] mt-0.5" />
-        </div>
-        <p
-          className="text-[22px] font-semibold text-white mb-0.5 tabular-nums"
-          style={{ fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.02em" }}
-        >
-          {value}
-        </p>
-        <p className="text-[12px] text-[#555]" style={{ fontFamily: "'DM Sans', sans-serif" }}>{label}</p>
-        <p className="text-[11px] text-[#8b5cf6] mt-1.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>{sub}</p>
-      </Card>
+    <motion.div
+      className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onAnimationComplete={onDone}
+    >
+      <motion.div
+        className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold text-2xl"
+        style={{
+          background: "rgba(99,102,241,0.18)",
+          border: "1px solid rgba(139,92,246,0.4)",
+          backdropFilter: "blur(12px)",
+          fontFamily: "'DM Sans', sans-serif",
+          letterSpacing: "-0.02em",
+        }}
+        initial={{ scale: 0.6, y: 30, opacity: 0 }}
+        animate={{ scale: 1, y: -20, opacity: 1 }}
+        exit={{ scale: 0.8, y: -60, opacity: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        onAnimationComplete={onDone}
+      >
+        <Zap size={20} className="text-[#a78bfa]" />
+        +{xp} XP
+      </motion.div>
     </motion.div>
   );
 }
 
-// ─── Donut ────────────────────────────────────────────────────────────────────
-
-function DonutChart() {
-  const segments = [
-    { label: "Competitors", pct: 53, color: "#7c3aed" },
-    { label: "Task Flow",   pct: 24, color: "#6d28d9" },
-    { label: "User Journey",pct: 23, color: "#4c1d95" },
-  ];
-  const r = 36;
-  const circ = 2 * Math.PI * r;
-  let offset = 0;
+function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }) {
+  const grouped = groupByDate(tasks);
+  const dates = Object.keys(grouped).reverse();
 
   return (
-    <Card className="p-5 h-full">
-      <div className="flex items-center justify-between mb-4">
-        <SectionLabel>AI Reports</SectionLabel>
-        <button
-          className="w-6 h-6 rounded-md flex items-center justify-center"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-        >
-          <Plus size={11} className="text-[#555]" />
-        </button>
-      </div>
-      <div className="flex items-center gap-5">
-        <div className="relative shrink-0">
-          <svg width="80" height="80" viewBox="0 0 84 84">
-            <circle cx="42" cy="42" r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="10" />
-            {segments.map((seg) => {
-              const dash = (seg.pct / 100) * circ;
-              const el = (
-                <circle key={seg.label} cx="42" cy="42" r={r} fill="none"
-                  stroke={seg.color} strokeWidth="10"
-                  strokeDasharray={`${dash} ${circ}`}
-                  strokeDashoffset={-offset}
-                  style={{ transform: "rotate(-90deg)", transformOrigin: "42px 42px" }} />
-              );
-              offset += dash;
-              return el;
-            })}
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Zap size={14} className="text-[#8b5cf6]" />
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 flex-1">
-          {segments.map((seg) => (
-            <div key={seg.label} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: seg.color }} />
-                <span className="text-[12px] text-[#555]" style={{ fontFamily: "'DM Sans', sans-serif" }}>{seg.label}</span>
-              </div>
-              <span className="text-[12px] font-medium text-[#888] tabular-nums" style={{ fontFamily: "'DM Mono', monospace" }}>
-                {seg.pct}%
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-// ─── Passing Rate ─────────────────────────────────────────────────────────────
-
-function PassingRate() {
-  const points = [30,55,40,70,45,80,35,65,50,75,42,68,55,78,48,62,70,45,58,80,52,65,72,50,68];
-  const max = Math.max(...points);
-  const w = 220; const h = 60;
-  const coords = points.map((v, i) => `${(i / (points.length - 1)) * w},${h - (v / max) * (h - 6)}`).join(" ");
-
-  return (
-    <Card className="p-5 h-full">
-      <div className="flex items-center justify-between mb-4">
-        <SectionLabel>Passing Rate</SectionLabel>
-        <Star size={12} className="text-[#333]" />
-      </div>
-      <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 mb-4">
-        {([["28%","Failed","#e879f9"],["61%","Complete","#a3a3a3"],["11%","Partial","#525252"]] as const).map(([val, lbl, col]) => (
-          <div key={lbl}>
-            <p className="text-[18px] font-semibold tabular-nums" style={{ color: col, fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.02em" }}>
-              {val}
-            </p>
-            <p className="text-[11px] text-[#3a3a3a]" style={{ fontFamily: "'DM Sans', sans-serif" }}>{lbl}</p>
-          </div>
-        ))}
-      </div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full" style={{ height: 44 }}>
-        <polyline
-          points={coords}
-          fill="none"
-          stroke="rgba(139,92,246,0.4)"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </Card>
-  );
-}
-
-// ─── Project Time ─────────────────────────────────────────────────────────────
-
-function ProjectTime() {
-  const bars = [
-    { day: "Sun", h: 42 }, { day: "Mon", h: 57 }, { day: "Tue", h: 78 },
-    { day: "Wed", h: 100 }, { day: "Thu", h: 68 },
-  ];
-  return (
-    <Card className="p-5 h-full">
-      <div className="flex items-center justify-between mb-4">
-        <SectionLabel>Project Time</SectionLabel>
-        <button
-          className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md transition-colors"
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            color: "#555",
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
-          Last Week <ChevronRight size={10} />
-        </button>
-      </div>
-      <div className="flex items-end gap-2 h-[84px]">
-        {bars.map((b) => (
-          <div key={b.day} className="flex flex-col items-center gap-1.5 flex-1">
-            <div
-              className="w-full rounded-md"
-              style={{
-                height: (b.h / 100) * 68,
-                background: b.day === "Wed"
-                  ? "rgba(139,92,246,0.25)"
-                  : "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.04)",
-              }}
-            />
-            <span className="text-[10px] text-[#3a3a3a]" style={{ fontFamily: "'DM Sans', sans-serif" }}>{b.day}</span>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-// ─── Quest Card ───────────────────────────────────────────────────────────────
-
-function QuestCard({ quest }: { quest: Quest }) {
-  const p = PRIORITY_META[quest.priority];
-  return (
-    <div
-      className="p-3.5 rounded-lg cursor-pointer group transition-colors"
-      style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)" }}
+    <motion.div
+      className="fixed inset-0 z-40 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
     >
-      <div className="flex items-start justify-between mb-2.5">
-        <div className="flex-1 min-w-0 pr-3">
-          <p className="text-[13px] font-medium text-[#ccc] truncate mb-0.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            {quest.title}
+      <motion.div
+        className="w-full max-w-md rounded-2xl p-6 overflow-y-auto max-h-[80vh]"
+        style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.08)" }}
+        initial={{ scale: 0.94, y: 16, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.94, y: 8, opacity: 0 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2
+            className="text-base font-semibold text-white"
+            style={{ fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.02em" }}
+          >
+            Task History
+          </h2>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+            style={{ background: "rgba(255,255,255,0.06)" }}
+          >
+            <X size={13} className="text-[#666]" />
+          </button>
+        </div>
+
+        {dates.length === 0 ? (
+          <p className="text-[13px] text-[#444] text-center py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            No completed tasks yet.
           </p>
-          <p className="text-[11px] text-[#3d3d3d]" style={{ fontFamily: "'DM Sans', sans-serif" }}>{quest.category}</p>
-        </div>
-        <span
-          className="text-[10px] font-medium px-2 py-0.5 rounded-[4px] shrink-0"
-          style={{ background: p.bg, color: p.color, fontFamily: "'DM Sans', sans-serif" }}
-        >
-          {p.label}
-        </span>
-      </div>
-
-      <div className="mb-2.5">
-        <div className="flex justify-between mb-1">
-          <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Sans', sans-serif" }}>Progress</span>
-          <span className="text-[10px] text-[#555] tabular-nums" style={{ fontFamily: "'DM Mono', monospace" }}>{quest.progress}%</span>
-        </div>
-        <div className="w-full h-1 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
-          <div
-            className="h-full rounded-full"
-            style={{ width: `${quest.progress}%`, background: "rgba(139,92,246,0.6)" }}
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[10px] text-[#3a3a3a]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-          <Clock size={9} />{quest.due}
-        </div>
-        <div className="flex items-center gap-1 text-[10px] text-[#555]" style={{ fontFamily: "'DM Mono', monospace" }}>
-          <Zap size={9} />+{quest.xp} XP
-        </div>
-      </div>
-    </div>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {dates.map((date) => (
+              <div key={date}>
+                <p
+                  className="text-[10px] uppercase tracking-widest text-[#444] mb-2"
+                  style={{ fontFamily: "'DM Mono', monospace" }}
+                >
+                  {date}
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {grouped[date].map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg"
+                      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <CheckCircle2 size={13} className="text-[#6366f1] shrink-0" />
+                        <span
+                          className="text-[13px] text-[#777] line-through"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        >
+                          {t.title}
+                        </span>
+                      </div>
+                      <DiffBadge diff={t.difficulty} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }
 
-// ─── Inbox Item ───────────────────────────────────────────────────────────────
-
-function InboxItem({ item }: { item: Activity }) {
-  return (
-    <div className="flex items-start gap-3 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-      <img
-        src={item.avatar}
-        alt=""
-        className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5"
-        style={{ border: "1px solid rgba(255,255,255,0.08)" }}
-      />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-0.5">
-          <p className="text-[12px] font-medium text-[#999] truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>{item.name}</p>
-          {item.xp && (
-            <span className="text-[10px] text-[#8b5cf6] shrink-0 tabular-nums" style={{ fontFamily: "'DM Mono', monospace" }}>
-              +{item.xp}
-            </span>
-          )}
-        </div>
-        <p className="text-[11px] text-[#3d3d3d] line-clamp-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-          {item.action}
-        </p>
-        <p className="text-[10px] text-[#2e2e2e] mt-0.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>{item.time}</p>
-      </div>
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashboardHome() {
+  const {
+    dashboard, tasks, xpPopup,
+    fetchDashboard, fetchTasks,
+    createTask, updateTask, deleteTask, completeTask,
+    clearXpPopup,
+  } = useDashboardStore();
+
+  // Local UI state
+  const [newTitle, setNewTitle] = useState("");
+  const [newDiff, setNewDiff] = useState<Difficulty>("M");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDiff, setEditDiff] = useState<Difficulty>("M");
+  const [showHistory, setShowHistory] = useState(false);
+  const [diffOpen, setDiffOpen] = useState(false);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchDashboard();
+    fetchTasks();
+  }, []);
+
+  // Auto-clear popup
+  useEffect(() => {
+    if (xpPopup) {
+      const t = setTimeout(clearXpPopup, 1600);
+      return () => clearTimeout(t);
+    }
+  }, [xpPopup]);
+
+  const activeTasks = tasks.filter((t) => !t.completed);
+  const completedTasks = tasks.filter((t) => t.completed);
+
+  const xpPct = dashboard
+    ? Math.round((dashboard.currentXP / dashboard.totalXPForLevel) * 100)
+    : 0;
+
+  function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+    createTask(trimmed, newDiff);
+    setNewTitle("");
+  }
+
+  function startEdit(task: Task) {
+    setEditingId(task.id);
+    setEditTitle(task.title);
+    setEditDiff(task.difficulty);
+  }
+
+  function handleEditSave(id: string) {
+    updateTask(id, { title: editTitle.trim(), difficulty: editDiff });
+    setEditingId(null);
+  }
+
+  // Contribution graph (last 12 weeks × 7 days)
+  const today = new Date();
+  const graphCells = Array.from({ length: 84 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (83 - i));
+    const iso = d.toISOString().slice(0, 10);
+    const entry = dashboard?.contributionGraph?.find((c) => c.date === iso);
+    return { iso, count: entry?.count ?? 0 };
+  });
+
+  function cellColor(count: number) {
+    if (count === 0) return "rgba(255,255,255,0.05)";
+    if (count < 2) return "rgba(99,102,241,0.25)";
+    if (count < 4) return "rgba(99,102,241,0.50)";
+    if (count < 6) return "rgba(99,102,241,0.75)";
+    return "#6366f1";
+  }
+
   return (
-    <div className="min-h-full p-6 lg:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div
+      className="min-h-screen p-4 md:p-6 lg:p-8"
+      style={{ background: "#0c0c0f", fontFamily: "'DM Sans', sans-serif" }}
+    >
+      {/* ── XP Popup ── */}
+      <AnimatePresence>
+        {xpPopup && <XpPopup xp={xpPopup} onDone={clearXpPopup} />}
+      </AnimatePresence>
 
-      {/* Header */}
-      <motion.div {...fadeUp(0)} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <p className="text-[11px] text-[#444] uppercase tracking-[0.07em] mb-1">Welcome back</p>
-          <h1
-            className="text-[26px] font-semibold text-white"
-            style={{ letterSpacing: "-0.02em", fontFamily: "'DM Sans', sans-serif" }}
-          >
-            Ethan
-          </h1>
-        </div>
-        <button
-          className="self-start sm:self-auto flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium text-white transition-opacity hover:opacity-80"
-          style={{
-            background: "#7c3aed",
-            fontFamily: "'DM Sans', sans-serif",
-          }}
+      {/* ── History Modal ── */}
+      <AnimatePresence>
+        {showHistory && (
+          <HistoryModal tasks={tasks} onClose={() => setShowHistory(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* ── Top Header ── */}
+      <motion.header
+        className="flex items-center gap-4 mb-8"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {/* Avatar */}
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white font-bold text-sm"
+          style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
         >
-          <Plus size={13} /> Add Quest
-        </button>
-      </motion.div>
+          {dashboard?.username?.[0]?.toUpperCase() ?? "K"}
+        </div>
 
-      {/* Stats — 2 cols on mobile, 4 on lg */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total XP" value="12,847" sub="↑ 340 this week" icon={<Zap size={14} />} delay={0.04} />
-        <StatCard label="Current Streak" value="14 days" sub="Best: 21 days" icon={<Flame size={14} />} delay={0.07} />
-        <StatCard label="Active Quests" value="7" sub="3 due this week" icon={<Swords size={14} />} delay={0.1} />
-        <StatCard label="Global Rank" value="#284" sub="Top 2% this season" icon={<Trophy size={14} />} delay={0.13} />
-      </div>
+        {/* Name + level */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span
+              className="text-[15px] font-semibold text-white truncate"
+              style={{ letterSpacing: "-0.01em" }}
+            >
+              {dashboard?.username ?? "Kyzen"}
+            </span>
+            <span
+              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+              style={{
+                background: "rgba(99,102,241,0.15)",
+                border: "1px solid rgba(99,102,241,0.25)",
+                color: "#818cf8",
+                fontFamily: "'DM Mono', monospace",
+              }}
+            >
+              LVL {dashboard?.level ?? 1}
+            </span>
+            <span
+              className="hidden sm:flex items-center gap-1 text-[11px] text-[#f97316]"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              <Flame size={12} className="text-[#f97316]" />
+              {dashboard?.streak ?? 0}
+            </span>
+          </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-        <motion.div {...fadeUp(0.15)} className="h-full"><DonutChart /></motion.div>
-        <motion.div {...fadeUp(0.18)} className="h-full"><PassingRate /></motion.div>
-        <motion.div {...fadeUp(0.21)} className="sm:col-span-2 lg:col-span-1 h-full"><ProjectTime /></motion.div>
-      </div>
+          {/* XP Bar */}
+          <div className="flex items-center gap-2">
+            <div
+              className="flex-1 h-1.5 rounded-full overflow-hidden"
+              style={{ background: "rgba(255,255,255,0.07)" }}
+            >
+              <motion.div
+                className="h-full rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${xpPct}%` }}
+                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                style={{ background: "linear-gradient(90deg, #6366f1, #a78bfa)" }}
+              />
+            </div>
+            <span
+              className="text-[10px] shrink-0"
+              style={{ color: "#555", fontFamily: "'DM Mono', monospace" }}
+            >
+              {dashboard ? `${dashboard.xpToNextLevel} XP left` : "─"}
+            </span>
+          </div>
+        </div>
+      </motion.header>
 
-      {/* Bottom panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+      {/* ── Main Grid ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        {/* Quest Manager */}
-        <motion.div {...fadeUp(0.22)} className="lg:col-span-5">
-          <Card className="p-5 h-full">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <SectionLabel>Quest Manager</SectionLabel>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="hidden sm:block text-[11px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                  Mar 2025
-                </span>
+        {/* ═══════════════════════════════════ LEFT ═══════════════════════════ */}
+        <div className="lg:col-span-8 flex flex-col gap-4">
+
+          {/* ── Task Section ── */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="rounded-2xl p-5"
+            style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
+          >
+            <p
+              className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              Active Quests
+            </p>
+
+            {/* Inline create */}
+            <form onSubmit={handleCreate} className="flex items-center gap-2 mb-4">
+              <input
+                ref={inputRef}
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Add a new task…"
+                className="flex-1 bg-transparent text-[13px] text-white placeholder:text-[#333] outline-none rounded-lg px-3 py-2"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                }}
+              />
+
+              {/* Difficulty picker */}
+              <div className="relative">
                 <button
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-medium text-white"
-                  style={{ background: "#7c3aed", fontFamily: "'DM Sans', sans-serif" }}
+                  type="button"
+                  onClick={() => setDiffOpen((v) => !v)}
+                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[12px] transition-colors"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                    color: DIFF_META[newDiff].color,
+                    fontFamily: "'DM Mono', monospace",
+                  }}
                 >
-                  <Plus size={10} /> Add Task
+                  {DIFF_META[newDiff].label}
+                  <ChevronDown size={11} />
                 </button>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              {QUESTS.map((q) => <QuestCard key={q.id} quest={q} />)}
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Skill Tree */}
-        <motion.div {...fadeUp(0.25)} className="lg:col-span-3">
-          <Card className="p-5 h-full">
-            <div className="flex items-center justify-between mb-5">
-              <SectionLabel>Skill Tree</SectionLabel>
-              <Target size={12} className="text-[#333]" />
-            </div>
-            <div className="flex flex-col gap-4">
-              {SKILL_BARS.map((s, i) => (
-                <motion.div key={s.label} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 + i * 0.06 }}>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[12px] text-[#555]" style={{ fontFamily: "'DM Sans', sans-serif" }}>{s.label}</span>
-                    <span className="text-[11px] text-[#444] tabular-nums" style={{ fontFamily: "'DM Mono', monospace" }}>{s.pct}</span>
-                  </div>
-                  <div className="h-1 w-full rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+                <AnimatePresence>
+                  {diffOpen && (
                     <motion.div
-                      className="h-full rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${s.pct}%` }}
-                      transition={{ duration: 0.8, delay: 0.45 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                      style={{ background: "rgba(139,92,246,0.7)" }}
-                    />
-                  </div>
-                </motion.div>
+                      className="absolute right-0 top-full mt-1 rounded-xl z-20 overflow-hidden"
+                      style={{ background: "#18181c", border: "1px solid rgba(255,255,255,0.09)", minWidth: 100 }}
+                      initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {(["E", "M", "H"] as Difficulty[]).map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => { setNewDiff(d); setDiffOpen(false); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-white/5"
+                          style={{ color: DIFF_META[d].color, fontFamily: "'DM Mono', monospace" }}
+                        >
+                          {DIFF_META[d].label}
+                          <span className="ml-auto text-[10px] text-[#444]">+{DIFF_META[d].xp}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <button
+                type="submit"
+                disabled={!newTitle.trim()}
+                className="w-9 h-9 rounded-lg flex items-center justify-center transition-opacity disabled:opacity-30"
+                style={{ background: "#6366f1" }}
+              >
+                <Plus size={14} className="text-white" />
+              </button>
+            </form>
+
+            {/* Task list */}
+            <div className="flex flex-col gap-2">
+              <AnimatePresence initial={false}>
+                {activeTasks.length === 0 && (
+                  <p
+                    className="text-[13px] text-center py-6 text-[#333]"
+                    style={{ fontFamily: "'DM Mono', monospace" }}
+                  >
+                    All caught up ✦
+                  </p>
+                )}
+                {activeTasks.map((task) => (
+                  <motion.div
+                    key={task.id}
+                    layout
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    {editingId === task.id ? (
+                      /* Edit row */
+                      <div
+                        className="flex items-center gap-2 p-3 rounded-xl"
+                        style={{ background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)" }}
+                      >
+                        <input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleEditSave(task.id)}
+                          autoFocus
+                          className="flex-1 bg-transparent text-[13px] text-white outline-none"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        />
+                        {(["E", "M", "H"] as Difficulty[]).map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => setEditDiff(d)}
+                            className="text-[10px] px-1.5 py-0.5 rounded-md transition-opacity"
+                            style={{
+                              color: DIFF_META[d].color,
+                              background: editDiff === d ? DIFF_META[d].bg : "transparent",
+                              opacity: editDiff === d ? 1 : 0.4,
+                              fontFamily: "'DM Mono', monospace",
+                            }}
+                          >
+                            {DIFF_META[d].label}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => handleEditSave(task.id)}
+                          className="text-[11px] px-2.5 py-1 rounded-lg text-white"
+                          style={{ background: "#6366f1", fontFamily: "'DM Sans', sans-serif" }}
+                        >
+                          Save
+                        </button>
+                        <button onClick={() => setEditingId(null)}>
+                          <X size={13} className="text-[#555]" />
+                        </button>
+                      </div>
+                    ) : (
+                      /* Normal row */
+                      <div
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl group transition-colors"
+                        style={{
+                          background: "rgba(255,255,255,0.025)",
+                          border: "1px solid rgba(255,255,255,0.05)",
+                        }}
+                      >
+                        {/* Complete btn */}
+                        <button
+                          onClick={() => completeTask(task.id)}
+                          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors group/cb"
+                          style={{ border: "1.5px solid rgba(99,102,241,0.4)" }}
+                          title="Complete"
+                        >
+                          <CheckCircle2
+                            size={13}
+                            className="text-[#6366f1] opacity-0 group-hover/cb:opacity-100 transition-opacity"
+                          />
+                        </button>
+
+                        <span
+                          className="flex-1 text-[13px] text-[#bbb] truncate"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        >
+                          {task.title}
+                        </span>
+
+                        <DiffBadge diff={task.difficulty} />
+
+                        <span
+                          className="text-[10px] text-[#444] hidden sm:block"
+                          style={{ fontFamily: "'DM Mono', monospace" }}
+                        >
+                          +{DIFF_META[task.difficulty].xp}
+                        </span>
+
+                        {/* Actions (shown on hover) */}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => startEdit(task)}
+                            className="w-6 h-6 rounded-md flex items-center justify-center"
+                            style={{ background: "rgba(255,255,255,0.05)" }}
+                            title="Edit"
+                          >
+                            <Pencil size={10} className="text-[#555]" />
+                          </button>
+                          <button
+                            onClick={() => deleteTask(task.id)}
+                            className="w-6 h-6 rounded-md flex items-center justify-center"
+                            style={{ background: "rgba(248,113,113,0.08)" }}
+                            title="Delete"
+                          >
+                            <Trash2 size={10} className="text-[#f87171]" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </motion.section>
+
+          {/* ── History ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.16, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center justify-between px-5 py-3 rounded-2xl cursor-pointer group transition-colors"
+            style={{
+              background: "#111115",
+              border: "1px solid rgba(255,255,255,0.06)",
+            }}
+            onClick={() => setShowHistory(true)}
+          >
+            <div className="flex items-center gap-2.5">
+              <History size={14} className="text-[#555] group-hover:text-[#818cf8] transition-colors" />
+              <span
+                className="text-[13px] text-[#555] group-hover:text-[#999] transition-colors"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                View History
+              </span>
+              {completedTasks.length > 0 && (
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(99,102,241,0.12)",
+                    color: "#818cf8",
+                    fontFamily: "'DM Mono', monospace",
+                  }}
+                >
+                  {completedTasks.length} completed
+                </span>
+              )}
+            </div>
+            <ChevronDown size={13} className="text-[#333] group-hover:text-[#555] transition-colors -rotate-90" />
+          </motion.div>
+
+          {/* ── Contribution Graph ── */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="rounded-2xl p-5"
+            style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
+          >
+            <p
+              className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              Activity
+            </p>
+            <div
+              className="grid gap-1"
+              style={{ gridTemplateColumns: "repeat(12, 1fr)" }}
+            >
+              {graphCells.map((cell, i) => (
+                <div
+                  key={i}
+                  title={`${cell.iso}: ${cell.count} tasks`}
+                  className="rounded-sm aspect-square"
+                  style={{ background: cellColor(cell.count) }}
+                />
               ))}
             </div>
+            <div className="flex items-center gap-1.5 mt-3 justify-end">
+              <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>Less</span>
+              {[0, 1, 3, 5, 7].map((n) => (
+                <div key={n} className="w-2.5 h-2.5 rounded-sm" style={{ background: cellColor(n) }} />
+              ))}
+              <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>More</span>
+            </div>
+          </motion.section>
+        </div>
 
-            {/* Level progress */}
-            <div className="mt-6 pt-5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-[12px] text-[#555]" style={{ fontFamily: "'DM Sans', sans-serif" }}>Level 7 → 8</span>
-                <span className="text-[11px] text-[#444] tabular-nums" style={{ fontFamily: "'DM Mono', monospace" }}>3,800 / 5,000</span>
+        {/* ═══════════════════════════════════ RIGHT ══════════════════════════ */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
+
+          {/* ── Character Card ── */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="rounded-2xl p-5"
+            style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
+          >
+            <p
+              className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              Character
+            </p>
+            <div className="flex items-center gap-4">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+                style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}
+              >
+                {getCharacter(dashboard?.level ?? 1).icon}
               </div>
-              <div className="h-1.5 w-full rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+              <div>
+                <p
+                  className="text-[16px] font-semibold text-white mb-0.5"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
+                  {getCharacter(dashboard?.level ?? 1).title}
+                </p>
+                <p className="text-[12px] text-[#444]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                  Level {dashboard?.level ?? 1}
+                </p>
+              </div>
+            </div>
+
+            {/* XP progress */}
+            <div className="mt-4">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[11px] text-[#444]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                  {dashboard?.currentXP ?? 0} / {dashboard?.totalXPForLevel ?? 1000} XP
+                </span>
+                <span className="text-[11px] text-[#6366f1]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                  {xpPct}%
+                </span>
+              </div>
+              <div className="h-2 w-full rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
                 <motion.div
                   className="h-full rounded-full"
                   initial={{ width: 0 }}
-                  animate={{ width: "76%" }}
-                  transition={{ duration: 1, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ background: "rgba(139,92,246,0.8)" }}
+                  animate={{ width: `${xpPct}%` }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ background: "linear-gradient(90deg, #6366f1, #a78bfa)" }}
                 />
               </div>
             </div>
-          </Card>
-        </motion.div>
+          </motion.section>
 
-        {/* Inboxes */}
-        <motion.div {...fadeUp(0.28)} className="lg:col-span-4">
-          <Card className="p-5 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <SectionLabel>Inbox</SectionLabel>
-                <span
-                  className="text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] tabular-nums"
-                  style={{ background: "rgba(255,255,255,0.06)", color: "#555", fontFamily: "'DM Mono', monospace" }}
+          {/* ── Today Summary ── */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="rounded-2xl p-5"
+            style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
+          >
+            <p
+              className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4"
+              style={{ fontFamily: "'DM Mono', monospace" }}
+            >
+              Today
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Tasks",     value: dashboard?.todayStats.totalTasks ?? activeTasks.length },
+                { label: "Done",      value: dashboard?.todayStats.completedTasks ?? completedTasks.length },
+                { label: "XP Earned", value: dashboard?.todayStats.xpEarned ?? 0 },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="rounded-xl p-3 text-center"
+                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
                 >
-                  16
+                  <p
+                    className="text-[18px] font-semibold text-white"
+                    style={{ letterSpacing: "-0.02em", fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    {value}
+                  </p>
+                  <p className="text-[10px] text-[#3a3a3a] mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>
+                    {label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* ── XP Remaining ── */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="rounded-2xl p-5 flex items-center gap-3"
+            style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
+          >
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "rgba(167,139,250,0.10)" }}
+            >
+              <Zap size={15} className="text-[#a78bfa]" />
+            </div>
+            <div>
+              <p
+                className="text-[15px] font-semibold text-white"
+                style={{ letterSpacing: "-0.02em" }}
+              >
+                {dashboard?.xpToNextLevel ?? "─"} XP
+              </p>
+              <p className="text-[11px] text-[#444]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                to reach Level {(dashboard?.level ?? 1) + 1}
+              </p>
+            </div>
+            {dashboard && (
+              <div className="ml-auto flex items-center gap-1 text-[#f97316]">
+                <Flame size={13} />
+                <span className="text-[12px] font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>
+                  {dashboard.streak}
                 </span>
               </div>
-              <button className="text-[11px] text-[#555] hover:text-[#888] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                View all
-              </button>
-            </div>
-
-            {/* Search */}
-            <div
-              className="flex items-center gap-2 px-2.5 py-2 rounded-md mb-4"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
-            >
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" className="text-[#333] shrink-0">
-                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M11 11L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-              <span className="text-[12px] text-[#2e2e2e]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                Search messages…
-              </span>
-            </div>
-
-            {/* Items */}
-            <div className="flex-1">
-              {ACTIVITY.map((item) => <InboxItem key={item.id} item={item} />)}
-            </div>
-
-            {/* Compose */}
-            <div
-              className="mt-3 flex items-center gap-2 px-3 py-2 rounded-md"
-              style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
-            >
-              <span className="text-[12px] text-[#2e2e2e] flex-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                Send later…
-              </span>
-              <button
-                className="w-6 h-6 rounded-md flex items-center justify-center"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}
-              >
-                <ArrowUpRight size={10} className="text-[#444]" />
-              </button>
-            </div>
-          </Card>
-        </motion.div>
-
+            )}
+          </motion.section>
+        </div>
       </div>
     </div>
   );
