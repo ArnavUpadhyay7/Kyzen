@@ -12,6 +12,18 @@ enum AuthProvider {
   google
 }
 
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum TaskStatus {
+  PENDING
+  COMPLETED
+  MISSED
+}
+
 model User {
   id       String  @id @default(cuid())
   username String  @unique
@@ -21,9 +33,11 @@ model User {
   provider AuthProvider @default(local)
 
   // Gamification
-  xp     Int @default(0)
-  level  Int @default(1)
-  streak Int @default(0)
+  currentXP      Int       @default(0)
+  totalXP        Int       @default(0)
+  level          Int       @default(1)
+  streak         Int       @default(0)
+  lastActiveDate DateTime?
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -36,12 +50,12 @@ model User {
 }
 
 model Task {
-  id          String  @id @default(cuid())
+  id          String     @id @default(cuid())
   title       String
-  description String?
-
-  completed   Boolean   @default(false)
+  difficulty  Difficulty @default(EASY)
+  status      TaskStatus @default(PENDING)
   completedAt DateTime?
+  expiresAt   DateTime
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -52,6 +66,7 @@ model Task {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, completed])
+  @@index([userId, status])
+  @@index([expiresAt, status])
   @@map("tasks")
 }

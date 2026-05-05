@@ -4,17 +4,15 @@ import {
   getTasks,
   updateTask,
   deleteTask,
+  completeTask,
 } from "../controllers/task.controller";
-import { requireAuth } from "../middleware/auth.middleware";
 
 const router = Router();
 
-// All task routes require authentication
-router.use(requireAuth);
-
-router.post("/", createTask);
-router.get("/", getTasks);
-router.patch("/:id", updateTask);
-router.delete("/:id", deleteTask);
+router.post("/",             createTask);
+router.get("/",              getTasks);
+router.patch("/:id",         updateTask);
+router.delete("/:id",        deleteTask);
+router.post("/:id/complete", completeTask);
 
 export default router;

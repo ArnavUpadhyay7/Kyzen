@@ -8,7 +8,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -17,16 +17,21 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-/** Strip the password field before sending user data to the client. */
+/**
+ * Strip password before sending user data to the client.
+ * Typed against the new schema fields (currentXP / totalXP / lastActiveDate).
+ */
 function safeUser(user: {
   id: string;
-  email: string;
   username: string;
+  email: string;
   password: string | null;
   provider: string;
-  xp: number;
+  currentXP: number;
+  totalXP: number;
   level: number;
   streak: number;
+  lastActiveDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -40,10 +45,14 @@ function safeUser(user: {
  * POST /api/auth/signup
  */
 export async function signup(req: Request, res: Response): Promise<void> {
-  const { email, password, username } = req.body as { email?: string; password?: string; username?: string };
+  const { email, password, username } = req.body as {
+    email?: string;
+    password?: string;
+    username?: string;
+  };
 
   if (!email || !password || !username) {
-    res.status(400).json({ message: "All the fields are required." });
+    res.status(400).json({ message: "All fields are required." });
     return;
   }
 
@@ -63,15 +72,18 @@ export async function signup(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const existingEmail = await prisma.user.findUnique({ where: { email } });
+    const [existingEmail, existingUsername] = await Promise.all([
+      prisma.user.findUnique({ where: { email } }),
+      prisma.user.findUnique({ where: { username } }),
+    ]);
+
     if (existingEmail) {
-      res.status(400).json({ message: "An account with that email already exists." });
+      res.status(409).json({ message: "An account with that email already exists." });
       return;
     }
 
-    const existingUsername = await prisma.user.findUnique({ where: { username } });
     if (existingUsername) {
-      res.status(400).json({ message: "That username is already taken." });
+      res.status(409).json({ message: "That username is already taken." });
       return;
     }
 
@@ -79,7 +91,7 @@ export async function signup(req: Request, res: Response): Promise<void> {
 
     const user = await prisma.user.create({
       data: {
-        username,
+        username: username.trim(),
         email,
         password: hashed,
         provider: "local",
@@ -100,7 +112,10 @@ export async function signup(req: Request, res: Response): Promise<void> {
  * POST /api/auth/login
  */
 export async function login(req: Request, res: Response): Promise<void> {
-  const { email, password } = req.body as { email?: string; password?: string };
+  const { email, password } = req.body as {
+    email?: string;
+    password?: string;
+  };
 
   if (!email || !password) {
     res.status(400).json({ message: "Email and password are required." });
@@ -116,9 +131,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     }
 
     if (user.provider !== "local" || !user.password) {
-      res.status(400).json({
-        message: "This account uses a different sign-in method.",
-      });
+      res.status(400).json({ message: "This account uses a different sign-in method." });
       return;
     }
 
@@ -140,6 +153,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
 /**
  * POST /api/auth/logout
+ * Clears the session cookie. No auth required.
  */
 export async function logout(_req: Request, res: Response): Promise<void> {
   res.clearCookie("token");
@@ -148,9 +162,10 @@ export async function logout(_req: Request, res: Response): Promise<void> {
 
 /**
  * DELETE /api/auth/signout  (protected)
+ * Permanently deletes the account and clears the session.
  */
 export async function signout(req: AuthRequest, res: Response): Promise<void> {
-  const userId = req.userId!;
+  const userId = req.user!.id;
 
   try {
     await prisma.user.delete({ where: { id: userId } });

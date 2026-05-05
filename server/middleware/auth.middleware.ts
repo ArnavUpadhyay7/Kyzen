@@ -1,8 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/token";
 
+/**
+ * AuthRequest — used by every protected controller.
+ * Attaches `req.user.id` after token verification.
+ */
 export interface AuthRequest extends Request {
-  userId?: string;
+  user?: { id: string };
 }
 
 export function requireAuth(
@@ -19,7 +23,7 @@ export function requireAuth(
 
   try {
     const payload = verifyToken(token);
-    req.userId = payload.userId;
+    req.user = { id: payload.userId };
     next();
   } catch {
     res.status(401).json({ message: "Unauthorized: invalid or expired token." });
