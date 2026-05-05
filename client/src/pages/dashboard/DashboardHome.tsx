@@ -1,21 +1,126 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Flame,
-  Plus,
-  Zap,
-  Trash2,
-  Pencil,
-  CheckCircle2,
-  X,
-  ChevronDown,
-  History,
-  Circle,
-  Sword,
-  Shield,
-  Star,
+  Flame, Plus, Zap, Trash2, Pencil, CheckCircle2,
+  X, ChevronDown, History, Circle, Sword, Shield, Star,
 } from "lucide-react";
 import { useDashboardStore, type Difficulty, type Task } from "../../store/usedashboardstore";
+
+// ─── Heatmap ──────────────────────────────────────────────────────────────────
+
+const WEEKS = 26;
+const DAYS  = 7;
+
+function ContributionGraph({ data }: { data: { date: string; count: number }[] }) {
+  const levels = [
+    "#1a1a24",
+    "rgba(99,102,241,0.28)",
+    "rgba(99,102,241,0.48)",
+    "rgba(99,102,241,0.72)",
+    "#6366f1",
+  ];
+
+  // Build a date→count lookup
+  const lookup: Record<string, number> = {};
+  data.forEach((d) => { lookup[d.date] = d.count; });
+
+  // Generate last WEEKS*DAYS days, aligned to week columns
+  const today = new Date();
+  const cells: { iso: string; level: number }[] = [];
+  for (let i = WEEKS * DAYS - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const iso = d.toISOString().slice(0, 10);
+    const count = lookup[iso] ?? 0;
+    const lvl = count === 0 ? 0 : count < 2 ? 1 : count < 4 ? 2 : count < 6 ? 3 : 4;
+    cells.push({ iso, level: lvl });
+  }
+
+  // Month labels: find first cell of each month
+  const monthLabels: { label: string; col: number }[] = [];
+  cells.forEach(({ iso }, idx) => {
+    const col = Math.floor(idx / DAYS);
+    const day = new Date(iso).getDate();
+    if (day <= 7) {
+      const label = new Date(iso).toLocaleString("en-US", { month: "short" });
+      if (!monthLabels.find((m) => m.label === label)) {
+        monthLabels.push({ label, col });
+      }
+    }
+  });
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Month labels */}
+      <div className="flex pl-6 overflow-hidden">
+        {monthLabels.map(({ label, col }) => (
+          <div
+            key={label}
+            className="text-[10px] text-[#444] absolute"
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              left: `calc(1.5rem + ${col} * 15px)`,
+              position: "relative",
+              minWidth: 0,
+              marginLeft: col === 0 ? 0 : undefined,
+            }}
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {/* Day labels */}
+        <div className="flex flex-col justify-between py-px shrink-0" style={{ width: 20 }}>
+          {["M", "W", "F"].map((d) => (
+            <span key={d} className="text-[9px] text-[#3a3a3a] leading-none" style={{ fontFamily: "'DM Mono', monospace" }}>
+              {d}
+            </span>
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateRows: `repeat(${DAYS}, 11px)`,
+            gridTemplateColumns: `repeat(${WEEKS}, 11px)`,
+            gap: "3px",
+          }}
+        >
+          {cells.map(({ iso, level }, idx) => {
+            const col = Math.floor(idx / DAYS) + 1;
+            const row = (idx % DAYS) + 1;
+            return (
+              <div
+                key={iso}
+                title={`${iso}: ${level} task${level !== 1 ? "s" : ""}`}
+                className="rounded-[2px] transition-all hover:ring-1 hover:ring-indigo-400/60 hover:scale-110 cursor-pointer"
+                style={{
+                  width: 11,
+                  height: 11,
+                  background: levels[level],
+                  gridColumn: col,
+                  gridRow: row,
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center justify-end gap-1.5">
+        <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>Less</span>
+        {levels.map((c, i) => (
+          <div key={i} className="w-2.5 h-2.5 rounded-[2px]" style={{ background: c }} />
+        ))}
+        <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>More</span>
+      </div>
+    </div>
+  );
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,12 +131,13 @@ const DIFF_META: Record<Difficulty, { label: string; color: string; bg: string; 
 };
 
 const CHARACTER_TITLES: Record<number, { title: string; icon: React.ReactNode }> = {
-  1: { title: "Novice",      icon: <Circle size={28} className="text-[#6366f1]" /> },
-  2: { title: "Apprentice",  icon: <Star size={28} className="text-[#6366f1]" /> },
-  3: { title: "Adept",       icon: <Shield size={28} className="text-[#6366f1]" /> },
-  4: { title: "Veteran",     icon: <Sword size={28} className="text-[#6366f1]" /> },
-  5: { title: "Champion",    icon: <Sword size={28} className="text-[#a78bfa]" /> },
+  1: { title: "Novice",     icon: <Circle size={28} className="text-[#6366f1]" /> },
+  2: { title: "Apprentice", icon: <Star size={28} className="text-[#6366f1]" />   },
+  3: { title: "Adept",      icon: <Shield size={28} className="text-[#6366f1]" /> },
+  4: { title: "Veteran",    icon: <Sword size={28} className="text-[#6366f1]" />  },
+  5: { title: "Champion",   icon: <Sword size={28} className="text-[#a78bfa]" />  },
 };
+
 function getCharacter(level: number) {
   return CHARACTER_TITLES[Math.min(level, 5)] ?? CHARACTER_TITLES[5];
 }
@@ -71,7 +177,6 @@ function XpPopup({ xp, onDone }: { xp: number; onDone: () => void }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onAnimationComplete={onDone}
     >
       <motion.div
         className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold text-2xl"
@@ -118,17 +223,10 @@ function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2
-            className="text-base font-semibold text-white"
-            style={{ fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.02em" }}
-          >
+          <h2 className="text-base font-semibold text-white" style={{ fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.02em" }}>
             Task History
           </h2>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-            style={{ background: "rgba(255,255,255,0.06)" }}
-          >
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
             <X size={13} className="text-[#666]" />
           </button>
         </div>
@@ -141,25 +239,17 @@ function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }
           <div className="flex flex-col gap-5">
             {dates.map((date) => (
               <div key={date}>
-                <p
-                  className="text-[10px] uppercase tracking-widest text-[#444] mb-2"
-                  style={{ fontFamily: "'DM Mono', monospace" }}
-                >
+                <p className="text-[10px] uppercase tracking-widest text-[#444] mb-2" style={{ fontFamily: "'DM Mono', monospace" }}>
                   {date}
                 </p>
                 <div className="flex flex-col gap-1.5">
                   {grouped[date].map((t) => (
-                    <div
-                      key={t.id}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg"
+                    <div key={t.id} className="flex items-center justify-between px-3 py-2 rounded-lg"
                       style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
                     >
                       <div className="flex items-center gap-2.5">
                         <CheckCircle2 size={13} className="text-[#6366f1] shrink-0" />
-                        <span
-                          className="text-[13px] text-[#777] line-through"
-                          style={{ fontFamily: "'DM Sans', sans-serif" }}
-                        >
+                        <span className="text-[13px] text-[#777] line-through" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                           {t.title}
                         </span>
                       </div>
@@ -186,14 +276,13 @@ export default function DashboardHome() {
     clearXpPopup,
   } = useDashboardStore();
 
-  // Local UI state
-  const [newTitle, setNewTitle] = useState("");
-  const [newDiff, setNewDiff] = useState<Difficulty>("M");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDiff, setEditDiff] = useState<Difficulty>("M");
+  const [newTitle, setNewTitle]       = useState("");
+  const [newDiff, setNewDiff]         = useState<Difficulty>("M");
+  const [editingId, setEditingId]     = useState<string | null>(null);
+  const [editTitle, setEditTitle]     = useState("");
+  const [editDiff, setEditDiff]       = useState<Difficulty>("M");
   const [showHistory, setShowHistory] = useState(false);
-  const [diffOpen, setDiffOpen] = useState(false);
+  const [diffOpen, setDiffOpen]       = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -202,7 +291,6 @@ export default function DashboardHome() {
     fetchTasks();
   }, []);
 
-  // Auto-clear popup
   useEffect(() => {
     if (xpPopup) {
       const t = setTimeout(clearXpPopup, 1600);
@@ -210,12 +298,9 @@ export default function DashboardHome() {
     }
   }, [xpPopup]);
 
-  const activeTasks = tasks.filter((t) => !t.completed);
+  const activeTasks    = tasks.filter((t) => !t.completed);
   const completedTasks = tasks.filter((t) => t.completed);
-
-  const xpPct = dashboard
-    ? Math.round((dashboard.currentXP / dashboard.totalXPForLevel) * 100)
-    : 0;
+  const xpPct          = dashboard ? Math.round((dashboard.currentXP / dashboard.totalXPForLevel) * 100) : 0;
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -236,91 +321,48 @@ export default function DashboardHome() {
     setEditingId(null);
   }
 
-  // Contribution graph (last 12 weeks × 7 days)
-  const today = new Date();
-  const graphCells = Array.from({ length: 84 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - (83 - i));
-    const iso = d.toISOString().slice(0, 10);
-    const entry = dashboard?.contributionGraph?.find((c) => c.date === iso);
-    return { iso, count: entry?.count ?? 0 };
-  });
-
-  function cellColor(count: number) {
-    if (count === 0) return "rgba(255,255,255,0.05)";
-    if (count < 2) return "rgba(99,102,241,0.25)";
-    if (count < 4) return "rgba(99,102,241,0.50)";
-    if (count < 6) return "rgba(99,102,241,0.75)";
-    return "#6366f1";
-  }
-
   return (
-    <div
-      className="min-h-screen p-4 md:p-6 lg:p-8"
-      style={{ background: "#0c0c0f", fontFamily: "'DM Sans', sans-serif" }}
-    >
-      {/* ── XP Popup ── */}
+    <div className="min-h-screen p-4 md:p-6 lg:p-8" style={{ background: "#0c0c0f", fontFamily: "'DM Sans', sans-serif" }}>
+
       <AnimatePresence>
         {xpPopup && <XpPopup xp={xpPopup} onDone={clearXpPopup} />}
       </AnimatePresence>
 
-      {/* ── History Modal ── */}
       <AnimatePresence>
-        {showHistory && (
-          <HistoryModal tasks={tasks} onClose={() => setShowHistory(false)} />
-        )}
+        {showHistory && <HistoryModal tasks={tasks} onClose={() => setShowHistory(false)} />}
       </AnimatePresence>
 
-      {/* ── Top Header ── */}
+      {/* Header */}
       <motion.header
         className="flex items-center gap-4 mb-8"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Avatar */}
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white font-bold text-sm"
           style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
         >
           {dashboard?.username?.[0]?.toUpperCase() ?? "K"}
         </div>
-
-        {/* Name + level */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <span
-              className="text-[15px] font-semibold text-white truncate"
-              style={{ letterSpacing: "-0.01em" }}
-            >
+            <span className="text-[15px] font-semibold text-white truncate" style={{ letterSpacing: "-0.01em" }}>
               {dashboard?.username ?? "Kyzen"}
             </span>
             <span
               className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-              style={{
-                background: "rgba(99,102,241,0.15)",
-                border: "1px solid rgba(99,102,241,0.25)",
-                color: "#818cf8",
-                fontFamily: "'DM Mono', monospace",
-              }}
+              style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.25)", color: "#818cf8", fontFamily: "'DM Mono', monospace" }}
             >
               LVL {dashboard?.level ?? 1}
             </span>
-            <span
-              className="hidden sm:flex items-center gap-1 text-[11px] text-[#f97316]"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
+            <span className="hidden sm:flex items-center gap-1 text-[11px] text-[#f97316]" style={{ fontFamily: "'DM Mono', monospace" }}>
               <Flame size={12} className="text-[#f97316]" />
               {dashboard?.streak ?? 0}
             </span>
           </div>
-
-          {/* XP Bar */}
           <div className="flex items-center gap-2">
-            <div
-              className="flex-1 h-1.5 rounded-full overflow-hidden"
-              style={{ background: "rgba(255,255,255,0.07)" }}
-            >
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
               <motion.div
                 className="h-full rounded-full"
                 initial={{ width: 0 }}
@@ -329,23 +371,20 @@ export default function DashboardHome() {
                 style={{ background: "linear-gradient(90deg, #6366f1, #a78bfa)" }}
               />
             </div>
-            <span
-              className="text-[10px] shrink-0"
-              style={{ color: "#555", fontFamily: "'DM Mono', monospace" }}
-            >
+            <span className="text-[10px] shrink-0" style={{ color: "#555", fontFamily: "'DM Mono', monospace" }}>
               {dashboard ? `${dashboard.xpToNextLevel} XP left` : "─"}
             </span>
           </div>
         </div>
       </motion.header>
 
-      {/* ── Main Grid ── */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        {/* ═══════════════════════════════════ LEFT ═══════════════════════════ */}
+        {/* LEFT */}
         <div className="lg:col-span-8 flex flex-col gap-4">
 
-          {/* ── Task Section ── */}
+          {/* Task Section */}
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -353,14 +392,10 @@ export default function DashboardHome() {
             className="rounded-2xl p-5"
             style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
           >
-            <p
-              className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
+            <p className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4" style={{ fontFamily: "'DM Mono', monospace" }}>
               Active Quests
             </p>
 
-            {/* Inline create */}
             <form onSubmit={handleCreate} className="flex items-center gap-2 mb-4">
               <input
                 ref={inputRef}
@@ -368,24 +403,14 @@ export default function DashboardHome() {
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="Add a new task…"
                 className="flex-1 bg-transparent text-[13px] text-white placeholder:text-[#333] outline-none rounded-lg px-3 py-2"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                }}
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
               />
-
-              {/* Difficulty picker */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setDiffOpen((v) => !v)}
-                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[12px] transition-colors"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                    color: DIFF_META[newDiff].color,
-                    fontFamily: "'DM Mono', monospace",
-                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[12px]"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: DIFF_META[newDiff].color, fontFamily: "'DM Mono', monospace" }}
                 >
                   {DIFF_META[newDiff].label}
                   <ChevronDown size={11} />
@@ -405,7 +430,7 @@ export default function DashboardHome() {
                           key={d}
                           type="button"
                           onClick={() => { setNewDiff(d); setDiffOpen(false); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-white/5"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-white/5"
                           style={{ color: DIFF_META[d].color, fontFamily: "'DM Mono', monospace" }}
                         >
                           {DIFF_META[d].label}
@@ -416,25 +441,20 @@ export default function DashboardHome() {
                   )}
                 </AnimatePresence>
               </div>
-
               <button
                 type="submit"
                 disabled={!newTitle.trim()}
-                className="w-9 h-9 rounded-lg flex items-center justify-center transition-opacity disabled:opacity-30"
+                className="w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-30"
                 style={{ background: "#6366f1" }}
               >
                 <Plus size={14} className="text-white" />
               </button>
             </form>
 
-            {/* Task list */}
             <div className="flex flex-col gap-2">
               <AnimatePresence initial={false}>
                 {activeTasks.length === 0 && (
-                  <p
-                    className="text-[13px] text-center py-6 text-[#333]"
-                    style={{ fontFamily: "'DM Mono', monospace" }}
-                  >
+                  <p className="text-[13px] text-center py-6 text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>
                     All caught up ✦
                   </p>
                 )}
@@ -448,9 +468,7 @@ export default function DashboardHome() {
                     transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                   >
                     {editingId === task.id ? (
-                      /* Edit row */
-                      <div
-                        className="flex items-center gap-2 p-3 rounded-xl"
+                      <div className="flex items-center gap-2 p-3 rounded-xl"
                         style={{ background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)" }}
                       >
                         <input
@@ -459,28 +477,18 @@ export default function DashboardHome() {
                           onKeyDown={(e) => e.key === "Enter" && handleEditSave(task.id)}
                           autoFocus
                           className="flex-1 bg-transparent text-[13px] text-white outline-none"
-                          style={{ fontFamily: "'DM Sans', sans-serif" }}
                         />
                         {(["E", "M", "H"] as Difficulty[]).map((d) => (
                           <button
                             key={d}
                             onClick={() => setEditDiff(d)}
-                            className="text-[10px] px-1.5 py-0.5 rounded-md transition-opacity"
-                            style={{
-                              color: DIFF_META[d].color,
-                              background: editDiff === d ? DIFF_META[d].bg : "transparent",
-                              opacity: editDiff === d ? 1 : 0.4,
-                              fontFamily: "'DM Mono', monospace",
-                            }}
+                            className="text-[10px] px-1.5 py-0.5 rounded-md"
+                            style={{ color: DIFF_META[d].color, background: editDiff === d ? DIFF_META[d].bg : "transparent", opacity: editDiff === d ? 1 : 0.4, fontFamily: "'DM Mono', monospace" }}
                           >
                             {DIFF_META[d].label}
                           </button>
                         ))}
-                        <button
-                          onClick={() => handleEditSave(task.id)}
-                          className="text-[11px] px-2.5 py-1 rounded-lg text-white"
-                          style={{ background: "#6366f1", fontFamily: "'DM Sans', sans-serif" }}
-                        >
+                        <button onClick={() => handleEditSave(task.id)} className="text-[11px] px-2.5 py-1 rounded-lg text-white" style={{ background: "#6366f1" }}>
                           Save
                         </button>
                         <button onClick={() => setEditingId(null)}>
@@ -488,59 +496,27 @@ export default function DashboardHome() {
                         </button>
                       </div>
                     ) : (
-                      /* Normal row */
                       <div
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl group transition-colors"
-                        style={{
-                          background: "rgba(255,255,255,0.025)",
-                          border: "1px solid rgba(255,255,255,0.05)",
-                        }}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl group"
+                        style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)" }}
                       >
-                        {/* Complete btn */}
                         <button
                           onClick={() => completeTask(task.id)}
-                          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors group/cb"
+                          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 group/cb"
                           style={{ border: "1.5px solid rgba(99,102,241,0.4)" }}
-                          title="Complete"
                         >
-                          <CheckCircle2
-                            size={13}
-                            className="text-[#6366f1] opacity-0 group-hover/cb:opacity-100 transition-opacity"
-                          />
+                          <CheckCircle2 size={13} className="text-[#6366f1] opacity-0 group-hover/cb:opacity-100 transition-opacity" />
                         </button>
-
-                        <span
-                          className="flex-1 text-[13px] text-[#bbb] truncate"
-                          style={{ fontFamily: "'DM Sans', sans-serif" }}
-                        >
-                          {task.title}
-                        </span>
-
+                        <span className="flex-1 text-[13px] text-[#bbb] truncate">{task.title}</span>
                         <DiffBadge diff={task.difficulty} />
-
-                        <span
-                          className="text-[10px] text-[#444] hidden sm:block"
-                          style={{ fontFamily: "'DM Mono', monospace" }}
-                        >
+                        <span className="text-[10px] text-[#444] hidden sm:block" style={{ fontFamily: "'DM Mono', monospace" }}>
                           +{DIFF_META[task.difficulty].xp}
                         </span>
-
-                        {/* Actions (shown on hover) */}
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => startEdit(task)}
-                            className="w-6 h-6 rounded-md flex items-center justify-center"
-                            style={{ background: "rgba(255,255,255,0.05)" }}
-                            title="Edit"
-                          >
+                          <button onClick={() => startEdit(task)} className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: "rgba(255,255,255,0.05)" }}>
                             <Pencil size={10} className="text-[#555]" />
                           </button>
-                          <button
-                            onClick={() => deleteTask(task.id)}
-                            className="w-6 h-6 rounded-md flex items-center justify-center"
-                            style={{ background: "rgba(248,113,113,0.08)" }}
-                            title="Delete"
-                          >
+                          <button onClick={() => deleteTask(task.id)} className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: "rgba(248,113,113,0.08)" }}>
                             <Trash2 size={10} className="text-[#f87171]" />
                           </button>
                         </div>
@@ -552,35 +528,20 @@ export default function DashboardHome() {
             </div>
           </motion.section>
 
-          {/* ── History ── */}
+          {/* History trigger */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.16, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-center justify-between px-5 py-3 rounded-2xl cursor-pointer group transition-colors"
-            style={{
-              background: "#111115",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
+            className="flex items-center justify-between px-5 py-3 rounded-2xl cursor-pointer group"
+            style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
             onClick={() => setShowHistory(true)}
           >
             <div className="flex items-center gap-2.5">
               <History size={14} className="text-[#555] group-hover:text-[#818cf8] transition-colors" />
-              <span
-                className="text-[13px] text-[#555] group-hover:text-[#999] transition-colors"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              >
-                View History
-              </span>
+              <span className="text-[13px] text-[#555] group-hover:text-[#999] transition-colors">View History</span>
               {completedTasks.length > 0 && (
-                <span
-                  className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{
-                    background: "rgba(99,102,241,0.12)",
-                    color: "#818cf8",
-                    fontFamily: "'DM Mono', monospace",
-                  }}
-                >
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8", fontFamily: "'DM Mono', monospace" }}>
                   {completedTasks.length} completed
                 </span>
               )}
@@ -588,7 +549,7 @@ export default function DashboardHome() {
             <ChevronDown size={13} className="text-[#333] group-hover:text-[#555] transition-colors -rotate-90" />
           </motion.div>
 
-          {/* ── Contribution Graph ── */}
+          {/* Contribution Graph */}
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -596,39 +557,22 @@ export default function DashboardHome() {
             className="rounded-2xl p-5"
             style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
           >
-            <p
-              className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              Activity
-            </p>
-            <div
-              className="grid gap-1"
-              style={{ gridTemplateColumns: "repeat(12, 1fr)" }}
-            >
-              {graphCells.map((cell, i) => (
-                <div
-                  key={i}
-                  title={`${cell.iso}: ${cell.count} tasks`}
-                  className="rounded-sm aspect-square"
-                  style={{ background: cellColor(cell.count) }}
-                />
-              ))}
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[11px] uppercase tracking-[0.07em] text-[#444]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                Activity
+              </p>
+              <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>
+                Last 26 weeks
+              </span>
             </div>
-            <div className="flex items-center gap-1.5 mt-3 justify-end">
-              <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>Less</span>
-              {[0, 1, 3, 5, 7].map((n) => (
-                <div key={n} className="w-2.5 h-2.5 rounded-sm" style={{ background: cellColor(n) }} />
-              ))}
-              <span className="text-[10px] text-[#333]" style={{ fontFamily: "'DM Mono', monospace" }}>More</span>
-            </div>
+            <ContributionGraph data={dashboard?.contributionGraph ?? []} />
           </motion.section>
         </div>
 
-        {/* ═══════════════════════════════════ RIGHT ══════════════════════════ */}
+        {/* RIGHT */}
         <div className="lg:col-span-4 flex flex-col gap-4">
 
-          {/* ── Character Card ── */}
+          {/* Character Card */}
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -636,24 +580,17 @@ export default function DashboardHome() {
             className="rounded-2xl p-5"
             style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
           >
-            <p
-              className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
+            <p className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4" style={{ fontFamily: "'DM Mono', monospace" }}>
               Character
             </p>
             <div className="flex items-center gap-4">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
                 style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}
               >
                 {getCharacter(dashboard?.level ?? 1).icon}
               </div>
               <div>
-                <p
-                  className="text-[16px] font-semibold text-white mb-0.5"
-                  style={{ letterSpacing: "-0.02em" }}
-                >
+                <p className="text-[16px] font-semibold text-white mb-0.5" style={{ letterSpacing: "-0.02em" }}>
                   {getCharacter(dashboard?.level ?? 1).title}
                 </p>
                 <p className="text-[12px] text-[#444]" style={{ fontFamily: "'DM Mono', monospace" }}>
@@ -661,16 +598,12 @@ export default function DashboardHome() {
                 </p>
               </div>
             </div>
-
-            {/* XP progress */}
             <div className="mt-4">
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-[11px] text-[#444]" style={{ fontFamily: "'DM Mono', monospace" }}>
                   {dashboard?.currentXP ?? 0} / {dashboard?.totalXPForLevel ?? 1000} XP
                 </span>
-                <span className="text-[11px] text-[#6366f1]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                  {xpPct}%
-                </span>
+                <span className="text-[11px] text-[#6366f1]" style={{ fontFamily: "'DM Mono', monospace" }}>{xpPct}%</span>
               </div>
               <div className="h-2 w-full rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
                 <motion.div
@@ -684,7 +617,7 @@ export default function DashboardHome() {
             </div>
           </motion.section>
 
-          {/* ── Today Summary ── */}
+          {/* Today Summary */}
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -692,10 +625,7 @@ export default function DashboardHome() {
             className="rounded-2xl p-5"
             style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
           >
-            <p
-              className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
+            <p className="text-[11px] uppercase tracking-[0.07em] text-[#444] mb-4" style={{ fontFamily: "'DM Mono', monospace" }}>
               Today
             </p>
             <div className="grid grid-cols-3 gap-3">
@@ -704,26 +634,17 @@ export default function DashboardHome() {
                 { label: "Done",      value: dashboard?.todayStats.completedTasks ?? completedTasks.length },
                 { label: "XP Earned", value: dashboard?.todayStats.xpEarned ?? 0 },
               ].map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="rounded-xl p-3 text-center"
+                <div key={label} className="rounded-xl p-3 text-center"
                   style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}
                 >
-                  <p
-                    className="text-[18px] font-semibold text-white"
-                    style={{ letterSpacing: "-0.02em", fontFamily: "'DM Sans', sans-serif" }}
-                  >
-                    {value}
-                  </p>
-                  <p className="text-[10px] text-[#3a3a3a] mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>
-                    {label}
-                  </p>
+                  <p className="text-[18px] font-semibold text-white" style={{ letterSpacing: "-0.02em" }}>{value}</p>
+                  <p className="text-[10px] text-[#3a3a3a] mt-0.5" style={{ fontFamily: "'DM Mono', monospace" }}>{label}</p>
                 </div>
               ))}
             </div>
           </motion.section>
 
-          {/* ── XP Remaining ── */}
+          {/* XP Remaining */}
           <motion.section
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -731,17 +652,11 @@ export default function DashboardHome() {
             className="rounded-2xl p-5 flex items-center gap-3"
             style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.06)" }}
           >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "rgba(167,139,250,0.10)" }}
-            >
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(167,139,250,0.10)" }}>
               <Zap size={15} className="text-[#a78bfa]" />
             </div>
             <div>
-              <p
-                className="text-[15px] font-semibold text-white"
-                style={{ letterSpacing: "-0.02em" }}
-              >
+              <p className="text-[15px] font-semibold text-white" style={{ letterSpacing: "-0.02em" }}>
                 {dashboard?.xpToNextLevel ?? "─"} XP
               </p>
               <p className="text-[11px] text-[#444]" style={{ fontFamily: "'DM Mono', monospace" }}>
@@ -751,9 +666,7 @@ export default function DashboardHome() {
             {dashboard && (
               <div className="ml-auto flex items-center gap-1 text-[#f97316]">
                 <Flame size={13} />
-                <span className="text-[12px] font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>
-                  {dashboard.streak}
-                </span>
+                <span className="text-[12px] font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>{dashboard.streak}</span>
               </div>
             )}
           </motion.section>
