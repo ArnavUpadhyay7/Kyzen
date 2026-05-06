@@ -1,74 +1,486 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Terminal,
-  Flame,
-  Code2,
-  Activity,
-  GitCommit,
-  ArrowRight,
-  RefreshCw,
+  Terminal, Flame, Code2, Activity, GitCommit,
+  ArrowRight, RefreshCw, Star, GitPullRequest,
+  AlertCircle, Users, Zap, TrendingUp, CalendarDays,
+  Trophy, ChevronRight, Loader2,
 } from "lucide-react";
 import { useTokens } from "../../context/ThemeContext";
 
-// ── localStorage keys ─────────────────────────────────────────────────────────
+// ─── localStorage key ─────────────────────────────────────────────────────────
 const GH_USERNAME_KEY = "kyzen-gh-username";
 
-// ── Contribution graph via github-contributions-canvas or a grass-green SVG
-// We use the public GitHub contribution graph embed approach (no API key needed)
-// via https://ghchart.rshah.org/{username} — a lightweight public service
-// that returns an SVG embed.
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
-function StatCard({
-  icon,
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: string;
-}) {
-  const t = useTokens();
+interface ContribDay { contributionCount: number; date: string }
+interface ContribWeek { contributionDays: ContribDay[] }
+
+interface GithubData {
+  username: string;
+  avatarUrl: string;
+  name: string | null;
+  createdAt: string;
+  followers: number;
+  following: number;
+  publicRepos: number;
+  totalStars: number;
+  totalForks: number;
+  totalContribs: number;      // yearly
+  contribWeeks: ContribWeek[];
+  topLanguages: { name: string; color: string; percent: number }[];
+  pinnedRepos: { name: string; stars: number; forks: number; lang: string; desc: string | null }[];
+  pullRequests: number;
+  issues: number;
+  currentStreak: number;
+  longestStreak: number;
+  last30: number;
+  prev30: number;
+  activeWeeks: number;      // out of 52
+  peakDay: string;      // e.g. "Wednesday"
+  accountAgeDays: number;
+}
+
+type RankTier = "S" | "A" | "B" | "C" | "D" | "E";
+
+interface RankScore {
+  final: number;
+  volume: number;
+  consistency: number;
+  activity: number;
+  stars: number;
+  community: number;
+  tier: RankTier;
+  nextTier: RankTier | null;
+  pctToNext: number;
+}
+
+// ─── Rank config ──────────────────────────────────────────────────────────────
+
+const RANK_TIERS: Record<RankTier, { min: number; color: string; glow: string; label: string; desc: string }> = {
+  S: { min: 85, color: "#FCD34D", glow: "rgba(252,211,77,0.25)", label: "S", desc: "Elite" },
+  A: { min: 70, color: "#A78BFA", glow: "rgba(167,139,250,0.22)", label: "A", desc: "Expert" },
+  B: { min: 55, color: "#60A5FA", glow: "rgba(96,165,250,0.20)", label: "B", desc: "Advanced" },
+  C: { min: 40, color: "#34D399", glow: "rgba(52,211,153,0.18)", label: "C", desc: "Intermediate" },
+  D: { min: 25, color: "#94A3B8", glow: "rgba(148,163,184,0.15)", label: "D", desc: "Developing" },
+  E: { min: 0, color: "#64748B", glow: "rgba(100,116,139,0.12)", label: "E", desc: "Beginner" },
+};
+
+const TIER_ORDER: RankTier[] = ["S", "A", "B", "C", "D", "E"];
+
+function getTier(score: number): RankTier {
+  for (const tier of TIER_ORDER) {
+    if (score >= RANK_TIERS[tier].min) return tier;
+  }
+  return "E";
+}
+
+function getNextTier(tier: RankTier): RankTier | null {
+  const idx = TIER_ORDER.indexOf(tier);
+  return idx > 0 ? TIER_ORDER[idx - 1] : null;
+}
+
+// ─── Scoring engine ───────────────────────────────────────────────────────────
+
+function computeScore(d: GithubData): RankScore {
+  // Volume (30%): 0-100, 1500+ contribs = 100
+  const volume = Math.min(100, (d.totalContribs / 1500) * 100);
+
+  // Consistency (25%): active weeks / 52
+  const consistency = Math.min(100, (d.activeWeeks / 52) * 100);
+
+  // Recent Activity (20%): last30 vs prev30
+  const activityRaw = d.prev30 === 0
+    ? (d.last30 > 0 ? 100 : 0)
+    : Math.min(100, (d.last30 / Math.max(d.prev30, 1)) * 60 + (d.last30 / 60) * 40);
+  const activity = Math.min(100, activityRaw);
+
+  // Stars (15%): log scale — log10(stars+1)/log10(1000)*100
+  const stars = Math.min(100, (Math.log10(d.totalStars + 1) / Math.log10(1000)) * 100);
+
+  // Community (10%): PRs + issues, log scale
+  const communityRaw = d.pullRequests + d.issues;
+  const community = Math.min(100, (Math.log10(communityRaw + 1) / Math.log10(500)) * 100);
+
+  const final = volume * 0.30 + consistency * 0.25 + activity * 0.20 + stars * 0.15 + community * 0.10;
+
+  const tier = getTier(final);
+  const nextTier = getNextTier(tier);
+  const nextMin = nextTier ? RANK_TIERS[nextTier].min : RANK_TIERS[tier].min;
+  const curMin = RANK_TIERS[tier].min;
+  const pctToNext = nextTier
+    ? Math.min(100, ((final - curMin) / (nextMin - curMin)) * 100)
+    : 100;
+
+  return {
+    final: Math.round(final * 10) / 10,
+    volume: Math.round(volume),
+    consistency: Math.round(consistency),
+    activity: Math.round(activity),
+    stars: Math.round(stars),
+    community: Math.round(community),
+    tier,
+    nextTier,
+    pctToNext: Math.round(pctToNext),
+  };
+}
+
+// ─── GitHub data fetching ─────────────────────────────────────────────────────
+
+async function fetchGithubData(username: string): Promise<GithubData> {
+  const GRAPHQL = "https://api.github.com/graphql";
+  const REST = `https://api.github.com/users/${encodeURIComponent(username)}`;
+
+  // We use the unauthenticated public contributions API via a public proxy
+  // that returns the contribution graph without a token.
+  // REST user info is public for all users.
+
+  // ── REST: basic user info ──────────────────────────────────────────────────
+  const userRes = await fetch(REST);
+  if (!userRes.ok) throw new Error(userRes.status === 404 ? "User not found" : "GitHub API error");
+  const user = await userRes.json();
+
+  // ── REST: repos (up to 100, sorted by stars) ───────────────────────────────
+  const reposRes = await fetch(
+    `https://api.github.com/users/${encodeURIComponent(username)}/repos?per_page=100&sort=pushed`,
+  );
+  const repos: any[] = reposRes.ok ? await reposRes.json() : [];
+
+  const ownRepos = repos.filter((r) => !r.fork);
+  const totalStars = ownRepos.reduce((s: number, r: any) => s + (r.stargazers_count ?? 0), 0);
+  const totalForks = ownRepos.reduce((s: number, r: any) => s + (r.forks_count ?? 0), 0);
+
+  // Top languages from repos
+  const langCounts: Record<string, number> = {};
+  ownRepos.forEach((r: any) => {
+    if (r.language) langCounts[r.language] = (langCounts[r.language] ?? 0) + 1;
+  });
+  const langTotal = Object.values(langCounts).reduce((a, b) => a + b, 0) || 1;
+  const langColors: Record<string, string> = {
+    TypeScript: "#3178c6", JavaScript: "#f7df1e", Python: "#3572A5",
+    Rust: "#dea584", Go: "#00ADD8", Java: "#b07219", "C++": "#f34b7d",
+    C: "#555555", "C#": "#178600", Ruby: "#701516", Swift: "#F05138",
+    Kotlin: "#A97BFF", Dart: "#00B4AB", HTML: "#e34c26", CSS: "#563d7c",
+    Shell: "#89e051", Vue: "#41b883", Svelte: "#ff3e00",
+  };
+  const topLanguages = Object.entries(langCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([name, count]) => ({
+      name,
+      color: langColors[name] ?? "#6366f1",
+      percent: Math.round((count / langTotal) * 100),
+    }));
+
+  // Pinned/top repos
+  const pinnedRepos = ownRepos
+    .sort((a: any, b: any) => b.stargazers_count - a.stargazers_count)
+    .slice(0, 3)
+    .map((r: any) => ({
+      name: r.name,
+      stars: r.stargazers_count,
+      forks: r.forks_count,
+      lang: r.language ?? "—",
+      desc: r.description,
+    }));
+
+  // ── Contribution graph via public GitHub stats service ─────────────────────
+  // We use https://github-contributions-api.jogruber.de/v4/{username}?y=last
+  // which is an open-source public API that scrapes GitHub's contribution page.
+  let contribWeeks: ContribWeek[] = [];
+  let totalContribs = 0;
+  let pullRequests = 0;
+  let issues = 0;
+
+  try {
+    const contribRes = await fetch(
+      `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}?y=last`,
+    );
+    if (contribRes.ok) {
+      const contribData = await contribRes.json();
+      // Response shape: { total: { [year]: number, lastYear: number }, contributions: ContribDay[] }
+      const days: ContribDay[] = contribData.contributions ?? [];
+      totalContribs = contribData.total?.lastYear ?? days.reduce((s: number, d: ContribDay) => s + d.contributionCount, 0);
+
+      // Pack days into weeks (Sun-Sat)
+      const weeks: ContribWeek[] = [];
+      for (let i = 0; i < days.length; i += 7) {
+        weeks.push({ contributionDays: days.slice(i, i + 7) });
+      }
+      contribWeeks = weeks;
+    }
+  } catch { /* fall through with empty */ }
+
+  // ── Events API for PR/issue count approximation ────────────────────────────
+  try {
+    const eventsRes = await fetch(
+      `https://api.github.com/users/${encodeURIComponent(username)}/events/public?per_page=100`,
+    );
+    if (eventsRes.ok) {
+      const events: any[] = await eventsRes.json();
+      pullRequests = events.filter((e: any) => e.type === "PullRequestEvent").length;
+      issues = events.filter((e: any) => e.type === "IssuesEvent").length;
+    }
+  } catch { /* fall through */ }
+
+  // ── Derived stats from contrib days ───────────────────────────────────────
+  const allDays = contribWeeks.flatMap((w) => w.contributionDays);
+
+  // Active weeks
+  const activeWeeks = contribWeeks.filter((w) =>
+    w.contributionDays.some((d) => d.contributionCount > 0),
+  ).length;
+
+  // Last 30 vs prev 30 days
+  const sorted = [...allDays].sort((a, b) => a.date.localeCompare(b.date));
+  const last30 = sorted.slice(-30).reduce((s, d) => s + d.contributionCount, 0);
+  const prev30 = sorted.slice(-60, -30).reduce((s, d) => s + d.contributionCount, 0);
+
+  // Streak calculation
+  let currentStreak = 0;
+  let longestStreak = 0;
+  let run = 0;
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    if (sorted[i].contributionCount > 0) {
+      if (currentStreak === 0 || i === sorted.length - 1 - currentStreak) currentStreak++;
+      run++;
+      longestStreak = Math.max(longestStreak, run);
+    } else {
+      if (currentStreak > 0) break;
+      run = 0;
+    }
+  }
+  // simpler streak from end
+  currentStreak = 0;
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    if (sorted[i].contributionCount > 0) currentStreak++;
+    else break;
+  }
+  longestStreak = 0; run = 0;
+  for (const d of sorted) {
+    if (d.contributionCount > 0) { run++; longestStreak = Math.max(longestStreak, run); }
+    else run = 0;
+  }
+
+  // Peak day of week
+  const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+  allDays.forEach((d) => {
+    const dow = new Date(d.date + "T12:00:00").getDay();
+    dayTotals[dow] += d.contributionCount;
+  });
+  const peakDow = dayTotals.indexOf(Math.max(...dayTotals));
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const peakDay = dayNames[peakDow];
+
+  // Account age
+  const accountAgeDays = Math.floor(
+    (Date.now() - new Date(user.created_at).getTime()) / 86400000,
+  );
+
+  return {
+    username: user.login,
+    avatarUrl: user.avatar_url,
+    name: user.name ?? null,
+    createdAt: user.created_at,
+    followers: user.followers,
+    following: user.following,
+    publicRepos: user.public_repos,
+    totalStars,
+    totalForks,
+    totalContribs,
+    contribWeeks,
+    topLanguages,
+    pinnedRepos,
+    pullRequests,
+    issues,
+    currentStreak,
+    longestStreak,
+    last30,
+    prev30,
+    activeWeeks,
+    peakDay,
+    accountAgeDays,
+  };
+}
+
+// ─── Mini animated counter ────────────────────────────────────────────────────
+
+function Counter({ to, duration = 1.2 }: { to: number; duration?: number }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let start: number | null = null;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / (duration * 1000), 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setVal(Math.round(ease * to));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [to, duration]);
+  return <>{val}</>;
+}
+
+// ─── Radial score ring ────────────────────────────────────────────────────────
+
+function ScoreRing({ score, tier }: { score: number; tier: RankTier }) {
+  const r = useTokens();
+  const meta = RANK_TIERS[tier];
+  const size = 180;
+  const cx = size / 2;
+  const cy = size / 2;
+  const rad = 72;
+  const circ = 2 * Math.PI * rad;
+  const dash = (score / 100) * circ;
+
   return (
-    <div
-      className="rounded-2xl p-5 flex flex-col gap-3 transition-colors duration-300"
-      style={{
-        background: t.card,
-        border: `1px solid ${t.border}`,
-      }}
-    >
-      <div className="flex items-center justify-between">
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+        {/* Track */}
+        <circle cx={cx} cy={cy} r={rad} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={6} />
+        {/* Filled arc */}
+        <motion.circle
+          cx={cx} cy={cy} r={rad}
+          fill="none"
+          stroke={meta.color}
+          strokeWidth={6}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: circ - dash }}
+          transition={{ duration: 1.4, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          style={{ filter: `drop-shadow(0 0 8px ${meta.color})` }}
+        />
+        {/* Tick marks at 25/50/75 */}
+        {[25, 50, 75].map((pct) => {
+          const angle = (pct / 100) * 2 * Math.PI - Math.PI / 2;
+          const ox = cx + (rad + 10) * Math.cos(angle);
+          const oy = cy + (rad + 10) * Math.sin(angle);
+          return <circle key={pct} cx={ox} cy={oy} r={1.5} fill="rgba(255,255,255,0.2)" />;
+        })}
+      </svg>
+
+      {/* Inner content */}
+      <div className="flex flex-col items-center gap-0.5 relative z-10">
         <span
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: accent ? `${accent}18` : t.accentSoft, color: accent ?? t.accent }}
+          className="font-black leading-none"
+          style={{
+            fontSize: 52,
+            letterSpacing: "-0.05em",
+            color: meta.color,
+            fontFamily: "'DM Mono', monospace",
+            textShadow: `0 0 32px ${meta.glow}`,
+          }}
         >
-          {icon}
+          {tier}
         </span>
-        <span className="text-[10px] font-medium tracking-wider uppercase" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-          {label}
+        <span className="text-[10px] uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.35)", fontFamily: "'DM Mono', monospace" }}>
+          {meta.desc}
         </span>
-      </div>
-      <div>
-        <p className="text-[24px] font-semibold tracking-tight" style={{ color: t.textPrimary, fontFamily: "'DM Mono', monospace" }}>
-          {value}
-        </p>
-        {sub && (
-          <p className="text-[11px] mt-0.5" style={{ color: t.textMuted, fontFamily: "'DM Sans', sans-serif" }}>
-            {sub}
-          </p>
-        )}
       </div>
     </div>
   );
 }
 
-// ── GitHub input form ─────────────────────────────────────────────────────────
-function GithubConnectForm({ onSubmit }: { onSubmit: (username: string) => void }) {
+// ─── Score bar ────────────────────────────────────────────────────────────────
+
+function ScoreBar({ label, value, weight, color }: { label: string; value: number; weight: string; color: string }) {
+  const t = useTokens();
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.7)", fontFamily: "'DM Mono', monospace" }}>{label}</span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ color, background: `${color}15`, fontFamily: "'DM Mono', monospace" }}>{weight}</span>
+        </div>
+        <span className="text-[11px] font-bold tabular-nums" style={{ color, fontFamily: "'DM Mono', monospace" }}>{value}</span>
+      </div>
+      <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+        <motion.div
+          className="h-full rounded-full"
+          initial={{ width: 0 }}
+          animate={{ width: `${value}%` }}
+          transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          style={{ background: color, boxShadow: `0 0 8px ${color}60` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Micro stat tile ──────────────────────────────────────────────────────────
+
+function MicroStat({ icon, label, value, sub, color = "#818cf8" }: {
+  icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: string;
+}) {
+  const t = useTokens();
+  return (
+    <div
+      className="rounded-2xl p-4 flex flex-col gap-2"
+      style={{ background: t.isDark ? "rgba(255,255,255,0.03)" : t.card, border: `1px solid ${t.border}` }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${color}15`, color }}>
+          {icon}
+        </div>
+        <span className="text-[9px] uppercase tracking-[0.1em]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>{label}</span>
+      </div>
+      <div>
+        <p className="text-[20px] font-bold tabular-nums leading-none" style={{ color: "rgba(255,255,255,0.88)", letterSpacing: "-0.03em", fontFamily: "'DM Mono', monospace" }}>
+          {value}
+        </p>
+        {sub && <p className="text-[9px] mt-1" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Contribution mini-graph ──────────────────────────────────────────────────
+
+function MiniGraph({ weeks }: { weeks: ContribWeek[] }) {
+  const t = useTokens();
+  if (!weeks.length) return null;
+
+  const allCounts = weeks.flatMap((w) => w.contributionDays.map((d) => d.contributionCount));
+  const maxCount = Math.max(...allCounts, 1);
+
+  const CELL = 10;
+  const GAP = 2;
+  const STEP = CELL + GAP;
+
+  return (
+    <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+      <svg
+        width={weeks.length * STEP}
+        height={7 * STEP}
+        style={{ display: "block" }}
+      >
+        {weeks.map((week, wi) =>
+          week.contributionDays.map((day, di) => {
+            const pct = day.contributionCount / maxCount;
+            const opacity = pct === 0 ? 0.08 : 0.2 + pct * 0.8;
+            return (
+              <rect
+                key={`${wi}-${di}`}
+                x={wi * STEP}
+                y={di * STEP}
+                width={CELL}
+                height={CELL}
+                rx={2}
+                fill="#6366f1"
+                opacity={opacity}
+              />
+            );
+          })
+        )}
+      </svg>
+    </div>
+  );
+}
+
+// ─── Connect form ─────────────────────────────────────────────────────────────
+
+function ConnectForm({ onSubmit }: { onSubmit: (u: string) => void }) {
   const t = useTokens();
   const [value, setValue] = useState("");
 
@@ -80,270 +492,545 @@ function GithubConnectForm({ onSubmit }: { onSubmit: (username: string) => void 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="rounded-2xl p-8 flex flex-col items-center text-center gap-6"
-      style={{
-        background: t.card,
-        border: `1px solid ${t.border}`,
-        boxShadow: `0 0 40px rgba(99,102,241,0.05)`,
-      }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="max-w-md mx-auto"
     >
       <div
-        className="w-14 h-14 rounded-2xl flex items-center justify-center"
-        style={{ background: t.accentSoft, border: `1px solid ${t.accentBorder}`, boxShadow: `0 0 24px rgba(99,102,241,0.12)` }}
+        className="rounded-2xl p-8 flex flex-col items-center text-center gap-6 relative overflow-hidden"
+        style={{
+          background: t.isDark ? "rgba(255,255,255,0.03)" : t.card,
+          border: `1px solid ${t.border}`,
+        }}
       >
-        <Code2 size={24} style={{ color: t.accent }} />
-      </div>
+        {/* Glow spot */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "radial-gradient(ellipse 60% 50% at 50% -10%, rgba(99,102,241,0.12), transparent)",
+        }} />
 
-      <div>
-        <h2 className="text-[17px] font-semibold mb-1.5 tracking-tight" style={{ color: t.textPrimary, fontFamily: "'DM Sans', sans-serif" }}>
-          Connect your GitHub
-        </h2>
-        <p className="text-[13px] leading-relaxed max-w-sm" style={{ color: t.textSecondary, fontFamily: "'DM Sans', sans-serif" }}>
-          Enter your GitHub username to visualise your contribution history and unlock coding streak tracking.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-3">
-        <div
-          className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
-          style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}` }}
-        >
-          <span style={{ color: t.textFaint }}>
-            <Code2 size={14} />
-          </span>
-          <input
-            type="text"
-            placeholder="your-username"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-[13px] placeholder:opacity-40"
-            style={{ color: t.textPrimary, fontFamily: "'DM Mono', monospace" }}
-            autoFocus
-          />
+        <div className="relative">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-1"
+            style={{
+              background: "rgba(99,102,241,0.1)",
+              border: "1px solid rgba(99,102,241,0.25)",
+              boxShadow: "0 0 32px rgba(99,102,241,0.15)",
+            }}
+          >
+            <Terminal size={28} style={{ color: "#818cf8" }} />
+          </div>
         </div>
-        <button
-          type="submit"
-          disabled={!value.trim()}
-          className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-150 disabled:opacity-40"
-          style={{
-            background: t.accent,
-            color: "#fff",
-            fontFamily: "'DM Mono', monospace",
-            boxShadow: `0 0 16px rgba(99,102,241,0.2)`,
-          }}
-          onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.opacity = "0.88"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-        >
-          Load contributions
-          <ArrowRight size={14} />
-        </button>
-      </form>
+
+        <div className="relative">
+          <h2 className="text-[18px] font-bold mb-2" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>
+            Analyse Developer Profile
+          </h2>
+          <p className="text-[12px] leading-relaxed" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace", maxWidth: 300 }}>
+            Enter a GitHub username to compute your developer rank, score breakdown, and intelligence report.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="w-full relative flex flex-col gap-3">
+          <div
+            className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
+            style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}` }}
+          >
+            <span style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace", fontSize: 13 }}>@</span>
+            <input
+              type="text"
+              placeholder="github-username"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="flex-1 bg-transparent outline-none text-[13px] placeholder:opacity-30"
+              style={{ color: t.textPrimary, fontFamily: "'DM Mono', monospace" }}
+              autoFocus
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!value.trim()}
+            className="flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold transition-all duration-150 disabled:opacity-30"
+            style={{
+              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              color: "#fff",
+              fontFamily: "'DM Mono', monospace",
+              boxShadow: "0 4px 24px rgba(99,102,241,0.3)",
+            }}
+          >
+            Compute Rank
+            <ArrowRight size={14} />
+          </button>
+        </form>
+      </div>
     </motion.div>
   );
 }
 
-// ── Contribution graph panel ──────────────────────────────────────────────────
-function ContributionGraph({ username, onReset }: { username: string; onReset: () => void }) {
-  const t = useTokens();
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
+// ─── Loading state ────────────────────────────────────────────────────────────
 
-  // Use ghchart.rshah.org which returns a pure SVG — no auth needed
-  // We tint it via a CSS filter in dark mode to match our accent colour
-  const graphUrl = `https://ghchart.rshah.org/${encodeURIComponent(username)}`;
+function LoadingState({ username }: { username: string }) {
+  const t = useTokens();
+  const steps = ["Fetching profile data", "Analysing contributions", "Computing consistency", "Calculating rank score"];
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
-    setLoaded(false);
-    setError(false);
-  }, [username]);
+    const iv = setInterval(() => setStep((s) => Math.min(s + 1, steps.length - 1)), 600);
+    return () => clearInterval(iv);
+  }, []);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="rounded-2xl overflow-hidden"
-      style={{ background: t.card, border: `1px solid ${t.border}` }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-md mx-auto rounded-2xl p-8 flex flex-col items-center gap-5"
+      style={{ background: t.isDark ? "rgba(255,255,255,0.03)" : t.card, border: `1px solid ${t.border}` }}
     >
-      {/* Panel header */}
-      <div
-        className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: `1px solid ${t.border}` }}
-      >
-        <div className="flex items-center gap-2.5">
-          <Activity size={14} style={{ color: t.accent }} />
-          <span className="text-[13px] font-medium" style={{ color: t.textPrimary, fontFamily: "'DM Sans', sans-serif" }}>
-            Contribution Graph
-          </span>
-          <span
-            className="text-[10px] px-2 py-0.5 rounded font-medium tracking-wide"
-            style={{ background: t.accentSoft, color: t.accent, fontFamily: "'DM Mono', monospace", border: `1px solid ${t.accentBorder}` }}
-          >
-            @{username}
-          </span>
-        </div>
-        <button
-          onClick={onReset}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] transition-colors"
-          style={{ color: t.textMuted, background: t.mutedBtn, fontFamily: "'DM Mono', monospace" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = t.mutedBtnHov)}
-          onMouseLeave={(e) => (e.currentTarget.style.background = t.mutedBtn)}
-        >
-          <RefreshCw size={11} />
-          Change
-        </button>
+      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "rgba(99,102,241,0.1)" }}>
+        <Loader2 size={22} className="animate-spin" style={{ color: "#818cf8" }} />
       </div>
-
-      {/* Graph embed */}
-      <div className="px-5 py-5 overflow-x-auto">
-        {!loaded && !error && (
-          <div className="flex items-center justify-center h-29">
-            <div className="flex gap-1.5 items-center" style={{ color: t.textFaint }}>
-              <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: t.accent, animationDelay: "0ms" }} />
-              <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: t.accent, animationDelay: "120ms" }} />
-              <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: t.accent, animationDelay: "240ms" }} />
-            </div>
-          </div>
-        )}
-        {error && (
-          <div className="flex items-center justify-center h-29">
-            <p className="text-[12px]" style={{ color: t.danger, fontFamily: "'DM Mono', monospace" }}>
-              Could not load graph for @{username}. Check the username and try again.
-            </p>
-          </div>
-        )}
-        {/* The ghchart SVG is natively ~722×112px (53 weeks × 7 days at ~13px/cell + labels).
-            We pin height to 116px and let width scale naturally — same density as the
-            custom contribution graph (CELL=13, GAP=3) used on the main dashboard. */}
-        <img
-          src={graphUrl}
-          alt={`${username} GitHub contributions`}
-          style={{
-            display: loaded ? "block" : "none",
-            height: "116px",
-            width: "auto",
-            maxWidth: "100%",
-            minWidth: "600px",
-            borderRadius: "6px",
-            filter: t.isDark
-              ? "invert(1) hue-rotate(200deg) saturate(0.9) brightness(0.85)"
-              : "saturate(0.7) brightness(1.05)",
-            opacity: loaded ? 1 : 0,
-            transition: "opacity 0.3s",
-          }}
-          onLoad={() => setLoaded(true)}
-          onError={() => { setLoaded(false); setError(true); }}
-        />
-      </div>
-
-      {/* Footer note */}
-      <div className="px-5 pb-4">
-        <p className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Sans', sans-serif" }}>
-          Data sourced from GitHub's public contribution graph · Updates every 24 h
+      <div className="text-center">
+        <p className="text-[13px] font-semibold mb-1" style={{ color: t.textPrimary }}>Analysing @{username}</p>
+        <p className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+          {steps[step]}…
         </p>
+      </div>
+      <div className="flex gap-1">
+        {steps.map((_, i) => (
+          <div key={i} className="h-1 rounded-full transition-all duration-300"
+            style={{ width: i <= step ? 24 : 8, background: i <= step ? "#6366f1" : "rgba(255,255,255,0.08)" }} />
+        ))}
       </div>
     </motion.div>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ─── Error state ──────────────────────────────────────────────────────────────
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const t = useTokens();
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-md mx-auto rounded-2xl p-8 flex flex-col items-center gap-4 text-center"
+      style={{ background: "rgba(248,113,113,0.05)", border: "1px solid rgba(248,113,113,0.15)" }}
+    >
+      <AlertCircle size={24} className="text-[#f87171]" />
+      <div>
+        <p className="text-[13px] font-semibold mb-1" style={{ color: t.textPrimary }}>Analysis Failed</p>
+        <p className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>{message}</p>
+      </div>
+      <button
+        onClick={onRetry}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px]"
+        style={{ background: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.2)", fontFamily: "'DM Mono', monospace" }}
+      >
+        <RefreshCw size={11} /> Try again
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── Main intel panel ─────────────────────────────────────────────────────────
+
+function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }) {
+  const t = useTokens();
+  const score = computeScore(data);
+  const meta = RANK_TIERS[score.tier];
+  const nextM = score.nextTier ? RANK_TIERS[score.nextTier] : null;
+
+  const stagger = (i: number) => ({
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.35, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] as const },
+  });
+
+  const accountYears = (data.accountAgeDays / 365).toFixed(1);
+  const trendPct = data.prev30 === 0 ? 0 : Math.round(((data.last30 - data.prev30) / Math.max(data.prev30, 1)) * 100);
+  const trendUp = trendPct >= 0;
+
+  return (
+    <div className="space-y-5">
+
+      {/* ── Header strip ──────────────────────────────────────────────────── */}
+      <motion.div {...stagger(0)} className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <img
+            src={data.avatarUrl}
+            alt={data.username}
+            className="w-9 h-9 rounded-xl object-cover"
+            style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+          />
+          <div>
+            <p className="text-[14px] font-semibold leading-tight" style={{ color: t.textPrimary, letterSpacing: "-0.01em" }}>
+              {data.name ?? data.username}
+            </p>
+            <p className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>@{data.username}</p>
+          </div>
+          <div
+            className="ml-1 flex items-center gap-1 px-2.5 py-1 rounded-full"
+            style={{
+              background: `${meta.color}12`,
+              border: `1px solid ${meta.color}30`,
+            }}
+          >
+            <span className="text-[10px] font-bold" style={{ color: meta.color, fontFamily: "'DM Mono', monospace" }}>
+              RANK {score.tier}
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={onReset}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] transition-colors"
+          style={{ color: t.textMuted, background: "rgba(255,255,255,0.04)", border: `1px solid ${t.border}`, fontFamily: "'DM Mono', monospace" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = t.mutedBtnHov)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+        >
+          <RefreshCw size={10} /> Change
+        </button>
+      </motion.div>
+
+      {/* ── Main rank card ────────────────────────────────────────────────── */}
+      <motion.div
+        {...stagger(1)}
+        className="relative rounded-2xl overflow-hidden"
+        style={{
+          background: t.isDark
+            ? `linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))`
+            : t.card,
+          border: `1px solid ${meta.color}20`,
+          boxShadow: `0 0 60px ${meta.glow}`,
+        }}
+      >
+        {/* Atmospheric bg */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: `radial-gradient(ellipse 50% 70% at 10% 50%, ${meta.color}0a, transparent 60%),
+                       radial-gradient(ellipse 30% 50% at 90% 20%, rgba(99,102,241,0.06), transparent 60%)`,
+        }} />
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 right-0 h-px" style={{
+          background: `linear-gradient(90deg, transparent, ${meta.color}60, transparent)`,
+        }} />
+
+        <div className="relative p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
+
+            {/* Ring + score */}
+            <div className="flex flex-col items-center gap-3 shrink-0">
+              <ScoreRing score={score.final} tier={score.tier} />
+              <div className="text-center">
+                <p className="text-[10px] uppercase tracking-[0.12em] mb-0.5" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}>
+                  Final Score
+                </p>
+                <p className="text-[28px] font-black tabular-nums" style={{ color: meta.color, fontFamily: "'DM Mono', monospace", letterSpacing: "-0.04em" }}>
+                  <Counter to={score.final} duration={1.2} />
+                  <span className="text-[14px] opacity-50">/100</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Score breakdown */}
+            <div className="flex-1 w-full min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.1em] mb-4" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}>
+                Score Breakdown
+              </p>
+              <div className="space-y-3">
+                <ScoreBar label="Volume" value={score.volume} weight="30%" color="#60A5FA" />
+                <ScoreBar label="Consistency" value={score.consistency} weight="25%" color="#A78BFA" />
+                <ScoreBar label="Recent Activity" value={score.activity} weight="20%" color="#34D399" />
+                <ScoreBar label="Stars" value={score.stars} weight="15%" color="#FCD34D" />
+                <ScoreBar label="Community" value={score.community} weight="10%" color="#F472B6" />
+              </div>
+
+              {/* Progress to next rank */}
+              {score.nextTier && nextM && (
+                <div className="mt-5 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)", fontFamily: "'DM Mono', monospace" }}>
+                      Progress to Rank {score.nextTier}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ color: nextM.color, background: `${nextM.color}15`, fontFamily: "'DM Mono', monospace" }}>
+                        {score.nextTier} — {nextM.desc}
+                      </span>
+                      <span className="text-[10px] font-bold tabular-nums" style={{ color: nextM.color, fontFamily: "'DM Mono', monospace" }}>
+                        {score.pctToNext}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <motion.div
+                      className="h-full rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${score.pctToNext}%` }}
+                      transition={{ duration: 1.2, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      style={{
+                        background: `linear-gradient(90deg, ${meta.color}, ${nextM.color})`,
+                        boxShadow: `0 0 8px ${nextM.color}60`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              {!score.nextTier && (
+                <div className="mt-5 pt-4 flex items-center gap-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                  <Trophy size={13} style={{ color: "#FCD34D" }} />
+                  <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'DM Mono', monospace" }}>
+                    Maximum rank achieved
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Rank ladder ───────────────────────────────────────────────────── */}
+      <motion.div {...stagger(2)} className="flex items-center justify-center gap-1 flex-wrap">
+        {TIER_ORDER.slice().reverse().map((tier) => {
+          const m = RANK_TIERS[tier];
+          const active = tier === score.tier;
+          return (
+            <div
+              key={tier}
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all"
+              style={{
+                background: active ? `${m.color}12` : "rgba(255,255,255,0.02)",
+                border: `1px solid ${active ? `${m.color}30` : "rgba(255,255,255,0.05)"}`,
+                opacity: active ? 1 : 0.4,
+              }}
+            >
+              <span className="text-[14px] font-black" style={{ color: m.color, fontFamily: "'DM Mono', monospace" }}>{tier}</span>
+              <span className="text-[8px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}>{m.desc}</span>
+              <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "'DM Mono', monospace" }}>{m.min}+</span>
+            </div>
+          );
+        })}
+      </motion.div>
+
+      {/* ── Contribution graph ────────────────────────────────────────────── */}
+      {data.contribWeeks.length > 0 && (
+        <motion.div
+          {...stagger(3)}
+          className="rounded-2xl overflow-hidden"
+          style={{ background: t.isDark ? "rgba(255,255,255,0.025)" : t.card, border: `1px solid ${t.border}` }}
+        >
+          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${t.border}` }}>
+            <div className="flex items-center gap-2">
+              <Activity size={13} style={{ color: "#6366f1" }} />
+              <span className="text-[12px] font-medium" style={{ color: t.textPrimary }}>Contribution Graph</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: "rgba(99,102,241,0.1)", color: "#818cf8", fontFamily: "'DM Mono', monospace", border: "1px solid rgba(99,102,241,0.2)" }}>
+                Last 52 weeks
+              </span>
+            </div>
+            <span className="text-[11px] font-semibold tabular-nums" style={{ color: "#6366f1", fontFamily: "'DM Mono', monospace" }}>
+              {data.totalContribs.toLocaleString()} contributions
+            </span>
+          </div>
+          <div className="px-5 py-4">
+            <MiniGraph weeks={data.contribWeeks} />
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Micro stats grid ──────────────────────────────────────────────── */}
+      <motion.div {...stagger(4)}>
+        <p className="text-[10px] uppercase tracking-[0.1em] mb-3" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+          Intelligence Report
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <MicroStat icon={<Flame size={13} />} label="Current Streak" value={`${data.currentStreak}d`} sub="active days" color="#f97316" />
+          <MicroStat icon={<Trophy size={13} />} label="Longest Streak" value={`${data.longestStreak}d`} sub="personal best" color="#FCD34D" />
+          <MicroStat icon={<Star size={13} />} label="Total Stars" value={data.totalStars.toLocaleString()} sub="across repos" color="#FCD34D" />
+          <MicroStat icon={<GitPullRequest size={13} />} label="Pull Requests" value={data.pullRequests} sub="last 100 events" color="#A78BFA" />
+          <MicroStat icon={<AlertCircle size={13} />} label="Issues" value={data.issues} sub="last 100 events" color="#60A5FA" />
+          <MicroStat icon={<Users size={13} />} label="Followers" value={data.followers.toLocaleString()} sub={`following ${data.following}`} color="#34D399" />
+          <MicroStat icon={<Activity size={13} />} label="Active Weeks" value={`${data.activeWeeks}/52`} sub="this year" color="#818cf8" />
+          <MicroStat icon={<TrendingUp size={13} />} label="30d Trend" value={`${trendUp ? "+" : ""}${trendPct}%`} sub={`vs prev 30 days`} color={trendUp ? "#34D399" : "#f87171"} />
+          <MicroStat icon={<GitCommit size={13} />} label="Yearly Contribs" value={data.totalContribs.toLocaleString()} sub="last 365 days" color="#6366f1" />
+          <MicroStat icon={<CalendarDays size={13} />} label="Peak Day" value={(data.peakDay ?? "—").slice(0, 3)} sub="most active" color="#f97316" />
+          <MicroStat icon={<Code2 size={13} />} label="Public Repos" value={data.publicRepos} sub="own repos" color="#818cf8" />
+          <MicroStat icon={<Zap size={13} />} label="Account Age" value={`${accountYears}y`} sub="on GitHub" color="#94a3b8" />
+        </div>
+      </motion.div>
+
+      {/* ── Top languages ────────────────────────────────────────────────── */}
+      {data.topLanguages.length > 0 && (
+        <motion.div {...stagger(5)}>
+          <p className="text-[10px] uppercase tracking-[0.1em] mb-3" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+            Language Profile
+          </p>
+          <div
+            className="rounded-2xl p-5"
+            style={{ background: t.isDark ? "rgba(255,255,255,0.025)" : t.card, border: `1px solid ${t.border}` }}
+          >
+            {/* Bar stack */}
+            <div className="flex rounded-lg overflow-hidden h-2.5 mb-4" style={{ gap: 2 }}>
+              {data.topLanguages.map((lang) => (
+                <motion.div
+                  key={lang.name}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${lang.percent}%` }}
+                  transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ background: lang.color, height: "100%", borderRadius: 2 }}
+                />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {data.topLanguages.map((lang) => (
+                <div key={lang.name} className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: lang.color }} />
+                  <span className="text-[11px] font-medium" style={{ color: t.textSecondary }}>{lang.name}</span>
+                  <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>{lang.percent}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Top repos ────────────────────────────────────────────────────── */}
+      {data.pinnedRepos.length > 0 && (
+        <motion.div {...stagger(6)}>
+          <p className="text-[10px] uppercase tracking-[0.1em] mb-3" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+            Top Repositories
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {data.pinnedRepos.map((repo) => (
+              <div
+                key={repo.name}
+                className="rounded-2xl p-4 flex flex-col gap-2"
+                style={{ background: t.isDark ? "rgba(255,255,255,0.025)" : t.card, border: `1px solid ${t.border}` }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[12px] font-semibold truncate" style={{ color: t.textPrimary, letterSpacing: "-0.01em" }}>
+                    {repo.name}
+                  </p>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Star size={10} style={{ color: "#FCD34D" }} />
+                    <span className="text-[10px] font-bold tabular-nums" style={{ color: "#FCD34D", fontFamily: "'DM Mono', monospace" }}>{repo.stars}</span>
+                  </div>
+                </div>
+                {repo.desc && (
+                  <p className="text-[10px] leading-relaxed line-clamp-2" style={{ color: t.textFaint }}>{repo.desc}</p>
+                )}
+                <div className="flex items-center gap-3 mt-auto pt-1">
+                  <span className="text-[9px] font-medium" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>{repo.lang}</span>
+                  <span className="flex items-center gap-1 text-[9px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                    <GitCommit size={9} /> {repo.forks} forks
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function DevDashboard() {
   const t = useTokens();
-  const [githubUsername, setGithubUsername] = useState<string>(
-    () => localStorage.getItem(GH_USERNAME_KEY) ?? ""
-  );
 
-  function handleUsernameSubmit(username: string) {
-    setGithubUsername(username);
-    localStorage.setItem(GH_USERNAME_KEY, username);
+  const [username, setUsername] = useState<string>(() => localStorage.getItem(GH_USERNAME_KEY) ?? "");
+  const [data, setData] = useState<GithubData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async (u: string) => {
+    setLoading(true);
+    setError(null);
+    setData(null);
+    try {
+      const result = await fetchGithubData(u);
+      setData(result);
+    } catch (err: any) {
+      setError(err.message ?? "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Auto-load on mount if username is saved
+  useEffect(() => {
+    if (username) load(username);
+  }, []);
+
+  function handleSubmit(u: string) {
+    setUsername(u);
+    localStorage.setItem(GH_USERNAME_KEY, u);
+    load(u);
   }
 
   function handleReset() {
-    setGithubUsername("");
+    setUsername("");
+    setData(null);
+    setError(null);
     localStorage.removeItem(GH_USERNAME_KEY);
   }
 
-const stagger = (i: number) => ({
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-  transition: {
-    duration: 0.3,
-    delay: i * 0.07,
-    ease: [0.16, 1, 0.3, 1] as const,
-  },
-});
   return (
     <div
       className="min-h-screen p-4 md:p-6 lg:p-8 transition-colors duration-300"
       style={{ background: t.page, fontFamily: "'DM Sans', sans-serif" }}
     >
-      {/* ── Page header ─────────────────────────────────────────────────── */}
-      <motion.div {...stagger(0)} className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 mb-2">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: t.accentSoft, border: `1px solid ${t.accentBorder}` }}
-            >
-              <Terminal size={15} style={{ color: t.accent }} />
-            </div>
-            <span
-              className="text-[10px] font-medium tracking-widest uppercase px-2.5 py-1 rounded"
-              style={{ background: t.accentSoft, color: t.accent, fontFamily: "'DM Mono', monospace", border: `1px solid ${t.accentBorder}` }}
-            >
-              Developer Mode
-            </span>
-          </div>
-          <h1
-            className="text-[22px] font-semibold tracking-tight mb-1"
-            style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}
-          >
-            Dev Dashboard
-          </h1>
-          <p className="text-[13px]" style={{ color: t.textMuted, fontFamily: "'DM Mono', monospace" }}>
-            Coding activity, GitHub stats &amp; builder tools.
-          </p>
-        </div>
-      </motion.div>
-
-      {/* ── Stats row ───────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {[
-          { icon: <Flame size={15} />,     label: "Streak",       value: "14d",    sub: "Current coding streak",      accent: "#f97316" },
-          { icon: <GitCommit size={15} />, label: "Commits",      value: "348",    sub: "This year",                  accent: t.accent },
-          { icon: <Code2 size={15} />,     label: "Languages",    value: "7",      sub: "Active in last 30 days",     accent: t.violet },
-          { icon: <Activity size={15} />,  label: "Contributions",value: "1,204",  sub: "Total on GitHub",            accent: "#4ade80" },
-        ].map((stat, i) => (
-          <motion.div key={stat.label} {...stagger(i + 1)}>
-            <StatCard {...stat} />
-          </motion.div>
-        ))}
-      </div>
-
-      {/* ── Contribution graph / connect form ───────────────────────────── */}
-      <motion.div {...stagger(5)}>
-        {githubUsername ? (
-          <ContributionGraph username={githubUsername} onReset={handleReset} />
-        ) : (
-          <GithubConnectForm onSubmit={handleUsernameSubmit} />
-        )}
-      </motion.div>
-
-      {/* ── Coming soon strip ────────────────────────────────────────────── */}
-      <motion.div {...stagger(6)} className="mt-4">
+      {/* Page header */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="flex items-center gap-3 mb-8"
+      >
         <div
-          className="rounded-2xl px-5 py-4 flex items-center gap-3"
-          style={{ background: t.card, border: `1px solid ${t.border}` }}
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}
         >
-          <span style={{ color: t.textFaint }}><Code2 size={14} /></span>
-          <p className="text-[12px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-            More builder tools — quest integrations, PR tracking, code reviews — coming soon.
+          <Terminal size={15} style={{ color: "#818cf8" }} />
+        </div>
+        <div>
+          <h1 className="text-[18px] font-bold leading-tight" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>
+            Dev Intelligence
+          </h1>
+          <p className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+            GitHub rank · scoring · analytics
           </p>
         </div>
+        <div
+          className="ml-auto text-[9px] px-2.5 py-1 rounded-full uppercase tracking-widest"
+          style={{ background: "rgba(99,102,241,0.08)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.15)", fontFamily: "'DM Mono', monospace" }}
+        >
+          Beta
+        </div>
       </motion.div>
+
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <LoadingState username={username} />
+          </motion.div>
+        ) : error ? (
+          <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <ErrorState message={error} onRetry={() => load(username)} />
+            <div className="mt-4 flex justify-center">
+              <button onClick={handleReset} className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                ← Use different username
+              </button>
+            </div>
+          </motion.div>
+        ) : data ? (
+          <motion.div key="data" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <IntelPanel data={data} onReset={handleReset} />
+          </motion.div>
+        ) : (
+          <motion.div key="connect" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <ConnectForm onSubmit={handleSubmit} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
