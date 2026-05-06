@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Search,
 } from "lucide-react";
+import { useTokens } from "../../context/ThemeContext";
 
 type NavSection = { label: string; items: NavItem[] };
 type NavItem = { icon: React.ReactNode; label: string; to: string; badge?: string | number };
@@ -42,29 +43,28 @@ const NAV_SECTIONS: NavSection[] = [
 ];
 
 function DesktopNavLink({ item }: { item: NavItem }) {
+  const t = useTokens();
   return (
     <NavLink
       to={item.to}
       end={item.to === "/dashboard"}
-      className={({ isActive }) =>
-        `group flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors duration-150 relative ${
-          isActive
-            ? "bg-white/6 text-white"
-            : "text-[#666] hover:text-[#aaa] hover:bg-white/3"
-        }`
-      }
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className="group flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors duration-150 relative"
+      style={({ isActive }) => ({
+        fontFamily: "'DM Sans', sans-serif",
+        background: isActive ? t.mutedBtn : "transparent",
+        color: isActive ? t.textPrimary : t.textMuted,
+      })}
     >
       {({ isActive }) => (
         <>
-          <span className={isActive ? "text-[#8b5cf6]" : "text-[#444] group-hover:text-[#666] transition-colors"}>
+          <span style={{ color: isActive ? t.violet : t.textFaint, transition: "color 0.15s" }}>
             {item.icon}
           </span>
           <span className="flex-1">{item.label}</span>
           {item.badge && (
             <span
               className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-              style={{ background: "rgba(139,92,246,0.12)", color: "#8b5cf6" }}
+              style={{ background: t.accentSoft, color: t.violet }}
             >
               {item.badge}
             </span>
@@ -76,25 +76,39 @@ function DesktopNavLink({ item }: { item: NavItem }) {
 }
 
 function SidebarBody() {
+  const t = useTokens();
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-4 pt-5 pb-3">
         <Link to="/">
           <div
-            className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer hover:bg-white/3 transition-colors"
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer transition-colors"
+            style={{ ["--hover-bg" as string]: t.mutedBtnHov }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = t.mutedBtn)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <div
               className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-              style={{ background: "#1a1a24", border: "1px solid rgba(139,92,246,0.25)" }}
+              style={{ background: t.cardAlt, border: `1px solid ${t.accentBorder}` }}
             >
-              <KyzenMark />
+              <KyzenMark violet={t.violet} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-white tracking-wide" style={{ fontFamily: "'DM Mono', monospace" }}>KYZEN</p>
-              <p className="text-[10px] text-[#444]" style={{ fontFamily: "'DM Sans', sans-serif" }}>Free Plan</p>
+              <p
+                className="text-[13px] font-semibold tracking-wide"
+                style={{ color: t.textPrimary, fontFamily: "'DM Mono', monospace" }}
+              >
+                KYZEN
+              </p>
+              <p
+                className="text-[10px]"
+                style={{ color: t.textMuted, fontFamily: "'DM Sans', sans-serif" }}
+              >
+                Free Plan
+              </p>
             </div>
-            <ChevronDown size={12} className="text-[#333] shrink-0" />
+            <ChevronDown size={12} style={{ color: t.textFaint }} className="shrink-0" />
           </div>
         </Link>
       </div>
@@ -103,13 +117,18 @@ function SidebarBody() {
       <div className="px-4 mb-4">
         <div
           className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-text"
-          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}` }}
         >
-          <Search size={12} className="text-[#444] shrink-0" />
-          <span className="text-[12px] text-[#333] flex-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>Search</span>
+          <Search size={12} style={{ color: t.textFaint }} className="shrink-0" />
+          <span
+            className="text-[12px] flex-1"
+            style={{ color: t.textFaint, fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Search
+          </span>
           <kbd
             className="text-[9px] px-1 py-0.5 rounded"
-            style={{ background: "rgba(255,255,255,0.04)", color: "#444", fontFamily: "'DM Mono', monospace" }}
+            style={{ background: t.mutedBtn, color: t.textMuted, fontFamily: "'DM Mono', monospace" }}
           >
             ⌘K
           </kbd>
@@ -122,7 +141,7 @@ function SidebarBody() {
           <div key={section.label}>
             <p
               className="text-[10px] font-medium tracking-wider mb-1.5 px-3 uppercase"
-              style={{ color: "#333", fontFamily: "'DM Sans', sans-serif" }}
+              style={{ color: t.textFaint, fontFamily: "'DM Sans', sans-serif" }}
             >
               {section.label}
             </p>
@@ -136,30 +155,42 @@ function SidebarBody() {
       </nav>
 
       {/* Divider */}
-      <div className="mx-4 my-3" style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
+      <div className="mx-4 my-3" style={{ height: 1, background: t.border }} />
 
       {/* User */}
       <div className="px-4 pb-4">
         <div
-          className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer group hover:bg-white/3 transition-colors"
+          className="flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer transition-colors"
+          onMouseEnter={(e) => (e.currentTarget.style.background = t.mutedBtn)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         >
           <div className="relative shrink-0">
             <img
               src="https://i.pravatar.cc/36?u=kyzen"
               alt="avatar"
               className="w-7 h-7 rounded-full object-cover"
-              style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+              style={{ border: `1px solid ${t.borderMed}` }}
             />
             <span
               className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full"
-              style={{ background: "#22c55e", border: "1.5px solid #0B0B0F" }}
+              style={{ background: t.success, border: `1.5px solid ${t.sidebar}` }}
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-medium text-[#ccc] truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>Ethan Reynolds</p>
-            <p className="text-[10px] text-[#444] truncate" style={{ fontFamily: "'DM Sans', sans-serif" }}>ethan@kyzen.gg</p>
+            <p
+              className="text-[12px] font-medium truncate"
+              style={{ color: t.textSecondary, fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Ethan Reynolds
+            </p>
+            <p
+              className="text-[10px] truncate"
+              style={{ color: t.textMuted, fontFamily: "'DM Sans', sans-serif" }}
+            >
+              ethan@kyzen.gg
+            </p>
           </div>
-          <LogOut size={13} className="text-[#333] group-hover:text-[#666] transition-colors shrink-0" />
+          <LogOut size={13} style={{ color: t.textFaint }} className="shrink-0 transition-colors" />
         </div>
       </div>
     </div>
@@ -167,6 +198,7 @@ function SidebarBody() {
 }
 
 export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
+  const t = useTokens();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -192,10 +224,10 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
     <>
       {/* Desktop sidebar */}
       <aside
-        className="hidden md:flex flex-col w-55 shrink-0 h-screen"
+        className="hidden md:flex flex-col w-55 shrink-0 h-screen transition-colors duration-300"
         style={{
-          background: "#0e0e12",
-          borderRight: "1px solid rgba(255,255,255,0.05)",
+          background: t.sidebar,
+          borderRight: `1px solid ${t.sidebarBorder}`,
         }}
       >
         <SidebarBody />
@@ -203,10 +235,10 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
 
       {/* Mobile top bar */}
       <div
-        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-5 h-14 md:hidden"
+        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-5 h-14 md:hidden transition-colors duration-300"
         style={{
-          background: "rgba(11,11,15,0.95)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          background: t.topbar,
+          borderBottom: `1px solid ${t.border}`,
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
         }}
@@ -214,23 +246,46 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
         <Link to="/" className="flex items-center gap-2">
           <div
             className="w-6 h-6 rounded-md flex items-center justify-center"
-            style={{ background: "#1a1a24", border: "1px solid rgba(139,92,246,0.25)" }}
+            style={{ background: t.cardAlt, border: `1px solid ${t.accentBorder}` }}
           >
-            <KyzenMark />
+            <KyzenMark violet={t.violet} />
           </div>
-          <span className="text-3.25 font-semibold text-white tracking-wide" style={{ fontFamily: "'DM Mono', monospace" }}>KYZEN</span>
+          <span
+            className="text-3.25 font-semibold tracking-wide"
+            style={{ color: t.textPrimary, fontFamily: "'DM Mono', monospace" }}
+          >
+            KYZEN
+          </span>
         </Link>
 
-        <button onClick={() => setOpen((p) => !p)} className="relative flex flex-col gap-1.25 p-2" aria-label="Toggle menu">
-          <span className="block w-4.5 h-px bg-white/40 rounded-full transition-all duration-200"
-            style={{ transform: open ? "rotate(45deg) translate(4px,4px)" : "none" }} />
-          <span className="block w-3.25 h-px bg-white/40 rounded-full transition-all duration-200"
-            style={{ opacity: open ? 0 : 1 }} />
-          <span className="block w-4.5 h-px bg-white/40 rounded-full transition-all duration-200"
-            style={{ transform: open ? "rotate(-45deg) translate(4px,-4px)" : "none" }} />
+        <button
+          onClick={() => setOpen((p) => !p)}
+          className="relative flex flex-col gap-1.25 p-2"
+          aria-label="Toggle menu"
+        >
+          <span
+            className="block w-4.5 h-px rounded-full transition-all duration-200"
+            style={{
+              background: t.textSecondary,
+              transform: open ? "rotate(45deg) translate(4px,4px)" : "none",
+            }}
+          />
+          <span
+            className="block w-3.25 h-px rounded-full transition-all duration-200"
+            style={{ background: t.textSecondary, opacity: open ? 0 : 1 }}
+          />
+          <span
+            className="block w-4.5 h-px rounded-full transition-all duration-200"
+            style={{
+              background: t.textSecondary,
+              transform: open ? "rotate(-45deg) translate(4px,-4px)" : "none",
+            }}
+          />
           {!open && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
-              style={{ background: "#8b5cf6", border: "1.5px solid #0B0B0F" }} />
+            <span
+              className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+              style={{ background: t.violet, border: `1.5px solid ${t.sidebar}` }}
+            />
           )}
         </button>
       </div>
@@ -246,20 +301,22 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed inset-x-0 top-14 z-40 md:hidden flex flex-col pb-4"
+            className="fixed inset-x-0 top-14 z-40 md:hidden flex flex-col pb-4 transition-colors duration-300"
             style={{
               fontFamily: "'DM Sans', sans-serif",
-              background: "rgba(11,11,15,0.98)",
+              background: t.topbar,
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: `1px solid ${t.border}`,
             }}
           >
             {mobileItems.map(({ item, sectionLabel, staggerIdx }) => (
               <div key={item.to}>
                 {sectionLabel && (
-                  <p className="text-[10px] font-medium tracking-wider uppercase px-5 pt-4 pb-1"
-                    style={{ color: "#333" }}>
+                  <p
+                    className="text-[10px] font-medium tracking-wider uppercase px-5 pt-4 pb-1"
+                    style={{ color: t.textFaint }}
+                  >
                     {sectionLabel}
                   </p>
                 )}
@@ -272,19 +329,22 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
                     to={item.to}
                     end={item.to === "/dashboard"}
                     onClick={closeDrawer}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-5 py-3 text-[13px] border-b border-white/4 transition-colors ${
-                        isActive ? "text-white font-medium" : "text-[#555] font-normal hover:text-[#888]"
-                      }`
-                    }
+                    className="flex items-center gap-3 px-5 py-3 text-[13px] transition-colors"
+                    style={({ isActive }) => ({
+                      color: isActive ? t.textPrimary : t.textMuted,
+                      fontWeight: isActive ? 500 : 400,
+                      borderBottom: `1px solid ${t.border}`,
+                    })}
                   >
                     {({ isActive }) => (
                       <>
-                        <span className={isActive ? "text-[#8b5cf6]" : "text-[#333]"}>{item.icon}</span>
+                        <span style={{ color: isActive ? t.violet : t.textFaint }}>{item.icon}</span>
                         <span className="flex-1">{item.label}</span>
                         {item.badge && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-                            style={{ background: "rgba(139,92,246,0.12)", color: "#8b5cf6" }}>
+                          <span
+                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                            style={{ background: t.accentSoft, color: t.violet }}
+                          >
                             {item.badge}
                           </span>
                         )}
@@ -296,30 +356,51 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
             ))}
 
             <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ delay: 0.04 + userFooterIdx * 0.04 }}
               className="mx-5 my-3"
-              style={{ height: 1, background: "rgba(255,255,255,0.05)" }}
+              style={{ height: 1, background: t.border }}
             />
 
             <motion.div
-              initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.06 + userFooterIdx * 0.04, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="mx-4"
             >
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-md group hover:bg-white/3 transition-colors">
+              <div
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors"
+                onMouseEnter={(e) => (e.currentTarget.style.background = t.mutedBtn)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
                 <div className="relative">
-                  <img src="https://i.pravatar.cc/36?u=kyzen" alt="avatar"
+                  <img
+                    src="https://i.pravatar.cc/36?u=kyzen"
+                    alt="avatar"
                     className="w-7 h-7 rounded-full object-cover"
-                    style={{ border: "1px solid rgba(255,255,255,0.08)" }} />
-                  <span className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full"
-                    style={{ background: "#22c55e", border: "1.5px solid #0B0B0F" }} />
+                    style={{ border: `1px solid ${t.borderMed}` }}
+                  />
+                  <span
+                    className="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full"
+                    style={{ background: t.success, border: `1.5px solid ${t.sidebar}` }}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-[#ccc] truncate">Ethan Reynolds</p>
-                  <p className="text-[10px] text-[#444] truncate">ethan@kyzen.gg</p>
+                  <p
+                    className="text-[12px] font-medium truncate"
+                    style={{ color: t.textSecondary, fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Ethan Reynolds
+                  </p>
+                  <p
+                    className="text-[10px] truncate"
+                    style={{ color: t.textMuted, fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    ethan@kyzen.gg
+                  </p>
                 </div>
-                <LogOut size={13} className="text-[#333] group-hover:text-[#666] transition-colors shrink-0" />
+                <LogOut size={13} style={{ color: t.textFaint }} className="shrink-0 transition-colors" />
               </div>
             </motion.div>
           </motion.div>
@@ -329,11 +410,11 @@ export default function Sidebar({ onClose: _externalClose }: SidebarProps) {
   );
 }
 
-function KyzenMark() {
+function KyzenMark({ violet }: { violet: string }) {
   return (
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-      <path d="M3 3L8 8L3 13" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 3L13 8L8 13" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.4" />
+      <path d="M3 3L8 8L3 13" stroke={violet} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 3L13 8L8 13" stroke={violet} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.4" />
     </svg>
   );
 }

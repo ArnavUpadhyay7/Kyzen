@@ -1,148 +1,133 @@
 export const STEPS = [
   {
     num: "01",
-    label: "Quest Engine",
-    title: "Turn chaos\ninto missions.",
-    body: "Raw goals become structured quests with difficulty ratings, XP rewards, and deadlines — auto-pulled from your tools so you never start from scratch.",
-    accent: "#818cf8",
-    accentDim: "rgba(129,140,248,0.12)",
-    accentGlow: "rgba(129,140,248,0.35)",
-    stat: { val: "∞", unit: "quests possible" },
-    tags: ["GitHub", "Linear", "Notion"],
+    label: "Connect",
+    title: "Link Your\nReal Work",
+    body: "Connect GitHub, your task manager, or any productivity tool. Kyzen listens silently — every commit, every closed ticket, every focus session becomes raw material for your progression.",
+    tags: ["GitHub Sync", "Jira / Linear", "Focus Timer", "Manual Log"],
+    stat: { val: "12+", unit: "integrations" },
     symbol: (
-      <svg viewBox="0 0 120 120" fill="none" className="w-full h-full">
-        <circle cx="60" cy="60" r="50" stroke="rgba(129,140,248,0.15)" strokeWidth="1" />
-        <circle cx="60" cy="60" r="34" stroke="rgba(129,140,248,0.25)" strokeWidth="1" strokeDasharray="5 4" />
-        <circle cx="60" cy="60" r="18" fill="rgba(129,140,248,0.18)" stroke="rgba(129,140,248,0.5)" strokeWidth="1" />
-        <line x1="60" y1="10" x2="60" y2="42" stroke="rgba(129,140,248,0.5)" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="60" y1="78" x2="60" y2="110" stroke="rgba(129,140,248,0.5)" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="10" y1="60" x2="42" y2="60" stroke="rgba(129,140,248,0.5)" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="78" y1="60" x2="110" y2="60" stroke="rgba(129,140,248,0.5)" strokeWidth="1.5" strokeLinecap="round" />
-        <circle cx="60" cy="60" r="6" fill="#818cf8" />
-        {[0, 45, 90, 135, 180, 225, 270, 315].map((deg, i) => (
-          <line
-            key={i}
-            x1={60 + 48 * Math.cos((deg * Math.PI) / 180)}
-            y1={60 + 48 * Math.sin((deg * Math.PI) / 180)}
-            x2={60 + 53 * Math.cos((deg * Math.PI) / 180)}
-            y2={60 + 53 * Math.sin((deg * Math.PI) / 180)}
-            stroke="rgba(129,140,248,0.5)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        ))}
+      <svg viewBox="0 0 120 120" width={120} height={120} fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Central node */}
+        <circle cx="60" cy="60" r="14" fill="rgba(139,92,246,0.25)" stroke="rgba(139,92,246,0.7)" strokeWidth="1.5" />
+        <circle cx="60" cy="60" r="6" fill="#8b5cf6" />
+        {/* Spokes */}
+        {[0, 60, 120, 180, 240, 300].map((deg, i) => {
+          const rad = (deg * Math.PI) / 180;
+          const x2 = 60 + Math.cos(rad) * 36;
+          const y2 = 60 + Math.sin(rad) * 36;
+          const xEnd = 60 + Math.cos(rad) * 46;
+          const yEnd = 60 + Math.sin(rad) * 46;
+          return (
+            <g key={i}>
+              <line x1="60" y1="60" x2={x2} y2={y2} stroke="rgba(139,92,246,0.3)" strokeWidth="1" strokeDasharray="3 3" />
+              <circle cx={xEnd} cy={yEnd} r="7" fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.5)" strokeWidth="1" />
+            </g>
+          );
+        })}
+        {/* Outer ring */}
+        <circle cx="60" cy="60" r="54" stroke="rgba(139,92,246,0.1)" strokeWidth="1" strokeDasharray="4 6" />
       </svg>
     ),
   },
   {
     num: "02",
-    label: "XP Engine",
-    title: "Work converts\nto progress.",
-    body: "Every commit, Pomodoro, and task close triggers an instant XP calculation. Real work, real numbers — no manual input, no guesswork.",
-    accent: "#a78bfa",
-    accentDim: "rgba(167,139,250,0.12)",
-    accentGlow: "rgba(167,139,250,0.35)",
-    stat: { val: "+320", unit: "XP this session" },
-    tags: ["Instant", "Automatic", "Real-time"],
+    label: "Earn XP",
+    title: "Every Action\nRewarded",
+    body: "Tasks close, XP lands instantly. The system weighs effort, complexity, and consistency — so a focused deep-work session hits different than a quick checkbox. Your level reflects your reality.",
+    tags: ["Instant XP", "Effort Weighting", "Streak Bonus", "Level Up"],
+    stat: { val: "+320", unit: "XP today" },
     symbol: (
-      <svg viewBox="0 0 120 120" fill="none" className="w-full h-full">
-        <defs>
-          <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#c084fc" />
-            <stop offset="100%" stopColor="#7c3aed" />
-          </linearGradient>
-        </defs>
-        {[52, 40, 28].map((r, i) => (
-          <circle
-            key={i}
-            cx="60"
-            cy="60"
-            r={r}
-            stroke={`rgba(167,139,250,${0.12 + i * 0.1})`}
-            strokeWidth="1"
-            strokeDasharray={i === 1 ? "3 5" : undefined}
-          />
+      <svg viewBox="0 0 120 120" width={120} height={120} fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Bar chart */}
+        {[
+          { x: 14, h: 38, active: true },
+          { x: 30, h: 55, active: true },
+          { x: 46, h: 32, active: true },
+          { x: 62, h: 72, active: true },
+          { x: 78, h: 50, active: true },
+          { x: 94, h: 28, active: false },
+        ].map((b, i) => (
+          <g key={i}>
+            <rect x={b.x} y={108 - b.h} width="12" height={b.h} rx="3"
+              fill={b.active ? "rgba(139,92,246,0.35)" : "rgba(255,255,255,0.05)"}
+              stroke={b.active ? "rgba(139,92,246,0.6)" : "rgba(255,255,255,0.08)"}
+              strokeWidth="0.75"
+            />
+          </g>
         ))}
-        <path d="M68 20 L48 58 L60 58 L52 100 L80 50 L66 50 Z" fill="url(#bolt)" opacity="0.95" />
-        {[[20, 30], [96, 45], [15, 80], [100, 75]].map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r="2.5" fill="rgba(192,132,252,0.6)" />
-        ))}
+        {/* Trend line */}
+        <polyline points="20,80 36,65 52,78 68,40 84,58" stroke="rgba(192,132,252,0.7)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Highlight dot */}
+        <circle cx="68" cy="40" r="4" fill="#c084fc" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+        {/* Baseline */}
+        <line x1="10" y1="108" x2="110" y2="108" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
       </svg>
     ),
   },
   {
     num: "03",
-    label: "Progression",
-    title: "Levels unlock\nnew power.",
-    body: "As XP accumulates, your rank advances and new systems unlock — skill trees, clan perks, harder quests. Progress compounds. Growth accelerates.",
-    accent: "#c084fc",
-    accentDim: "rgba(192,132,252,0.12)",
-    accentGlow: "rgba(192,132,252,0.35)",
-    stat: { val: "Lv.12", unit: "Gold rank" },
-    tags: ["8 skill trees", "40+ perks", "Ranks"],
+    label: "Build Streaks",
+    title: "Momentum\nCompounds",
+    body: "Miss nothing. Keep the chain alive. Each consecutive day multiplies your XP — a 7-day streak hits 1.5×, a 30-day streak hits 2×. Missed a day? Recovery quests let you bounce back without starting from zero.",
+    tags: ["Daily Streak", "XP Multiplier", "Recovery Quest", "Milestone Badge"],
+    stat: { val: "×1.8", unit: "multiplier" },
     symbol: (
-      <svg viewBox="0 0 120 120" fill="none" className="w-full h-full">
-        <defs>
-          <linearGradient id="bar1" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#e879f9" />
-            <stop offset="100%" stopColor="#7c3aed" />
-          </linearGradient>
-        </defs>
-        {[
-          { x: 15, h: 30, o: 0.35 },
-          { x: 33, h: 50, o: 0.5 },
-          { x: 51, h: 70, o: 0.7 },
-          { x: 69, h: 90, o: 0.85 },
-          { x: 87, h: 108, o: 1 },
-        ].map((b, i) => (
-          <rect key={i} x={b.x} y={110 - b.h} width="15" height={b.h} rx="4" fill="url(#bar1)" opacity={b.o} />
-        ))}
+      <svg viewBox="0 0 120 120" width={120} height={120} fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Flame body */}
         <path
-          d="M100 18 L100 8 M100 8 L94 15 M100 8 L106 15"
-          stroke="rgba(232,121,249,0.8)"
-          strokeWidth="2"
-          strokeLinecap="round"
+          d="M60,108 C38,108 22,90 22,70 C22,52 34,42 42,36 C40,50 48,54 52,52 C44,40 56,18 60,12 C64,18 76,40 68,52 C72,54 80,50 78,36 C86,42 98,52 98,70 C98,90 82,108 60,108 Z"
+          fill="rgba(139,92,246,0.2)"
+          stroke="rgba(139,92,246,0.6)"
+          strokeWidth="1.2"
           strokeLinejoin="round"
         />
+        {/* Inner flame */}
+        <path
+          d="M60,98 C48,98 40,86 40,74 C40,64 46,58 52,56 C50,64 56,68 60,68 C64,68 70,64 68,56 C74,58 80,64 80,74 C80,86 72,98 60,98 Z"
+          fill="rgba(167,139,250,0.3)"
+          stroke="rgba(192,132,252,0.5)"
+          strokeWidth="1"
+        />
+        {/* Core */}
+        <ellipse cx="60" cy="82" rx="8" ry="10" fill="rgba(192,132,252,0.4)" />
       </svg>
     ),
   },
   {
     num: "04",
-    label: "Identity",
-    title: "Your proof of\nconsistency.",
-    body: "Streaks, commits, ranks, and milestones crystallize into a living developer profile. Not a portfolio — a record of daily momentum that speaks for itself.",
-    accent: "#e879f9",
-    accentDim: "rgba(232,121,249,0.12)",
-    accentGlow: "rgba(232,121,249,0.3)",
-    stat: { val: "847d", unit: "streak record" },
-    tags: ["Shareable", "Verified", "Public"],
+    label: "Own Your Identity",
+    title: "Build Your\nDev Identity",
+    body: "Your rank, title, and progression arc become a public ledger of your work ethic. Choose your class — Builder, Architect, Hacker — and unlock abilities, badges, and perks that reflect your actual specialisation.",
+    tags: ["Class System", "Rank Titles", "Badge Collection", "Public Profile"],
+    stat: { val: "Level 5", unit: "current rank" },
     symbol: (
-      <svg viewBox="0 0 120 120" fill="none" className="w-full h-full">
-        <defs>
-          <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#e879f9" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.7" />
-          </linearGradient>
-        </defs>
+      <svg viewBox="0 0 120 120" width={120} height={120} fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Shield */}
         <path
-          d="M60 10 L100 28 L100 68 Q100 95 60 112 Q20 95 20 68 L20 28 Z"
-          fill="rgba(232,121,249,0.1)"
-          stroke="rgba(232,121,249,0.4)"
+          d="M60,16 L96,34 L96,70 Q96,100 60,112 Q24,100 24,70 L24,34 Z"
+          fill="rgba(139,92,246,0.18)"
+          stroke="rgba(139,92,246,0.55)"
           strokeWidth="1.5"
+          strokeLinejoin="round"
         />
+        {/* Inner shield */}
         <path
-          d="M60 22 L90 36 L90 66 Q90 86 60 100 Q30 86 30 66 L30 36 Z"
-          fill="rgba(192,132,252,0.08)"
-          stroke="rgba(192,132,252,0.25)"
+          d="M60,28 L84,40 L84,68 Q84,90 60,100 Q36,90 36,68 L36,40 Z"
+          fill="rgba(139,92,246,0.12)"
+          stroke="rgba(167,139,250,0.35)"
           strokeWidth="1"
+          strokeLinejoin="round"
         />
+        {/* Star / emblem */}
         <path
-          d="M60 42 L63.5 52.5 L75 52.5 L65.5 59 L69 70 L60 63 L51 70 L54.5 59 L45 52.5 L56.5 52.5 Z"
-          fill="url(#shield)"
-          opacity="0.9"
+          d="M60,42 L63.5,53 L75,53 L66,60 L69.5,71 L60,64 L50.5,71 L54,60 L45,53 L56.5,53 Z"
+          fill="rgba(192,132,252,0.6)"
+          stroke="rgba(192,132,252,0.8)"
+          strokeWidth="0.75"
+          strokeLinejoin="round"
         />
       </svg>
     ),
   },
-];
+] as const;

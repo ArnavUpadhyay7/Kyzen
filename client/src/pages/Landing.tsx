@@ -7,7 +7,6 @@ import Hero from "../components/landing/Hero";
 import Features from "../components/landing/Features";
 import HowItWorks from "../components/landing/HowItWorks";
 import { palette } from "../design-system";
-import BuildCharacter from "../components/landing/BuildCharacter";
 import SocialProof from "../components/landing/SocialProof";
 
 function useLenis() {
@@ -87,7 +86,7 @@ export default function Landing() {
       `}</style>
 
       {/* Navbar */}
-      <div className="fixed inset-x-0 top-0 z-[100]">
+      <div className="fixed inset-x-0 top-0 z-100">
         <Navbar />
       </div>
 
@@ -167,8 +166,6 @@ export default function Landing() {
         <HowItWorks />
 
         <SectionTransition />
-        <BuildCharacter />
-        <SectionTransition flip />
         <SocialProof />
         <Footer />
       </div>

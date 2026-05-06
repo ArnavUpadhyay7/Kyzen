@@ -103,7 +103,7 @@ function ThemePicker() {
           <button
             key={opt.value}
             onClick={() => setTheme(opt.value)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all duration-200"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-medium transition-all duration-200 cursor-pointer"
             style={{
               fontFamily: "'DM Mono', monospace",
               background: active ? "#6366f1" : t.mutedBtn,
