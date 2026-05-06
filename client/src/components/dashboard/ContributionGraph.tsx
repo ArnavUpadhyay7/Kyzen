@@ -1,30 +1,46 @@
-import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useState } from "react";
 import { useTokens } from "../../context/ThemeContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ViewMode = "month" | "year";
+interface GraphEntry {
+  date: string;
+  count: number;
+}
 
-interface GraphEntry { date: string; count: number }
-
-interface ContributionGraphProps {
+export interface ContributionGraphProps {
   data: GraphEntry[];
-  /** Earliest date user has data for (their join date). ISO string "YYYY-MM-DD". */
-  joinDate?: string;
+}
+
+interface TooltipState {
+  visible: boolean;
+  x: number;
+  y: number;
+  date: string;
+  count: number;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CELL   = 13;
-const GAP    = 3;
-const STEP   = CELL + GAP;
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const CELL        = 13;
+const GAP         = 3;
+const STEP        = CELL + GAP;
+const TOTAL_WEEKS = 53;
+const DAY_LABEL_W = 28;
+const MONTH_ROW_H = 18;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function toIso(d: Date): string {
-  return d.toISOString().slice(0, 10);
+/**
+ * Convert a Date to a local YYYY-MM-DD string.
+ * IMPORTANT: avoid .toISOString() here — it converts to UTC and can
+ * produce the previous calendar day for users ahead of UTC (e.g. IST = UTC+5:30).
+ */
+function localIso(d: Date): string {
+  const y  = d.getFullYear();
+  const m  = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
 }
 
 function levelOf(count: number): number {
@@ -35,368 +51,244 @@ function levelOf(count: number): number {
   return 4;
 }
 
-// ─── Month View ───────────────────────────────────────────────────────────────
-
-function MonthView({
-  year, month, lookup, colors,
-}: {
-  year: number;
-  month: number; // 0-indexed
-  lookup: Record<string, number>;
-  colors: string[];
-}) {
-  const today     = new Date();
-  const todayIso  = toIso(today);
-
-  // First day of month → find its day-of-week (0=Sun)
-  const firstDay  = new Date(year, month, 1);
-  const startDow  = firstDay.getDay(); // 0-6
-
-  // Days in month
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  // Build a grid: rows = weeks, cols = days (Sun-Sat)
-  // We pad the front with empty slots
-  type Cell = { day: number | null; iso: string | null; count: number; level: number; isFuture: boolean };
-  const cells: Cell[] = [];
-
-  for (let i = 0; i < startDow; i++) {
-    cells.push({ day: null, iso: null, count: 0, level: 0, isFuture: false });
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date     = new Date(year, month, d);
-    const iso      = toIso(date);
-    const isFuture = iso > todayIso;
-    const count    = isFuture ? 0 : (lookup[iso] ?? 0);
-    cells.push({ day: d, iso, count, level: levelOf(count), isFuture });
-  }
-
-  // Pad end to complete last week row
-  while (cells.length % 7 !== 0) {
-    cells.push({ day: null, iso: null, count: 0, level: 0, isFuture: false });
-  }
-
-  const weeks: Cell[][] = [];
-  for (let i = 0; i < cells.length; i += 7) {
-    weeks.push(cells.slice(i, i + 7));
-  }
-
-  const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const DAY_LABEL_W = 30;
-  const HEADER_H = 16;
-  const svgW = DAY_LABEL_W + 7 * STEP;
-  const svgH = HEADER_H + weeks.length * STEP;
-
-  const totalMonth = cells.reduce((s, c) => s + (c.day ? c.count : 0), 0);
-
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[11px]" style={{ color: "#9ca3af", fontFamily: "'DM Mono', monospace" }}>
-        <span style={{ color: "#e5e7eb", fontWeight: 600 }}>{totalMonth}</span> tasks this month
-      </p>
-      <div className="overflow-x-auto">
-        <svg width={svgW} height={svgH} style={{ display: "block", fontFamily: "'DM Mono', monospace" }}>
-          {/* Day-of-week headers */}
-          {DAY_LABELS.map((label, i) => (
-            <text
-              key={label}
-              x={DAY_LABEL_W + i * STEP + CELL / 2}
-              y={11}
-              fontSize={8}
-              fill={colors[0] === "#1e1e2e" ? "#6b7280" : "#9ca3af"}
-              textAnchor="middle"
-            >
-              {label[0]}
-            </text>
-          ))}
-
-          {/* Day cells */}
-          {weeks.map((week, wi) =>
-            week.map((cell, di) => {
-              const x = DAY_LABEL_W + di * STEP;
-              const y = HEADER_H + wi * STEP;
-              if (!cell.day) {
-                return <rect key={`${wi}-${di}`} x={x} y={y} width={CELL} height={CELL} rx={2} fill="transparent" />;
-              }
-              const fill = cell.isFuture ? "transparent" : colors[cell.level];
-              return (
-                <g key={`${wi}-${di}`}>
-                  <rect
-                    x={x} y={y} width={CELL} height={CELL} rx={2}
-                    fill={fill}
-                    stroke={cell.iso ? "rgba(255,255,255,0.04)" : "none"}
-                    strokeWidth={0.5}
-                    style={{ cursor: cell.count > 0 ? "pointer" : "default", transition: "opacity 0.15s" }}
-                    onMouseEnter={(e) => { if (cell.count > 0) (e.target as SVGRectElement).style.opacity = "0.7"; }}
-                    onMouseLeave={(e) => { (e.target as SVGRectElement).style.opacity = "1"; }}
-                  >
-                    {cell.iso && cell.count > 0 && (
-                      <title>{cell.iso}: {cell.count} task{cell.count !== 1 ? "s" : ""}</title>
-                    )}
-                  </rect>
-                  {/* Day number */}
-                  <text
-                    x={x + CELL / 2}
-                    y={y + CELL / 2 + 3.5}
-                    fontSize={7}
-                    fill={cell.count > 0 ? "rgba(255,255,255,0.85)" : "rgba(156,163,175,0.5)"}
-                    textAnchor="middle"
-                    style={{ pointerEvents: "none", userSelect: "none" }}
-                  >
-                    {cell.day}
-                  </text>
-                </g>
-              );
-            })
-          )}
-        </svg>
-      </div>
-    </div>
-  );
+function formatDate(iso: string): string {
+  // Parse as local date — split manually to avoid UTC shift
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "long",
+    month:   "long",
+    day:     "numeric",
+    year:    "numeric",
+  });
 }
 
-// ─── Year View ────────────────────────────────────────────────────────────────
+// ─── Tooltip ─────────────────────────────────────────────────────────────────
 
-function YearView({ year, lookup, colors }: {
-  year: number;
-  lookup: Record<string, number>;
-  colors: string[];
-}) {
-  const today        = new Date();
-  const todayIso     = toIso(today);
-  const isCurrentYr  = year === today.getFullYear();
-
-  // Build Sunday-aligned weeks for the full year
-  const jan1    = new Date(year, 0, 1);
-  const startDow = jan1.getDay();
-  const start   = new Date(jan1);
-  start.setDate(jan1.getDate() - startDow);
-
-  const endDate = isCurrentYr ? today : new Date(year, 11, 31);
-
-  type Cell = { iso: string; count: number; level: number; empty: boolean };
-  const weeks: Cell[][] = [];
-  const cursor = new Date(start);
-
-  while (cursor <= endDate || weeks.length === 0) {
-    const week: Cell[] = [];
-    for (let d = 0; d < 7; d++) {
-      const iso = toIso(cursor);
-      const isOutOfYear = cursor.getFullYear() !== year;
-      const isFuture    = iso > todayIso;
-      if (isOutOfYear || isFuture) {
-        week.push({ iso: "", count: 0, level: 0, empty: true });
-      } else {
-        const count = lookup[iso] ?? 0;
-        week.push({ iso, count, level: levelOf(count), empty: false });
-      }
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    weeks.push(week);
-    if (cursor > endDate && weeks.length > 4) break;
-  }
-
-  // Month labels
-  const monthLabels: { label: string; weekIdx: number }[] = [];
-  weeks.forEach((week, wi) => {
-    const firstReal = week.find((c) => !c.empty);
-    if (!firstReal) return;
-    const d = new Date(firstReal.iso);
-    if (d.getDate() <= 7) {
-      const label = MONTHS[d.getMonth()];
-      if (!monthLabels.find((m) => m.label === label)) {
-        monthLabels.push({ label, weekIdx: wi });
-      }
-    }
-  });
-
-  const DAY_LABEL_W = 28;
-  const MONTH_ROW_H = 18;
-  const svgW = DAY_LABEL_W + weeks.length * STEP;
-  const svgH = MONTH_ROW_H + 7 * STEP;
-  const totalYear = Object.entries(lookup)
-    .filter(([d]) => d.startsWith(`${year}-`))
-    .reduce((s, [, v]) => s + v, 0);
-
+function Tooltip({ state }: { state: TooltipState }) {
+  if (!state.visible || !state.date) return null;
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[11px]" style={{ color: "#9ca3af", fontFamily: "'DM Mono', monospace" }}>
-        <span style={{ color: "#e5e7eb", fontWeight: 600 }}>{totalYear}</span> tasks in {year}
+    <div
+      style={{
+        position:       "fixed",
+        left:           state.x,
+        top:            state.y,
+        transform:      "translate(-50%, calc(-100% - 10px))",
+        pointerEvents:  "none",
+        zIndex:         9999,
+        background:     "rgba(8, 8, 16, 0.96)",
+        border:         "1px solid rgba(129,140,248,0.18)",
+        borderRadius:   10,
+        padding:        "8px 11px",
+        boxShadow:      "0 16px 48px rgba(0,0,0,0.8), 0 0 0 1px rgba(129,140,248,0.06), inset 0 1px 0 rgba(255,255,255,0.04)",
+        backdropFilter: "blur(16px)",
+        minWidth:       160,
+        opacity:        state.visible ? 1 : 0,
+        transition:     "opacity 0.08s ease",
+      }}
+    >
+      <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#4b5563", marginBottom: 5, letterSpacing: "0.025em" }}>
+        {formatDate(state.date)}
       </p>
-      <div className="overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
-        <svg width={svgW} height={svgH} style={{ display: "block", fontFamily: "'DM Mono', monospace" }}>
-          {monthLabels.map(({ label, weekIdx }) => (
-            <text key={label} x={DAY_LABEL_W + weekIdx * STEP} y={12} fontSize={10} fill="#6b7280">
-              {label}
-            </text>
-          ))}
-          {[
-            { row: 1, label: "Mon" },
-            { row: 3, label: "Wed" },
-            { row: 5, label: "Fri" },
-          ].map(({ row, label }) => (
-            <text key={label} x={0} y={MONTH_ROW_H + row * STEP + CELL - 1} fontSize={9} fill="#4b5563" textAnchor="start">
-              {label}
-            </text>
-          ))}
-          {weeks.map((week, wi) =>
-            week.map((cell, di) => {
-              const x = DAY_LABEL_W + wi * STEP;
-              const y = MONTH_ROW_H + di * STEP;
-              if (cell.empty) return <rect key={`${wi}-${di}`} x={x} y={y} width={CELL} height={CELL} rx={2} fill="transparent" />;
-              return (
-                <rect
-                  key={`${wi}-${di}`}
-                  x={x} y={y} width={CELL} height={CELL} rx={2}
-                  fill={colors[cell.level]}
-                  style={{ cursor: cell.count > 0 ? "pointer" : "default", transition: "opacity 0.15s" }}
-                  onMouseEnter={(e) => { if (cell.count > 0) (e.target as SVGRectElement).style.opacity = "0.7"; }}
-                  onMouseLeave={(e) => { (e.target as SVGRectElement).style.opacity = "1"; }}
-                >
-                  <title>{cell.iso}: {cell.count} task{cell.count !== 1 ? "s" : ""}</title>
-                </rect>
-              );
-            })
-          )}
-        </svg>
-      </div>
+      {state.count === 0 ? (
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#6b7280" }}>
+          No contributions
+        </p>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              display:        "inline-flex",
+              alignItems:     "center",
+              justifyContent: "center",
+              width:          22,
+              height:         22,
+              borderRadius:   6,
+              background:     "rgba(99,102,241,0.15)",
+              border:         "1px solid rgba(129,140,248,0.2)",
+              fontFamily:     "'DM Mono', monospace",
+              fontSize:       11,
+              fontWeight:     700,
+              color:          "#818cf8",
+            }}
+          >
+            {state.count}
+          </span>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#d1d5db" }}>
+            task{state.count !== 1 ? "s" : ""} completed
+          </span>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ContributionGraph({ data, joinDate }: ContributionGraphProps) {
-  const t = useTokens();
-  const COLORS = [t.graphEmpty, t.graphL1, t.graphL2, t.graphL3, t.graphL4];
+export default function ContributionGraph({ data }: ContributionGraphProps) {
+  const t      = useTokens();
+  const LEVELS = [t.graphEmpty, t.graphL1, t.graphL2, t.graphL3, t.graphL4];
 
-  const today   = new Date();
-  const todayYM = { year: today.getFullYear(), month: today.getMonth() };
+  const [tooltip, setTooltip] = useState<TooltipState>({
+    visible: false, x: 0, y: 0, date: "", count: 0,
+  });
 
-  const [mode,  setMode]  = useState<ViewMode>("month");
-  const [year,  setYear]  = useState(todayYM.year);
-  const [month, setMonth] = useState(todayYM.month);
+  // Build lookup from prop data
+  const lookup: Record<string, number> = {};
+  data.forEach((d) => { lookup[d.date] = d.count; });
 
-  // Build lookup once
-  const lookup = useMemo(() => {
-    const m: Record<string, number> = {};
-    data.forEach((d) => { m[d.date] = d.count; });
-    return m;
-  }, [data]);
+  // ── Grid construction ────────────────────────────────────────────────────
+  // Use local date so "today" matches the user's wall clock, not UTC.
+  const today = new Date();
+  // Strip time — keeps day boundary clean
+  today.setHours(0, 0, 0, 0);
 
-  // ── Bounds ────────────────────────────────────────────────────────────────
-  const minYear  = joinDate ? new Date(joinDate).getFullYear() : today.getFullYear();
-  const minMonth = joinDate ? new Date(joinDate).getMonth()    : today.getMonth();
+  const todayIso  = localIso(today);
+  const dayOfWeek = today.getDay(); // 0 = Sun
 
-  const canGoBack = mode === "month"
-    ? (year > minYear || (year === minYear && month > minMonth))
-    : year > minYear;
+  // Start on the Sunday 52 full weeks before the current week's Sunday
+  const startSunday = new Date(today);
+  startSunday.setDate(today.getDate() - dayOfWeek - 52 * 7);
 
-  const canGoFwd = mode === "month"
-    ? (year < todayYM.year || (year === todayYM.year && month < todayYM.month))
-    : year < todayYM.year;
+  type Cell = { iso: string; count: number; level: number; empty: boolean };
+  const weeks: Cell[][] = [];
 
-  function goBack() {
-    if (mode === "month") {
-      if (month === 0) { setYear((y) => y - 1); setMonth(11); }
-      else setMonth((m) => m - 1);
-    } else {
-      setYear((y) => y - 1);
+  for (let w = 0; w < TOTAL_WEEKS; w++) {
+    const week: Cell[] = [];
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(startSunday);
+      date.setDate(startSunday.getDate() + w * 7 + d);
+
+      // Future days → transparent placeholder
+      if (date > today) {
+        week.push({ iso: "", count: 0, level: 0, empty: true });
+      } else {
+        const iso   = localIso(date);          // ← local, not UTC
+        const count = lookup[iso] ?? 0;
+        week.push({ iso, count, level: levelOf(count), empty: false });
+      }
     }
+    weeks.push(week);
   }
 
-  function goFwd() {
-    if (mode === "month") {
-      if (month === 11) { setYear((y) => y + 1); setMonth(0); }
-      else setMonth((m) => m + 1);
-    } else {
-      setYear((y) => y + 1);
+  // ── Month labels (Jan → Dec, calendar order) ──────────────────────────────
+  // Walk every week and record the first weekIdx where each calendar month
+  // appears. Using a Map keyed by `year * 12 + month` ensures we handle
+  // year-wrap correctly (e.g. Dec 2024 and Dec 2025 are different entries).
+  const monthMap = new Map<number, { label: string; weekIdx: number }>();
+
+  weeks.forEach((week, wi) => {
+    const firstReal = week.find((c) => !c.empty);
+    if (!firstReal) return;
+
+    const [y, m] = firstReal.iso.split("-").map(Number);
+    const day     = Number(firstReal.iso.split("-")[2]);
+    const key     = y * 12 + (m - 1); // unique per year+month
+
+    // Only record the first week of the month (day ≤ 7) and only once
+    if (day <= 7 && !monthMap.has(key)) {
+      const label = new Date(y, m - 1, 1).toLocaleString("en-US", { month: "short" });
+      monthMap.set(key, { label, weekIdx: wi });
     }
-  }
+  });
 
-  // ── Nav label ─────────────────────────────────────────────────────────────
-  const navLabel = mode === "month"
-    ? `${MONTHS[month]} ${year}`
-    : `${year}`;
+  // Sort by the composite key so labels always appear Jan → Dec (→ Jan → Dec…)
+  const monthLabels = Array.from(monthMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([, v]) => v);
 
-  const navBtnStyle = (enabled: boolean) => ({
-    width: 24, height: 24,
-    borderRadius: 6,
-    display: "flex", alignItems: "center", justifyContent: "center",
-    background: enabled ? t.mutedBtn : "transparent",
-    opacity: enabled ? 1 : 0.25,
-    cursor: enabled ? "pointer" : "default",
-    border: `1px solid ${t.border}`,
-    transition: "opacity 0.15s, background 0.15s",
-  } as React.CSSProperties);
+  // ── SVG dimensions ────────────────────────────────────────────────────────
+  const svgW = DAY_LABEL_W + TOTAL_WEEKS * STEP;
+  const svgH = MONTH_ROW_H + 7 * STEP;
 
-  const toggleBase = {
-    fontSize: 10,
-    fontFamily: "'DM Mono', monospace",
-    padding: "2px 8px",
-    borderRadius: 6,
-    border: `1px solid ${t.border}`,
-    cursor: "pointer",
-    transition: "background 0.15s, color 0.15s",
-  } as React.CSSProperties;
+  const totalTasks  = data.reduce((s, d) => s + d.count, 0);
+  const currentYear = today.getFullYear();
+
+  const DAY_ROW_LABELS = [
+    { row: 1, label: "Mon" },
+    { row: 3, label: "Wed" },
+    { row: 5, label: "Fri" },
+  ];
+
+  const handleMouseEnter = useCallback(
+    (e: React.MouseEvent<SVGRectElement>, iso: string, count: number) => {
+      const rect = (e.target as SVGRectElement).getBoundingClientRect();
+      (e.target as SVGRectElement).style.opacity = "0.7";
+      setTooltip({ visible: true, x: rect.left + rect.width / 2, y: rect.top, date: iso, count });
+    },
+    [],
+  );
+
+  const handleMouseLeave = useCallback((e: React.MouseEvent<SVGRectElement>) => {
+    (e.target as SVGRectElement).style.opacity = "1";
+    setTooltip((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Controls row */}
-      <div className="flex items-center justify-between gap-2">
-        {/* Mode toggle */}
-        <div className="flex items-center gap-1">
-          {(["month", "year"] as ViewMode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              style={{
-                ...toggleBase,
-                background: mode === m ? t.accentSoft : "transparent",
-                color: mode === m ? "#818cf8" : t.textFaint,
-              }}
-            >
-              {m.charAt(0).toUpperCase() + m.slice(1)}
-            </button>
-          ))}
-        </div>
+      <Tooltip state={tooltip} />
 
-        {/* Navigator */}
-        <div className="flex items-center gap-1.5">
-          <button
-            disabled={!canGoBack}
-            onClick={canGoBack ? goBack : undefined}
-            style={navBtnStyle(canGoBack)}
-          >
-            <ChevronLeft size={12} color={t.textMuted} />
-          </button>
-          <span
-            className="text-[11px] select-none"
-            style={{ color: t.textMuted, fontFamily: "'DM Mono', monospace", minWidth: 68, textAlign: "center" }}
-          >
-            {navLabel}
-          </span>
-          <button
-            disabled={!canGoFwd}
-            onClick={canGoFwd ? goFwd : undefined}
-            style={navBtnStyle(canGoFwd)}
-          >
-            <ChevronRight size={12} color={t.textMuted} />
-          </button>
-        </div>
+      <div className="flex items-center justify-between">
+        <p className="text-[12px]" style={{ color: t.contribText, fontFamily: "'DM Sans', sans-serif" }}>
+          <span className="font-semibold" style={{ color: t.textPrimary }}>{totalTasks}</span>{" "}
+          tasks completed in {currentYear}
+        </p>
       </div>
 
-      {/* Graph */}
-      {mode === "month" ? (
-        <MonthView year={year} month={month} lookup={lookup} colors={COLORS} />
-      ) : (
-        <YearView year={year} lookup={lookup} colors={COLORS} />
-      )}
+      <div className="overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
+        <svg width={svgW} height={svgH} style={{ display: "block", fontFamily: "'DM Mono', monospace" }}>
+
+          {/* Month labels — Jan → Dec (→ Jan → Dec for multi-year windows) */}
+          {monthLabels.map(({ label, weekIdx }) => (
+            <text key={`${label}-${weekIdx}`} x={DAY_LABEL_W + weekIdx * STEP} y={12} fontSize={10} fill={t.graphLabel}>
+              {label}
+            </text>
+          ))}
+
+          {/* Day-of-week labels */}
+          {DAY_ROW_LABELS.map(({ row, label }) => (
+            <text
+              key={label}
+              x={0}
+              y={MONTH_ROW_H + row * STEP + CELL - 1}
+              fontSize={9}
+              fill={t.graphDayLabel}
+              textAnchor="start"
+            >
+              {label}
+            </text>
+          ))}
+
+          {/* Cells */}
+          {weeks.map((week, wi) =>
+            week.map((cell, di) => {
+              const x = DAY_LABEL_W + wi * STEP;
+              const y = MONTH_ROW_H + di * STEP;
+
+              if (cell.empty) {
+                return (
+                  <rect key={`${wi}-${di}`} x={x} y={y} width={CELL} height={CELL} rx={2} ry={2} fill="transparent" />
+                );
+              }
+
+              return (
+                <rect
+                  key={`${wi}-${di}`}
+                  x={x} y={y} width={CELL} height={CELL} rx={2} ry={2}
+                  fill={LEVELS[cell.level]}
+                  style={{ cursor: "default", transition: "opacity 0.15s" }}
+                  onMouseEnter={(e) => handleMouseEnter(e, cell.iso, cell.count)}
+                  onMouseLeave={handleMouseLeave}
+                />
+              );
+            })
+          )}
+        </svg>
+      </div>
 
       {/* Legend */}
       <div className="flex items-center justify-end gap-1.5">
         <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>Less</span>
-        {COLORS.map((c, i) => (
+        {LEVELS.map((c, i) => (
           <div key={i} className="w-2.5 h-2.5 rounded-sm" style={{ background: c }} />
         ))}
         <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>More</span>

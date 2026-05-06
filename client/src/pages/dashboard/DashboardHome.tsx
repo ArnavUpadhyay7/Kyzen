@@ -1,14 +1,3 @@
-// ─── DashboardHome.tsx ────────────────────────────────────────────────────────
-//
-// Only changes from the original:
-//   1. Imports ContributionGraph from its own file
-//   2. Passes `joinDate` to ContributionGraph (sourced from dashboard or auth context)
-//   3. All store imports come from the same path — store internals are now clean
-//
-// Everything else (layout, animations, skeleton, XpPopup, ErrorToast,
-// HistoryModal, DiffBadge, etc.) is preserved verbatim.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -594,16 +583,12 @@ export default function DashboardHome() {
               <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
                 Activity
               </p>
+              <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>Last 53 weeks</span>
             </div>
             {loading ? (
               <div className="h-[130px] rounded-lg" style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite" }} />
             ) : (
-              // joinDate can be sourced from your auth context / user profile if available.
-              // Pass undefined to allow navigation back only as far as data exists.
-              <ContributionGraph
-                data={dashboard?.contributionGraph ?? []}
-                joinDate={undefined}
-              />
+              <ContributionGraph data={dashboard?.contributionGraph ?? []} />
             )}
           </motion.section>
         </div>
