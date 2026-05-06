@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 
 import authRoutes    from "./routes/auth.route";
 import taskRoutes    from "./routes/task.route";
-import journalRoutes from "./routes/journal.route";        // ← new
+import journalRoutes from "./routes/journal.route";      
 import { getDashboard } from "./controllers/dashboard.controller";
 import { requireAuth }  from "./middleware/auth.middleware";
 import "./cron/expireTask";
