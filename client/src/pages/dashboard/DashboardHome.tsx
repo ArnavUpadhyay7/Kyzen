@@ -9,7 +9,8 @@ import { useTokens } from "../../context/ThemeContext";
 
 // ─── Contribution Graph ───────────────────────────────────────────────────────
 
-const CELL = 11;
+// Bumped CELL from 11 → 13 to match the GitHub embed density on DevDashboard
+const CELL = 13;
 const GAP  = 3;
 const STEP = CELL + GAP;
 
@@ -328,7 +329,6 @@ export default function DashboardHome() {
     setEditingId(null);
   }
 
-  // Card / section style helpers
   const card  = { background: t.card,    border: `1px solid ${t.border}` };
   const card2 = { background: t.cardAlt, border: `1px solid ${t.border}` };
 
@@ -452,10 +452,7 @@ export default function DashboardHome() {
                           type="button"
                           onClick={() => { setNewDiff(d); setDiffOpen(false); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors"
-                          style={{
-                            color: DIFF_META[d].color,
-                            fontFamily: "'DM Mono', monospace",
-                          }}
+                          style={{ color: DIFF_META[d].color, fontFamily: "'DM Mono', monospace" }}
                           onMouseEnter={(e) => (e.currentTarget.style.background = t.mutedBtn)}
                           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >

@@ -9,6 +9,7 @@ import Profile from './pages/dashboard/Profile';
 import { Toaster } from "./components/ui/Toast";
 import { ProtectedRoute, PublicRoute } from "./components/auth/ProtectedRoute";
 import Settings from './pages/dashboard/Settings';
+import DevDashboard from './pages/dashboard/DevDashboard';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
             <Route path="leaderboard"   element={<DashboardHome />} />
             <Route path="profile"       element={<Profile />} />
             <Route path="settings"      element={<Settings />} />
+            <Route path="dev"           element={<DevDashboard />} />
           </Route>
         </Route>
       </Routes>
