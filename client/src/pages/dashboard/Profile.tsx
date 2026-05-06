@@ -341,9 +341,9 @@ export default function Profile() {
               <SectionLabel icon={<Target size={13} />}>Progress Breakdown</SectionLabel>
               <div className="space-y-4">
                 {[
-                  { label: "Easy",   count: 41, total: 60, color: "#4ade80", bg: "rgba(74,222,128,0.1)"   },
-                  { label: "Medium", count: 33, total: 50, color: "#facc15", bg: "rgba(250,204,21,0.1)"   },
-                  { label: "Hard",   count: 23, total: 40, color: "#f87171", bg: "rgba(248,113,113,0.1)"  },
+                  { label: "EASY",   count: 41, total: 60, color: "#4ade80", bg: "rgba(74,222,128,0.1)"   },
+                  { label: "MEDIUM", count: 33, total: 50, color: "#facc15", bg: "rgba(250,204,21,0.1)"   },
+                  { label: "HARD",   count: 23, total: 40, color: "#f87171", bg: "rgba(248,113,113,0.1)"  },
                 ].map((d, i) => {
                   const pct = Math.round((d.count / d.total) * 100);
                   return (

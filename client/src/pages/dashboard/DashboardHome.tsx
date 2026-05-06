@@ -3,27 +3,26 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Flame, Plus, Zap, Trash2, Pencil, CheckCircle2,
   X, ChevronDown, History, Circle, Sword, Shield, Star,
+  Loader2, AlertCircle,
 } from "lucide-react";
 import { useDashboardStore, type Difficulty, type Task } from "../../store/usedashboardstore";
 import { useTokens } from "../../context/ThemeContext";
 
 // ─── Contribution Graph ───────────────────────────────────────────────────────
 
-// Bumped CELL from 11 → 13 to match the GitHub embed density on DevDashboard
 const CELL = 13;
 const GAP  = 3;
 const STEP = CELL + GAP;
 
 function ContributionGraph({ data }: { data: { date: string; count: number }[] }) {
   const t = useTokens();
-
   const LEVELS = [t.graphEmpty, t.graphL1, t.graphL2, t.graphL3, t.graphL4];
 
   const lookup: Record<string, number> = {};
   data.forEach((d) => { lookup[d.date] = d.count; });
 
-  const today      = new Date();
-  const dayOfWeek  = today.getDay();
+  const today       = new Date();
+  const dayOfWeek   = today.getDay();
   const startSunday = new Date(today);
   startSunday.setDate(today.getDate() - dayOfWeek - 52 * 7);
   startSunday.setHours(0, 0, 0, 0);
@@ -85,7 +84,6 @@ function ContributionGraph({ data }: { data: { date: string; count: number }[] }
           tasks completed in {currentYear}
         </p>
       </div>
-
       <div className="overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
         <svg width={svgW} height={svgH} style={{ display: "block", fontFamily: "'DM Mono', monospace" }}>
           {monthLabels.map(({ label, weekIdx }) => (
@@ -119,7 +117,6 @@ function ContributionGraph({ data }: { data: { date: string; count: number }[] }
           )}
         </svg>
       </div>
-
       <div className="flex items-center justify-end gap-1.5">
         <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>Less</span>
         {LEVELS.map((c, i) => (
@@ -134,9 +131,9 @@ function ContributionGraph({ data }: { data: { date: string; count: number }[] }
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DIFF_META: Record<Difficulty, { label: string; color: string; bg: string; xp: number }> = {
-  E: { label: "Easy",   color: "#4ade80", bg: "rgba(74,222,128,0.10)",  xp: 30  },
-  M: { label: "Medium", color: "#facc15", bg: "rgba(250,204,21,0.10)",  xp: 60  },
-  H: { label: "Hard",   color: "#f87171", bg: "rgba(248,113,113,0.10)", xp: 100 },
+  EASY:   { label: "Easy",   color: "#4ade80", bg: "rgba(74,222,128,0.10)",  xp: 30  },
+  MEDIUM: { label: "Medium", color: "#facc15", bg: "rgba(250,204,21,0.10)",  xp: 60  },
+  HARD:   { label: "Hard",   color: "#f87171", bg: "rgba(248,113,113,0.10)", xp: 100 },
 };
 
 const CHARACTER_TITLES: Record<number, { title: string; icon: React.ReactNode }> = {
@@ -148,7 +145,7 @@ const CHARACTER_TITLES: Record<number, { title: string; icon: React.ReactNode }>
 };
 
 function getCharacter(level: number) {
-  return CHARACTER_TITLES[Math.min(level, 5)] ?? CHARACTER_TITLES[5];
+  return CHARACTER_TITLES[Math.min(Math.max(level, 1), 5)] ?? CHARACTER_TITLES[1];
 }
 
 function groupByDate(tasks: Task[]): Record<string, Task[]> {
@@ -166,7 +163,9 @@ function groupByDate(tasks: Task[]): Record<string, Task[]> {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function DiffBadge({ diff }: { diff: Difficulty }) {
-  const m = DIFF_META[diff];
+  // normalizeDifficulty in the store guarantees diff is always a valid key,
+  // but we guard here too so a stale optimistic record never crashes the UI.
+  const m = DIFF_META[diff] ?? DIFF_META.MEDIUM;
   return (
     <span
       className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md tracking-wide"
@@ -205,6 +204,36 @@ function XpPopup({ xp, onDone }: { xp: number; onDone: () => void }) {
   );
 }
 
+function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  const t = useTokens();
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 4000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <motion.div
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl"
+      style={{
+        background: "rgba(248,113,113,0.12)",
+        border: "1px solid rgba(248,113,113,0.25)",
+        backdropFilter: "blur(12px)",
+      }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+    >
+      <AlertCircle size={13} className="text-[#f87171] shrink-0" />
+      <span className="text-[12px]" style={{ color: t.textSecondary, fontFamily: "'DM Sans', sans-serif" }}>
+        {message}
+      </span>
+      <button onClick={onDismiss}>
+        <X size={12} style={{ color: t.textFaint }} />
+      </button>
+    </motion.div>
+  );
+}
+
 function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }) {
   const t       = useTokens();
   const grouped = groupByDate(tasks);
@@ -227,7 +256,10 @@ function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold" style={{ color: t.textPrimary, fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.02em" }}>
+          <h2
+            className="text-base font-semibold"
+            style={{ color: t.textPrimary, fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.02em" }}
+          >
             Task History
           </h2>
           <button
@@ -238,7 +270,6 @@ function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }
             <X size={13} style={{ color: t.textMuted }} />
           </button>
         </div>
-
         {dates.length === 0 ? (
           <p className="text-[13px] text-center py-8" style={{ color: t.textFaint, fontFamily: "'DM Sans', sans-serif" }}>
             No completed tasks yet.
@@ -276,28 +307,74 @@ function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }
   );
 }
 
+function DashboardSkeleton() {
+  const t = useTokens();
+  const shimmer = {
+    background: t.inputBg,
+    borderRadius: 8,
+    animation: "pulse 1.5s ease-in-out infinite",
+  } as React.CSSProperties;
+
+  return (
+    <div className="min-h-screen p-4 md:p-6 lg:p-8" style={{ background: t.page }}>
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }`}</style>
+      <div className="flex items-center gap-4 mb-8">
+        <div style={{ ...shimmer, width: 40, height: 40, borderRadius: 12 }} />
+        <div className="flex-1 flex flex-col gap-2">
+          <div style={{ ...shimmer, width: 120, height: 14 }} />
+          <div style={{ ...shimmer, width: "100%", height: 6, borderRadius: 999 }} />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="lg:col-span-8 flex flex-col gap-4">
+          <div style={{ ...shimmer, height: 220, borderRadius: 16 }} />
+          <div style={{ ...shimmer, height: 48,  borderRadius: 16 }} />
+          <div style={{ ...shimmer, height: 160, borderRadius: 16 }} />
+        </div>
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          <div style={{ ...shimmer, height: 160, borderRadius: 16 }} />
+          <div style={{ ...shimmer, height: 120, borderRadius: 16 }} />
+          <div style={{ ...shimmer, height: 72,  borderRadius: 16 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashboardHome() {
   const t = useTokens();
+
   const {
-    dashboard, tasks, xpPopup,
+    dashboard, tasks,
+    loading, tasksLoading,
+    error, xpPopup,
     fetchDashboard, fetchTasks,
     createTask, updateTask, deleteTask, completeTask,
     clearXpPopup,
   } = useDashboardStore();
 
   const [newTitle,    setNewTitle]    = useState("");
-  const [newDiff,     setNewDiff]     = useState<Difficulty>("M");
+  const [newDiff,     setNewDiff]     = useState<Difficulty>("MEDIUM");
   const [editingId,   setEditingId]   = useState<string | null>(null);
   const [editTitle,   setEditTitle]   = useState("");
-  const [editDiff,    setEditDiff]    = useState<Difficulty>("M");
+  const [editDiff,    setEditDiff]    = useState<Difficulty>("MEDIUM");
   const [showHistory, setShowHistory] = useState(false);
   const [diffOpen,    setDiffOpen]    = useState(false);
+  const [toastMsg,    setToastMsg]    = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { fetchDashboard(); fetchTasks(); }, []);
+  useEffect(() => {
+    fetchDashboard();
+    fetchTasks();
+  }, []);
+
+  // Surface store errors as transient toasts — deduplicated
+  useEffect(() => {
+    if (error) setToastMsg(error);
+  }, [error]);
 
   useEffect(() => {
     if (xpPopup) {
@@ -306,16 +383,21 @@ export default function DashboardHome() {
     }
   }, [xpPopup]);
 
-  const activeTasks    = tasks.filter((task) => !task.completed);
-  const completedTasks = tasks.filter((task) => task.completed);
-  const xpPct          = dashboard ? Math.round((dashboard.currentXP / dashboard.totalXPForLevel) * 100) : 0;
+  // Show full skeleton only on very first dashboard load
+  if (loading && !dashboard) return <DashboardSkeleton />;
 
-  function handleCreate(e: React.FormEvent) {
+  const activeTasks    = tasks.filter((t) => !t.completed);
+  const completedTasks = tasks.filter((t) =>  t.completed);
+  const xpPct          = dashboard && dashboard.totalXPForLevel > 0
+    ? Math.min(Math.round((dashboard.currentXP / dashboard.totalXPForLevel) * 100), 100)
+    : 0;
+
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = newTitle.trim();
     if (!trimmed) return;
-    createTask(trimmed, newDiff);
     setNewTitle("");
+    await createTask(trimmed, newDiff);
   }
 
   function startEdit(task: Task) {
@@ -324,26 +406,38 @@ export default function DashboardHome() {
     setEditDiff(task.difficulty);
   }
 
-  function handleEditSave(id: string) {
-    updateTask(id, { title: editTitle.trim(), difficulty: editDiff });
+  async function handleEditSave(id: string) {
+    const trimmed = editTitle.trim();
+    if (!trimmed) return;
     setEditingId(null);
+    await updateTask(id, { title: trimmed, difficulty: editDiff });
   }
 
-  const card  = { background: t.card,    border: `1px solid ${t.border}` };
+  const card = { background: t.card, border: `1px solid ${t.border}` };
+
+  // Username comes from the dashboard API response (which fetches the backend user).
+  // No need to call useAuth here — avoids a second /me request.
+  const displayName    = dashboard?.username ?? "You";
+  const displayInitial = displayName[0]?.toUpperCase() ?? "K";
 
   return (
     <div
       className="min-h-screen p-4 md:p-6 lg:p-8 transition-colors duration-300"
       style={{ background: t.page, fontFamily: "'DM Sans', sans-serif" }}
     >
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }`}</style>
+
       <AnimatePresence>
         {xpPopup && <XpPopup xp={xpPopup} onDone={clearXpPopup} />}
       </AnimatePresence>
       <AnimatePresence>
         {showHistory && <HistoryModal tasks={tasks} onClose={() => setShowHistory(false)} />}
       </AnimatePresence>
+      <AnimatePresence>
+        {toastMsg && <ErrorToast message={toastMsg} onDismiss={() => setToastMsg(null)} />}
+      </AnimatePresence>
 
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <motion.header
         className="flex items-center gap-4 mb-8"
         initial={{ opacity: 0, y: -8 }}
@@ -354,18 +448,18 @@ export default function DashboardHome() {
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white font-bold text-sm"
           style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
         >
-          {dashboard?.username?.[0]?.toUpperCase() ?? "K"}
+          {displayInitial}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-[15px] font-semibold truncate" style={{ color: t.textPrimary, letterSpacing: "-0.01em" }}>
-              {dashboard?.username ?? "Kyzen"}
+              {displayName}
             </span>
             <span
               className="text-[10px] font-medium px-2 py-0.5 rounded-full"
               style={{ background: t.accentSoft, border: `1px solid ${t.accentBorder}`, color: "#818cf8", fontFamily: "'DM Mono', monospace" }}
             >
-              LVL {dashboard?.level ?? 1}
+              LVL {dashboard?.level ?? "─"}
             </span>
             <span className="hidden sm:flex items-center gap-1 text-[11px]" style={{ color: t.orange, fontFamily: "'DM Mono', monospace" }}>
               <Flame size={12} style={{ color: t.orange }} />
@@ -389,10 +483,10 @@ export default function DashboardHome() {
         </div>
       </motion.header>
 
-      {/* Main Grid */}
+      {/* ── Main Grid ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        {/* LEFT */}
+        {/* LEFT ─────────────────────────────────────────────────────────────── */}
         <div className="lg:col-span-8 flex flex-col gap-4">
 
           {/* Active Quests */}
@@ -428,11 +522,11 @@ export default function DashboardHome() {
                   style={{
                     background: t.inputBg,
                     border: `1px solid ${t.inputBorder}`,
-                    color: DIFF_META[newDiff].color,
+                    color: DIFF_META[newDiff]?.color ?? "#facc15",
                     fontFamily: "'DM Mono', monospace",
                   }}
                 >
-                  {DIFF_META[newDiff].label}
+                  {DIFF_META[newDiff]?.label ?? "Medium"}
                   <ChevronDown size={11} />
                 </button>
                 <AnimatePresence>
@@ -445,7 +539,7 @@ export default function DashboardHome() {
                       exit={{ opacity: 0, y: -4, scale: 0.96 }}
                       transition={{ duration: 0.15 }}
                     >
-                      {(["E", "M", "H"] as Difficulty[]).map((d) => (
+                      {(["EASY", "MEDIUM", "HARD"] as Difficulty[]).map((d) => (
                         <button
                           key={d}
                           type="button"
@@ -475,101 +569,112 @@ export default function DashboardHome() {
 
             <div className="flex flex-col gap-2">
               <AnimatePresence initial={false}>
-                {activeTasks.length === 0 && (
+                {tasksLoading && activeTasks.length === 0 ? (
+                  <div className="flex flex-col gap-2">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="h-10 rounded-xl"
+                        style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite", animationDelay: `${i * 0.1}s` }}
+                      />
+                    ))}
+                  </div>
+                ) : activeTasks.length === 0 ? (
                   <p className="text-[13px] text-center py-6" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
                     All caught up ✦
                   </p>
-                )}
-                {activeTasks.map((task) => (
-                  <motion.div
-                    key={task.id}
-                    layout
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
-                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                  >
-                    {editingId === task.id ? (
-                      <div
-                        className="flex items-center gap-2 p-3 rounded-xl"
-                        style={{ background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)" }}
-                      >
-                        <input
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleEditSave(task.id)}
-                          autoFocus
-                          className="flex-1 bg-transparent text-[13px] outline-none"
-                          style={{ color: t.textPrimary }}
-                        />
-                        {(["E", "M", "H"] as Difficulty[]).map((d) => (
-                          <button
-                            key={d}
-                            onClick={() => setEditDiff(d)}
-                            className="text-[10px] px-1.5 py-0.5 rounded-md transition-all"
-                            style={{
-                              color: DIFF_META[d].color,
-                              background: editDiff === d ? DIFF_META[d].bg : "transparent",
-                              opacity: editDiff === d ? 1 : 0.4,
-                              fontFamily: "'DM Mono', monospace",
-                            }}
-                          >
-                            {DIFF_META[d].label}
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => handleEditSave(task.id)}
-                          className="text-[11px] px-2.5 py-1 rounded-lg text-white"
-                          style={{ background: "#6366f1" }}
+                ) : (
+                  activeTasks.map((task) => (
+                    <motion.div
+                      key={task.id}
+                      layout
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      {editingId === task.id ? (
+                        <div
+                          className="flex items-center gap-2 p-3 rounded-xl"
+                          style={{ background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)" }}
                         >
-                          Save
-                        </button>
-                        <button onClick={() => setEditingId(null)}>
-                          <X size={13} style={{ color: t.textMuted }} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl group transition-colors"
-                        style={{ background: t.cardAlt, border: `1px solid ${t.border}` }}
-                      >
-                        <button
-                          onClick={() => completeTask(task.id)}
-                          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 group/cb"
-                          style={{ border: `1.5px solid ${t.accentBorder}` }}
-                        >
-                          <CheckCircle2 size={13} className="text-[#6366f1] opacity-0 group-hover/cb:opacity-100 transition-opacity" />
-                        </button>
-                        <span className="flex-1 text-[13px] truncate" style={{ color: t.textSecondary }}>{task.title}</span>
-                        <DiffBadge diff={task.difficulty} />
-                        <span className="text-[10px] hidden sm:block" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                          +{DIFF_META[task.difficulty].xp}
-                        </span>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <input
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleEditSave(task.id)}
+                            autoFocus
+                            className="flex-1 bg-transparent text-[13px] outline-none"
+                            style={{ color: t.textPrimary }}
+                          />
+                          {(["EASY", "MEDIUM", "HARD"] as Difficulty[]).map((d) => (
+                            <button
+                              key={d}
+                              onClick={() => setEditDiff(d)}
+                              className="text-[10px] px-1.5 py-0.5 rounded-md transition-all"
+                              style={{
+                                color: DIFF_META[d].color,
+                                background: editDiff === d ? DIFF_META[d].bg : "transparent",
+                                opacity: editDiff === d ? 1 : 0.4,
+                                fontFamily: "'DM Mono', monospace",
+                              }}
+                            >
+                              {DIFF_META[d].label}
+                            </button>
+                          ))}
                           <button
-                            onClick={() => startEdit(task)}
-                            className="w-6 h-6 rounded-md flex items-center justify-center"
-                            style={{ background: t.mutedBtn }}
+                            onClick={() => handleEditSave(task.id)}
+                            className="text-[11px] px-2.5 py-1 rounded-lg text-white"
+                            style={{ background: "#6366f1" }}
                           >
-                            <Pencil size={10} style={{ color: t.textMuted }} />
+                            Save
                           </button>
-                          <button
-                            onClick={() => deleteTask(task.id)}
-                            className="w-6 h-6 rounded-md flex items-center justify-center"
-                            style={{ background: "rgba(248,113,113,0.08)" }}
-                          >
-                            <Trash2 size={10} className="text-[#f87171]" />
+                          <button onClick={() => setEditingId(null)}>
+                            <X size={13} style={{ color: t.textMuted }} />
                           </button>
                         </div>
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
+                      ) : (
+                        <div
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl group transition-colors"
+                          style={{ background: t.cardAlt, border: `1px solid ${t.border}` }}
+                        >
+                          <button
+                            onClick={() => completeTask(task.id)}
+                            className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 group/cb"
+                            style={{ border: `1.5px solid ${t.accentBorder}` }}
+                          >
+                            <CheckCircle2 size={13} className="text-[#6366f1] opacity-0 group-hover/cb:opacity-100 transition-opacity" />
+                          </button>
+                          <span className="flex-1 text-[13px] truncate" style={{ color: t.textSecondary }}>{task.title}</span>
+                          <DiffBadge diff={task.difficulty} />
+                          <span className="text-[10px] hidden sm:block" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                            +{task.xpReward}
+                          </span>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => startEdit(task)}
+                              className="w-6 h-6 rounded-md flex items-center justify-center"
+                              style={{ background: t.mutedBtn }}
+                            >
+                              <Pencil size={10} style={{ color: t.textMuted }} />
+                            </button>
+                            <button
+                              onClick={() => deleteTask(task.id)}
+                              className="w-6 h-6 rounded-md flex items-center justify-center"
+                              style={{ background: "rgba(248,113,113,0.08)" }}
+                            >
+                              <Trash2 size={10} className="text-[#f87171]" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  ))
+                )}
               </AnimatePresence>
             </div>
           </motion.section>
 
-          {/* History */}
+          {/* History row */}
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.16, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
@@ -592,7 +697,7 @@ export default function DashboardHome() {
             <ChevronDown size={13} style={{ color: t.textFaint }} className="-rotate-90" />
           </motion.div>
 
-          {/* Contribution Graph */}
+          {/* Contribution graph */}
           <motion.section
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.22, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
@@ -605,14 +710,18 @@ export default function DashboardHome() {
               </p>
               <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>Last 53 weeks</span>
             </div>
-            <ContributionGraph data={dashboard?.contributionGraph ?? []} />
+            {loading ? (
+              <div className="h-[130px] rounded-lg" style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite" }} />
+            ) : (
+              <ContributionGraph data={dashboard?.contributionGraph ?? []} />
+            )}
           </motion.section>
         </div>
 
-        {/* RIGHT */}
+        {/* RIGHT ────────────────────────────────────────────────────────────── */}
         <div className="lg:col-span-4 flex flex-col gap-4">
 
-          {/* Character Card */}
+          {/* Character */}
           <motion.section
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
@@ -634,14 +743,14 @@ export default function DashboardHome() {
                   {getCharacter(dashboard?.level ?? 1).title}
                 </p>
                 <p className="text-[12px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                  Level {dashboard?.level ?? 1}
+                  Level {dashboard?.level ?? "─"}
                 </p>
               </div>
             </div>
             <div className="mt-4">
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                  {dashboard?.currentXP ?? 0} / {dashboard?.totalXPForLevel ?? 1000} XP
+                  {dashboard?.currentXP ?? 0} / {dashboard?.totalXPForLevel ?? "─"} XP
                 </span>
                 <span className="text-[11px] text-[#6366f1]" style={{ fontFamily: "'DM Mono', monospace" }}>{xpPct}%</span>
               </div>
@@ -668,17 +777,21 @@ export default function DashboardHome() {
               Today
             </p>
             <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Tasks",     value: dashboard?.todayStats.totalTasks    ?? activeTasks.length    },
-                { label: "Done",      value: dashboard?.todayStats.completedTasks ?? completedTasks.length },
-                { label: "XP Earned", value: dashboard?.todayStats.xpEarned      ?? 0                     },
-              ].map(({ label, value }) => (
+              {([
+                { label: "Tasks", value: dashboard?.todayStats.totalTasks     ?? activeTasks.length    },
+                { label: "Done",  value: dashboard?.todayStats.completedTasks ?? completedTasks.length },
+                { label: "XP",    value: dashboard?.todayStats.xpEarned       ?? 0                     },
+              ] as const).map(({ label, value }) => (
                 <div
                   key={label}
                   className="rounded-xl p-3 text-center transition-colors"
                   style={{ background: t.cardAlt, border: `1px solid ${t.border}` }}
                 >
-                  <p className="text-[18px] font-semibold" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>{value}</p>
+                  {loading ? (
+                    <div className="h-5 w-8 mx-auto rounded" style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite" }} />
+                  ) : (
+                    <p className="text-[18px] font-semibold" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>{value}</p>
+                  )}
                   <p className="text-[10px] mt-0.5" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>{label}</p>
                 </div>
               ))}
@@ -696,20 +809,25 @@ export default function DashboardHome() {
               className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{ background: "rgba(167,139,250,0.10)" }}
             >
-              <Zap size={15} className="text-[#a78bfa]" />
+              {loading
+                ? <Loader2 size={15} className="text-[#a78bfa] animate-spin" />
+                : <Zap size={15} className="text-[#a78bfa]" />
+              }
             </div>
             <div>
               <p className="text-[15px] font-semibold" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>
                 {dashboard?.xpToNextLevel ?? "─"} XP
               </p>
               <p className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                to reach Level {(dashboard?.level ?? 1) + 1}
+                to reach Level {dashboard ? dashboard.level + 1 : "─"}
               </p>
             </div>
             {dashboard && (
               <div className="ml-auto flex items-center gap-1" style={{ color: t.orange }}>
                 <Flame size={13} />
-                <span className="text-[12px] font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>{dashboard.streak}</span>
+                <span className="text-[12px] font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>
+                  {dashboard.streak}
+                </span>
               </div>
             )}
           </motion.section>

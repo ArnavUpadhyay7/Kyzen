@@ -31,14 +31,14 @@ export interface AuthResponse {
 
 export const authApi = {
   signup: (data: SignupData) =>
-    api.post<AuthResponse>("/api/auth/signup", data),
+    api.post<AuthResponse>("/auth/signup", data),
 
   login: (data: LoginData) =>
-    api.post<AuthResponse>("/api/auth/login", data),
+    api.post<AuthResponse>("/auth/login", data),
 
   logout: () =>
-    api.post<{ message: string }>("/api/auth/logout"),
+    api.post<{ message: string }>("/auth/logout"),
 
   signout: () =>
-    api.delete<{ message: string }>("/api/auth/signout"),
+    api.delete<{ message: string }>("/auth/signout"),
 };

@@ -28,32 +28,32 @@ export interface UpsertJournalPayload {
 }
 
 export const journalApi = {
-  /** GET /api/journal — all entries, newest first */
+  /** GET /journal — all entries, newest first */
   getAll: async (): Promise<JournalEntry[]> => {
-    const res = await api.get<{ journals: JournalEntry[] }>("/api/journal");
+    const res = await api.get<{ journals: JournalEntry[] }>("/journal");
     return res.data.journals;
   },
 
-  /** GET /api/journal/today — today's entry or null */
+  /** GET /journal/today — today's entry or null */
   getToday: async (): Promise<JournalEntry | null> => {
-    const res = await api.get<{ journal: JournalEntry | null }>("/api/journal/today");
+    const res = await api.get<{ journal: JournalEntry | null }>("/journal/today");
     return res.data.journal;
   },
 
-  /** POST /api/journal — create today's entry */
+  /** POST /journal — create today's entry */
   create: async (payload: UpsertJournalPayload): Promise<JournalEntry> => {
-    const res = await api.post<{ journal: JournalEntry }>("/api/journal", payload);
+    const res = await api.post<{ journal: JournalEntry }>("/journal", payload);
     return res.data.journal;
   },
 
-  /** PATCH /api/journal/:id — update an existing entry */
+  /** PATCH /journal/:id — update an existing entry */
   update: async (id: string, payload: UpsertJournalPayload): Promise<JournalEntry> => {
-    const res = await api.patch<{ journal: JournalEntry }>(`/api/journal/${id}`, payload);
+    const res = await api.patch<{ journal: JournalEntry }>(`/journal/${id}`, payload);
     return res.data.journal;
   },
 
-  /** DELETE /api/journal/:id */
+  /** DELETE /journal/:id */
   delete: async (id: string): Promise<void> => {
-    await api.delete(`/api/journal/${id}`);
+    await api.delete(`/journal/${id}`);
   },
 };
