@@ -7,7 +7,7 @@ import authRoutes from "./routes/auth.route";
 import taskRoutes from "./routes/task.route";
 import { getDashboard } from "./controllers/dashboard.controller";
 import { requireAuth } from "./middleware/auth.middleware";
-import "./cron/expireTasks";
+import "./cron/expireTask";
 
 dotenv.config();
 
@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   })
 );

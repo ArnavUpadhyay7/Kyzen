@@ -9,10 +9,8 @@ export const XP_MAP: Record<Difficulty, number> = {
 
 /**
  * XP required to advance from `level` → `level + 1`.
- * Fixed thresholds for levels 1–4; +500 per level beyond that.
- *
- * Level 1 → 250  |  Level 2 → 400  |  Level 3 → 700  |  Level 4 → 1000
- * Level 5 → 1500 |  Level 6 → 2000 |  …
+ * Level 1 → 250  |  Level 2 → 400  |  Level 3 → 650  |  Level 4 → 900
+ * Level 5 → 1250 |  Level 6 → 1500 |  …
  */
 export function getXPRequired(level: number): number {
   const THRESHOLDS: Record<number, number> = {

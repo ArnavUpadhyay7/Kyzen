@@ -17,10 +17,6 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-/**
- * Strip password before sending user data to the client.
- * Typed against the new schema fields (currentXP / totalXP / lastActiveDate).
- */
 function safeUser(user: {
   id: string;
   username: string;
@@ -152,8 +148,30 @@ export async function login(req: Request, res: Response): Promise<void> {
 }
 
 /**
+ * GET /api/auth/me  (protected)
+ * Returns the currently authenticated user.
+ * Used by the frontend's useAuth hook to verify session on page load.
+ */
+export async function me(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+    });
+
+    if (!user) {
+      res.status(401).json({ message: "User not found." });
+      return;
+    }
+
+    res.status(200).json({ user: safeUser(user) });
+  } catch (err) {
+    console.error("[me]", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+}
+
+/**
  * POST /api/auth/logout
- * Clears the session cookie. No auth required.
  */
 export async function logout(_req: Request, res: Response): Promise<void> {
   res.clearCookie("token");
@@ -162,7 +180,6 @@ export async function logout(_req: Request, res: Response): Promise<void> {
 
 /**
  * DELETE /api/auth/signout  (protected)
- * Permanently deletes the account and clears the session.
  */
 export async function signout(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user!.id;
