@@ -17,7 +17,7 @@ export default function Signup() {
     setError("");
   };
 
-  const handleSubmit = async (e: React.MouseEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!form.username || !form.email || !form.password) {
@@ -146,63 +146,66 @@ export default function Signup() {
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
-          <div className="flex gap-3 mb-4">
-            <div className="flex-1">
-              <label className="block text-white/60 text-xs mb-1.5">Username</label>
+          {/* form tag enables Enter-key submission natively */}
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="flex gap-3 mb-4">
+              <div className="flex-1">
+                <label className="block text-white/60 text-xs mb-1.5">Username</label>
+                <input
+                  name="username"
+                  value={form.username}
+                  onChange={handleChange}
+                  placeholder="eg. john99"
+                  className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-white/60 text-xs mb-1.5">Email</label>
               <input
-                name="username"
-                value={form.username}
+                name="email"
+                type="email"
+                value={form.email}
                 onChange={handleChange}
-                placeholder="eg. john99"
+                placeholder="eg. johnfrans@gmail.com"
                 className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
               />
             </div>
-          </div>
 
-          <div className="mb-4">
-            <label className="block text-white/60 text-xs mb-1.5">Email</label>
-            <input
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="eg. johnfrans@gmail.com"
-              className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
-            />
-          </div>
-
-          <div className="mb-2">
-            <label className="block text-white/60 text-xs mb-1.5">Password</label>
-            <div className="relative">
-              <input
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={form.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 pr-11 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+            <div className="mb-2">
+              <label className="block text-white/60 text-xs mb-1.5">Password</label>
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 pr-11 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <p className="text-white/30 text-xs mb-6">Must be at least 8 characters.</p>
+            <p className="text-white/30 text-xs mb-6">Must be at least 8 characters.</p>
 
-          {error && <p className="text-red-400 text-xs mb-4 text-center">{error}</p>}
+            {error && <p className="text-red-400 text-xs mb-4 text-center">{error}</p>}
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full bg-white hover:bg-white/90 text-black text-sm font-semibold rounded-xl py-3.5 transition-colors disabled:opacity-60"
-          >
-            {loading ? "Creating account..." : "Sign Up"}
-          </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-white hover:bg-white/90 text-black text-sm font-semibold rounded-xl py-3.5 transition-colors disabled:opacity-60"
+            >
+              {loading ? "Creating account..." : "Sign Up"}
+            </button>
+          </form>
 
           <p className="text-white/30 text-sm text-center mt-5">
             Already have an account?{" "}

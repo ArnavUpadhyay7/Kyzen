@@ -1,5 +1,30 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/global/Sidebar";
+import { DashboardThemeProvider, useTheme } from "../context/ThemeContext";
+
+// Inner wrapper reads theme and applies bg/color tokens
+function ThemedShell() {
+  const { theme } = useTheme();
+
+  const bg    = theme === "dark" ? "#0B0B0F" : "#F4F4F6";
+  const mainBg = theme === "dark" ? "#0B0B0F" : "#F4F4F6";
+
+  return (
+    <div
+      className="flex h-screen w-full overflow-hidden transition-colors duration-300"
+      data-theme={theme}
+      style={{ background: bg }}
+    >
+      <Sidebar />
+      <main
+        className="flex-1 overflow-y-auto flex flex-col min-w-0 md:pt-0 pt-14 transition-colors duration-300"
+        style={{ background: mainBg }}
+      >
+        <Outlet />
+      </main>
+    </div>
+  );
+}
 
 export default function DashboardLayout() {
   return (
@@ -7,16 +32,9 @@ export default function DashboardLayout() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
       `}</style>
-
-      <div
-        className="flex h-screen w-full overflow-hidden"
-        style={{ background: "#0B0B0F" }}
-      >
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto flex flex-col min-w-0 md:pt-0 pt-14">
-          <Outlet />
-        </main>
-      </div>
+      <DashboardThemeProvider>
+        <ThemedShell />
+      </DashboardThemeProvider>
     </>
   );
 }

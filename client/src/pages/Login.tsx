@@ -17,7 +17,7 @@ export default function Login() {
     setError("");
   };
 
-  const handleSubmit = async (e: React.MouseEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!form.email || !form.password) {
@@ -131,55 +131,58 @@ export default function Login() {
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
-          <div className="mb-4">
-            <label className="block text-white/60 text-xs mb-1.5">Email</label>
-            <input
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="eg. johnfrans@gmail.com"
-              className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
-            />
-          </div>
-
-          <div className="mb-2">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-white/60 text-xs">Password</label>
-              <button className="text-white/40 text-xs hover:text-white/70 transition-colors">
-                Forgot password?
-              </button>
-            </div>
-            <div className="relative">
+          {/* form tag enables Enter-key submission natively */}
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="mb-4">
+              <label className="block text-white/60 text-xs mb-1.5">Email</label>
               <input
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={form.password}
+                name="email"
+                type="email"
+                value={form.email}
                 onChange={handleChange}
-                placeholder="Enter your password"
-                className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 pr-11 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
+                placeholder="eg. johnfrans@gmail.com"
+                className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
             </div>
-          </div>
 
-          <p className="text-white/30 text-xs mb-6">Must be at least 8 characters.</p>
+            <div className="mb-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-white/60 text-xs">Password</label>
+                <button type="button" className="text-white/40 text-xs hover:text-white/70 transition-colors">
+                  Forgot password?
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  className="w-full bg-[#1a1a1a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 pr-11 placeholder-white/20 focus:outline-none focus:border-white/30 transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
 
-          {error && <p className="text-red-400 text-xs mb-4 text-center">{error}</p>}
+            <p className="text-white/30 text-xs mb-6">Must be at least 8 characters.</p>
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full bg-white hover:bg-white/90 text-black text-sm font-semibold rounded-xl py-3.5 transition-colors disabled:opacity-60"
-          >
-            {loading ? "Logging in..." : "Log In"}
-          </button>
+            {error && <p className="text-red-400 text-xs mb-4 text-center">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-white hover:bg-white/90 text-black text-sm font-semibold rounded-xl py-3.5 transition-colors disabled:opacity-60"
+            >
+              {loading ? "Logging in..." : "Log In"}
+            </button>
+          </form>
 
           <p className="text-white/30 text-sm text-center mt-5">
             Don't have an account?{" "}
