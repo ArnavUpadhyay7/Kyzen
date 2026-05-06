@@ -200,7 +200,7 @@ function ContributionGraph({ username, onReset }: { username: string; onReset: (
       {/* Graph embed */}
       <div className="px-5 py-5 overflow-x-auto">
         {!loaded && !error && (
-          <div className="flex items-center justify-center h-[116px]">
+          <div className="flex items-center justify-center h-29">
             <div className="flex gap-1.5 items-center" style={{ color: t.textFaint }}>
               <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: t.accent, animationDelay: "0ms" }} />
               <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: t.accent, animationDelay: "120ms" }} />
@@ -209,7 +209,7 @@ function ContributionGraph({ username, onReset }: { username: string; onReset: (
           </div>
         )}
         {error && (
-          <div className="flex items-center justify-center h-[116px]">
+          <div className="flex items-center justify-center h-29">
             <p className="text-[12px]" style={{ color: t.danger, fontFamily: "'DM Mono', monospace" }}>
               Could not load graph for @{username}. Check the username and try again.
             </p>

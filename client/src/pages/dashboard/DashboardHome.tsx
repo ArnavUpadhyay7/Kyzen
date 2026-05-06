@@ -330,7 +330,6 @@ export default function DashboardHome() {
   }
 
   const card  = { background: t.card,    border: `1px solid ${t.border}` };
-  const card2 = { background: t.cardAlt, border: `1px solid ${t.border}` };
 
   return (
     <div

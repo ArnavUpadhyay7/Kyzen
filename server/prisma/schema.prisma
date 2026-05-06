@@ -24,6 +24,14 @@ enum TaskStatus {
   MISSED
 }
 
+enum Mood {
+  LOCKED_IN
+  GOOD
+  TIRED
+  BURNED_OUT
+  DISTRACTED
+}
+
 model User {
   id       String  @id @default(cuid())
   username String  @unique
@@ -44,7 +52,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  tasks Task[]
+  tasks    Task[]
+  journals Journal[]
 
   @@map("users")
 }
@@ -69,4 +78,33 @@ model Task {
   @@index([userId, status])
   @@index([expiresAt, status])
   @@map("tasks")
+}
+
+model Journal {
+  id   String @id @default(cuid())
+
+  // Normalized to midnight UTC — one row per user per calendar day
+  date DateTime
+
+  // Entry fields (all optional so partial saves are allowed)
+  completed      String?
+  distractedBy   String?
+  biggestWin     String?
+  tomorrowFocus  String?
+  mood           Mood    @default(GOOD)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign key
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One entry per user per day
+  @@unique([userId, date])
+
+  @@index([userId])
+  @@index([userId, date])
+  @@map("journals")
 }

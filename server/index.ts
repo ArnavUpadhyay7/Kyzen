@@ -3,15 +3,16 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 
-import authRoutes from "./routes/auth.route";
-import taskRoutes from "./routes/task.route";
+import authRoutes    from "./routes/auth.route";
+import taskRoutes    from "./routes/task.route";
+import journalRoutes from "./routes/journal.route";        // ← new
 import { getDashboard } from "./controllers/dashboard.controller";
-import { requireAuth } from "./middleware/auth.middleware";
+import { requireAuth }  from "./middleware/auth.middleware";
 import "./cron/expireTask";
 
 dotenv.config();
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(
@@ -31,6 +32,7 @@ app.get("/", (_req, res) => {
 // Routes
 app.use("/api/auth",      authRoutes);
 app.use("/api/tasks",     requireAuth, taskRoutes);
+app.use("/api/journal",   requireAuth, journalRoutes);
 app.get("/api/dashboard", requireAuth, getDashboard);
 
 app.listen(PORT, () => {
