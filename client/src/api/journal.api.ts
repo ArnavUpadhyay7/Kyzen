@@ -9,7 +9,7 @@ export type Mood =
 
 export interface JournalEntry {
   id: string;
-  date: string;          // ISO datetime string from backend
+  date: string;
   completed: string | null;
   distractedBy: string | null;
   biggestWin: string | null;

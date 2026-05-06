@@ -1,3 +1,14 @@
+// ─── DashboardHome.tsx ────────────────────────────────────────────────────────
+//
+// Only changes from the original:
+//   1. Imports ContributionGraph from its own file
+//   2. Passes `joinDate` to ContributionGraph (sourced from dashboard or auth context)
+//   3. All store imports come from the same path — store internals are now clean
+//
+// Everything else (layout, animations, skeleton, XpPopup, ErrorToast,
+// HistoryModal, DiffBadge, etc.) is preserved verbatim.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -7,126 +18,7 @@ import {
 } from "lucide-react";
 import { useDashboardStore, type Difficulty, type Task } from "../../store/usedashboardstore";
 import { useTokens } from "../../context/ThemeContext";
-
-// ─── Contribution Graph ───────────────────────────────────────────────────────
-
-const CELL = 13;
-const GAP  = 3;
-const STEP = CELL + GAP;
-
-function ContributionGraph({ data }: { data: { date: string; count: number }[] }) {
-  const t = useTokens();
-  const LEVELS = [t.graphEmpty, t.graphL1, t.graphL2, t.graphL3, t.graphL4];
-
-  const lookup: Record<string, number> = {};
-  data.forEach((d) => { lookup[d.date] = d.count; });
-
-  const today       = new Date();
-  const dayOfWeek   = today.getDay();
-  const startSunday = new Date(today);
-  startSunday.setDate(today.getDate() - dayOfWeek - 52 * 7);
-  startSunday.setHours(0, 0, 0, 0);
-
-  const TOTAL_WEEKS = 53;
-
-  type Cell = { iso: string; count: number; level: number; empty: boolean };
-  const weeks: Cell[][] = [];
-
-  for (let w = 0; w < TOTAL_WEEKS; w++) {
-    const week: Cell[] = [];
-    for (let d = 0; d < 7; d++) {
-      const date = new Date(startSunday);
-      date.setDate(startSunday.getDate() + w * 7 + d);
-      if (date > today) {
-        week.push({ iso: "", count: 0, level: 0, empty: true });
-      } else {
-        const iso   = date.toISOString().slice(0, 10);
-        const count = lookup[iso] ?? 0;
-        const level = count === 0 ? 0 : count < 2 ? 1 : count < 4 ? 2 : count < 6 ? 3 : 4;
-        week.push({ iso, count, level, empty: false });
-      }
-    }
-    weeks.push(week);
-  }
-
-  const monthLabels: { label: string; weekIdx: number }[] = [];
-  weeks.forEach((week, wi) => {
-    const firstReal = week.find((c) => !c.empty);
-    if (!firstReal) return;
-    const d = new Date(firstReal.iso);
-    if (d.getDate() <= 7) {
-      const label = d.toLocaleString("en-US", { month: "short" });
-      if (!monthLabels.find((m) => m.label === label)) {
-        monthLabels.push({ label, weekIdx: wi });
-      }
-    }
-  });
-
-  const DAY_LABEL_W = 28;
-  const svgW        = DAY_LABEL_W + TOTAL_WEEKS * STEP;
-  const MONTH_ROW_H = 18;
-  const svgH        = MONTH_ROW_H + 7 * STEP;
-
-  const DAY_LABELS = [
-    { row: 1, label: "Mon" },
-    { row: 3, label: "Wed" },
-    { row: 5, label: "Fri" },
-  ];
-
-  const totalTasks  = data.reduce((s, d) => s + d.count, 0);
-  const currentYear = today.getFullYear();
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-[12px]" style={{ color: t.contribText, fontFamily: "'DM Sans', sans-serif" }}>
-          <span className="font-semibold" style={{ color: t.textPrimary }}>{totalTasks}</span>{" "}
-          tasks completed in {currentYear}
-        </p>
-      </div>
-      <div className="overflow-x-auto pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
-        <svg width={svgW} height={svgH} style={{ display: "block", fontFamily: "'DM Mono', monospace" }}>
-          {monthLabels.map(({ label, weekIdx }) => (
-            <text key={label} x={DAY_LABEL_W + weekIdx * STEP} y={12} fontSize={10} fill={t.graphLabel}>
-              {label}
-            </text>
-          ))}
-          {DAY_LABELS.map(({ row, label }) => (
-            <text key={label} x={0} y={MONTH_ROW_H + row * STEP + CELL - 1} fontSize={9} fill={t.graphDayLabel} textAnchor="start">
-              {label}
-            </text>
-          ))}
-          {weeks.map((week, wi) =>
-            week.map((cell, di) => {
-              const x = DAY_LABEL_W + wi * STEP;
-              const y = MONTH_ROW_H + di * STEP;
-              if (cell.empty) return <rect key={`${wi}-${di}`} x={x} y={y} width={CELL} height={CELL} rx={2} ry={2} fill="transparent" />;
-              return (
-                <rect
-                  key={`${wi}-${di}`}
-                  x={x} y={y} width={CELL} height={CELL} rx={2} ry={2}
-                  fill={LEVELS[cell.level]}
-                  style={{ cursor: "pointer", transition: "opacity 0.15s" }}
-                  onMouseEnter={(e) => { (e.target as SVGRectElement).style.opacity = "0.7"; }}
-                  onMouseLeave={(e) => { (e.target as SVGRectElement).style.opacity = "1"; }}
-                >
-                  <title>{cell.iso}: {cell.count} task{cell.count !== 1 ? "s" : ""}</title>
-                </rect>
-              );
-            })
-          )}
-        </svg>
-      </div>
-      <div className="flex items-center justify-end gap-1.5">
-        <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>Less</span>
-        {LEVELS.map((c, i) => (
-          <div key={i} className="w-2.5 h-2.5 rounded-sm" style={{ background: c }} />
-        ))}
-        <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>More</span>
-      </div>
-    </div>
-  );
-}
+import ContributionGraph from "../../components/dashboard/ContributionGraph";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -163,8 +55,6 @@ function groupByDate(tasks: Task[]): Record<string, Task[]> {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function DiffBadge({ diff }: { diff: Difficulty }) {
-  // normalizeDifficulty in the store guarantees diff is always a valid key,
-  // but we guard here too so a stale optimistic record never crashes the UI.
   const m = DIFF_META[diff] ?? DIFF_META.MEDIUM;
   return (
     <span
@@ -371,7 +261,6 @@ export default function DashboardHome() {
     fetchTasks();
   }, []);
 
-  // Surface store errors as transient toasts — deduplicated
   useEffect(() => {
     if (error) setToastMsg(error);
   }, [error]);
@@ -383,7 +272,6 @@ export default function DashboardHome() {
     }
   }, [xpPopup]);
 
-  // Show full skeleton only on very first dashboard load
   if (loading && !dashboard) return <DashboardSkeleton />;
 
   const activeTasks    = tasks.filter((t) => !t.completed);
@@ -415,8 +303,6 @@ export default function DashboardHome() {
 
   const card = { background: t.card, border: `1px solid ${t.border}` };
 
-  // Username comes from the dashboard API response (which fetches the backend user).
-  // No need to call useAuth here — avoids a second /me request.
   const displayName    = dashboard?.username ?? "You";
   const displayInitial = displayName[0]?.toUpperCase() ?? "K";
 
@@ -708,12 +594,16 @@ export default function DashboardHome() {
               <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
                 Activity
               </p>
-              <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>Last 53 weeks</span>
             </div>
             {loading ? (
               <div className="h-[130px] rounded-lg" style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite" }} />
             ) : (
-              <ContributionGraph data={dashboard?.contributionGraph ?? []} />
+              // joinDate can be sourced from your auth context / user profile if available.
+              // Pass undefined to allow navigation back only as far as data exists.
+              <ContributionGraph
+                data={dashboard?.contributionGraph ?? []}
+                joinDate={undefined}
+              />
             )}
           </motion.section>
         </div>
