@@ -5,7 +5,7 @@ import {
   ArrowRight, RefreshCw, Star, GitPullRequest,
   AlertCircle, Users, Zap, TrendingUp, CalendarDays,
   Trophy, Loader2,
-} from "lucide-react";
+} from "lucide-react"; 
 import { useTokens } from "../../state/theme/ThemeContext";
 import api from "../../lib/axios";
 

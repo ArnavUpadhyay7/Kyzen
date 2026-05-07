@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useTokens } from "../../state/theme/ThemeContext";
 import { useDevMode } from "../../state/devmode/DevModeContext";
-import DevModeModal from "./DevModeModal";
+import DevModeModal from "../dashboard/DevModeModal";
 
 type NavSection = { label: string; items: NavItem[] };
 type NavItem = {

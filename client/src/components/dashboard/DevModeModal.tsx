@@ -22,8 +22,8 @@ export default function DevModeModal({ open, onClose, onUnlocked }: DevModeModal
   const { unlock } = useDevMode();
   const navigate = useNavigate();
 
-  function handleUnlock() {
-    unlock();
+  async function handleUnlock() {
+    await unlock();
     onClose();
     onUnlocked?.();
     navigate("/dashboard/dev");

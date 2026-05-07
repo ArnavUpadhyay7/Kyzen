@@ -1,25 +1,29 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
-
-const STORAGE_KEY = "kyzen-dev-mode-unlocked";
+import { createContext, useContext, type ReactNode } from "react";
+import { useAuth } from "../auth/AuthContext";
+import api from "../../lib/axios";
 
 interface DevModeContextValue {
   isUnlocked: boolean;
-  unlock: () => void;
+  unlock: () => Promise<void>;
 }
 
 const DevModeContext = createContext<DevModeContextValue>({
   isUnlocked: false,
-  unlock: () => {},
+  unlock: async () => {},
 });
 
 export function DevModeProvider({ children }: { children: ReactNode }) {
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(
-    () => localStorage.getItem(STORAGE_KEY) === "true"
-  );
+  const { user, setUser } = useAuth();
 
-  const unlock = () => {
-    setIsUnlocked(true);
-    localStorage.setItem(STORAGE_KEY, "true");
+  const isUnlocked = user?.devMode ?? false;
+
+  const unlock = async () => {
+    try {
+      await api.patch("/user/preferences", { devMode: true });
+      if (user) setUser({ ...user, devMode: true });
+    } catch (err) {
+      console.error("[DevMode] Failed to unlock:", err);
+    }
   };
 
   return (

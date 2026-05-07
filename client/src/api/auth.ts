@@ -21,6 +21,7 @@ export interface AuthUser {
   xp: number;
   level: number;
   streak: number;
+  devMode: boolean;   
   createdAt: string;
   updatedAt: string;
 }
