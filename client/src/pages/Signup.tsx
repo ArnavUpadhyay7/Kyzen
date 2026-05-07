@@ -4,9 +4,11 @@ import { Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { authApi } from "../api/auth";
 import { toast } from "../components/ui/Toast";
+import { useAuth } from "../state/auth/AuthContext";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -35,13 +37,14 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      await authApi.signup({
+      const res = await authApi.signup({
         username: form.username.trim(),
         email: form.email.trim(),
         password: form.password,
       });
+      setUser(res.data.user);
       toast("Account created! Welcome aboard 🎉", "success");
-      setTimeout(() => navigate("/dashboard"), 800);
+      navigate("/dashboard");
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const message = err.response?.data?.message ?? "Sign up failed. Please try again.";
@@ -96,14 +99,12 @@ export default function Signup() {
             ].map((step) => (
               <div
                 key={step.n}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${
-                  step.active ? "bg-white text-black" : "bg-white/10 text-white/60"
-                }`}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${step.active ? "bg-white text-black" : "bg-white/10 text-white/60"
+                  }`}
               >
                 <span
-                  className={`w-6 h-6 rounded-full text-xs font-semibold flex items-center justify-center shrink-0 ${
-                    step.active ? "bg-black text-white" : "bg-white/20 text-white/60"
-                  }`}
+                  className={`w-6 h-6 rounded-full text-xs font-semibold flex items-center justify-center shrink-0 ${step.active ? "bg-black text-white" : "bg-white/20 text-white/60"
+                    }`}
                 >
                   {step.n}
                 </span>

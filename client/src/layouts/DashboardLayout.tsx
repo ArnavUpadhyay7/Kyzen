@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/global/Sidebar";
-import { DashboardThemeProvider, useTokens } from "../context/ThemeContext";
-import { DevModeProvider } from "../context/DevModeContext";
+import { DashboardThemeProvider, useTokens } from "../state/theme/ThemeContext";
+import { DevModeProvider } from "../state/devmode/DevModeContext";
 
 function ThemedShell() {
   const t = useTokens();

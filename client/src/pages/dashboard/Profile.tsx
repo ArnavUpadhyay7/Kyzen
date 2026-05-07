@@ -5,8 +5,8 @@ import {
   CheckCircle2, TrendingUp, Swords, Award, Target,
   Lock, Sparkles, ChevronRight, Users, Hash,
 } from "lucide-react";
-import { useDashboardStore } from "../../store/usedashboardstore";
-import { useTokens } from "../../context/ThemeContext";
+import { useDashboardStore } from "../../state/dashboard/usedashboardstore";
+import { useTokens } from "../../state/theme/ThemeContext";
 import ContributionGraph from "../../components/dashboard/ContributionGraph";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { dashboardApi, localIsoDate, type DashboardData } from "../api/dashboard.api";
-import { tasksApi, XP_MAP, type Task, type Difficulty } from "../api/tasks.api";
+import { dashboardApi, localIsoDate, type DashboardData } from "../../api/dashboard.api";
+import { tasksApi, XP_MAP, type Task, type Difficulty } from "../../api/tasks.api";
 
 // Re-export shared types so existing component imports don't break
 export type { DashboardData, Task, Difficulty };

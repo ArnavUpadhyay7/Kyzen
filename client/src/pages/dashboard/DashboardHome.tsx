@@ -5,8 +5,8 @@ import {
   X, ChevronDown, History, Circle, Sword, Shield, Star,
   Loader2, AlertCircle,
 } from "lucide-react";
-import { useDashboardStore, type Difficulty, type Task } from "../../store/usedashboardstore";
-import { useTokens } from "../../context/ThemeContext";
+import { useDashboardStore, type Difficulty, type Task } from "../../state/dashboard/usedashboardstore";
+import { useTokens } from "../../state/theme/ThemeContext";
 import ContributionGraph from "../../components/dashboard/ContributionGraph";
 
 // ─── Constants ────────────────────────────────────────────────────────────────

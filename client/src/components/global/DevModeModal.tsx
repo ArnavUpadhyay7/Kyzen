@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Terminal, X, Zap, GitBranch, BarChart2, Wrench } from "lucide-react";
-import { useTokens } from "../../context/ThemeContext";
-import { useDevMode } from "../../context/DevModeContext";
+import { useTokens } from "../../state/theme/ThemeContext";
+import { useDevMode } from "../../state/devmode/DevModeContext";
 
 interface DevModeModalProps {
   open: boolean;

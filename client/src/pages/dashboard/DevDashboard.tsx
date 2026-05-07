@@ -6,7 +6,7 @@ import {
   AlertCircle, Users, Zap, TrendingUp, CalendarDays,
   Trophy, Loader2,
 } from "lucide-react";
-import { useTokens } from "../../context/ThemeContext";
+import { useTokens } from "../../state/theme/ThemeContext";
 import api from "../../lib/axios";
 
 // ─── localStorage key ─────────────────────────────────────────────────────────

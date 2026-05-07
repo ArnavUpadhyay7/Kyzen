@@ -4,9 +4,11 @@ import { Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { authApi } from "../api/auth";
 import { toast } from "../components/ui/Toast";
+import { useAuth } from "../state/auth/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -27,12 +29,14 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await authApi.login({
+      const res = await authApi.login({
         email: form.email.trim(),
         password: form.password,
       });
+      setUser(res.data.user);
       toast("Welcome back! 👋", "success");
-      setTimeout(() => navigate("/dashboard"), 800);
+      navigate("/dashboard"); 
+
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const message = err.response?.data?.message ?? "Login failed. Please try again.";

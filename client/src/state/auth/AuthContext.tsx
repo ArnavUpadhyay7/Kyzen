@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import api from "../lib/axios";
-import type { AuthUser } from "../api/auth";
+import api from "../../lib/axios";
+import type { AuthUser } from "../../api/auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

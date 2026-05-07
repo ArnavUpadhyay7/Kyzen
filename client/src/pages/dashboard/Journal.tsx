@@ -7,7 +7,7 @@ import {
   Sparkles, BookOpen, Calendar, TrendingUp, Save,
   Clock, Star, Trash2, Loader2, RefreshCw,
 } from "lucide-react";
-import { useTokens } from "../../context/ThemeContext";
+import { useTokens } from "../../state/theme/ThemeContext";
 import { journalApi, type JournalEntry, type Mood, type UpsertJournalPayload } from "../../api/journal.api";
 import { toast } from "../../components/ui/Toast";
 

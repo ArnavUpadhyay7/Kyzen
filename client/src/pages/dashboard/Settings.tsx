@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Moon, Sun, LogOut, Trash2, ShieldAlert, Palette, Monitor } from "lucide-react";
-import { useTheme, type Theme } from "../../context/ThemeContext";
+import { useTheme, type Theme } from "../../state/theme/ThemeContext";
 import { authApi } from "../../api/auth";
 import { toast } from "../../components/ui/Toast";
 import axios from "axios";
+import { useAuth } from "../../state/auth/AuthContext";
 
 // ── Shared token helpers (reads data-theme from layout wrapper) ──────────────
 
@@ -13,19 +14,17 @@ function useTokens() {
   const dark = theme === "dark";
   return {
     dark,
-    page:        dark ? "#0B0B0F"                    : "#F4F4F6",
-    card:        dark ? "#111115"                    : "#FFFFFF",
-    cardBorder:  dark ? "rgba(255,255,255,0.06)"     : "rgba(0,0,0,0.08)",
-    label:       dark ? "rgba(255,255,255,0.38)"     : "rgba(0,0,0,0.42)",
-    heading:     dark ? "#FFFFFF"                    : "#0D0D10",
-    body:        dark ? "rgba(255,255,255,0.70)"     : "rgba(0,0,0,0.72)",
-    divider:     dark ? "rgba(255,255,255,0.06)"     : "rgba(0,0,0,0.08)",
-    mutedBtn:    dark ? "rgba(255,255,255,0.05)"     : "rgba(0,0,0,0.06)",
-    mutedBtnHov: dark ? "rgba(255,255,255,0.09)"     : "rgba(0,0,0,0.10)",
+    page: dark ? "#0B0B0F" : "#F4F4F6",
+    card: dark ? "#111115" : "#FFFFFF",
+    cardBorder: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)",
+    label: dark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.42)",
+    heading: dark ? "#FFFFFF" : "#0D0D10",
+    body: dark ? "rgba(255,255,255,0.70)" : "rgba(0,0,0,0.72)",
+    divider: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)",
+    mutedBtn: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)",
+    mutedBtnHov: dark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.10)",
   };
 }
-
-// ── Section wrapper ───────────────────────────────────────────────────────────
 
 function Section({
   icon, title, children,
@@ -53,8 +52,6 @@ function Section({
     </div>
   );
 }
-
-// ── Row ───────────────────────────────────────────────────────────────────────
 
 function Row({
   label, sub, children,
@@ -87,8 +84,8 @@ function Row({
 // ── Theme Picker ──────────────────────────────────────────────────────────────
 
 const THEMES: { value: Theme; label: string; icon: React.ReactNode }[] = [
-  { value: "dark",  label: "Dark",   icon: <Moon  size={14} /> },
-  { value: "light", label: "Light",  icon: <Sun   size={14} /> },
+  { value: "dark", label: "Dark", icon: <Moon size={14} /> },
+  { value: "light", label: "Light", icon: <Sun size={14} /> },
 ];
 
 function ThemePicker() {
@@ -107,7 +104,7 @@ function ThemePicker() {
             style={{
               fontFamily: "'DM Mono', monospace",
               background: active ? "#6366f1" : t.mutedBtn,
-              color:      active ? "#fff"    : t.label,
+              color: active ? "#fff" : t.label,
               border: `1px solid ${active ? "#6366f1" : t.cardBorder}`,
             }}
           >
@@ -119,8 +116,6 @@ function ThemePicker() {
     </div>
   );
 }
-
-// ── Danger button ─────────────────────────────────────────────────────────────
 
 function DangerButton({
   icon, label, loading, onClick, color = "#f87171",
@@ -140,7 +135,7 @@ function DangerButton({
       style={{
         fontFamily: "'DM Mono', monospace",
         background: `${color}14`,
-        border:     `1px solid ${color}33`,
+        border: `1px solid ${color}33`,
         color,
       }}
       onMouseEnter={(e) => (e.currentTarget.style.background = `${color}22`)}
@@ -151,8 +146,6 @@ function DangerButton({
     </button>
   );
 }
-
-// ── Confirm modal ─────────────────────────────────────────────────────────────
 
 function ConfirmModal({
   title, body, confirmLabel, onConfirm, onCancel, loading,
@@ -210,21 +203,22 @@ function ConfirmModal({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function Settings() {
-  const navigate  = useNavigate();
-  const t         = useTokens();
+  const navigate = useNavigate();
+  const t = useTokens();
   const { theme } = useTheme();
+  const { setUser } = useAuth();
 
-  const [logoutLoading,  setLogoutLoading]  = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const [signoutLoading, setSignoutLoading] = useState(false);
-  const [showConfirm,    setShowConfirm]    = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  // ── Logout ────────────────────────────────────────────────────────────────
   async function handleLogout() {
     setLogoutLoading(true);
     try {
       await authApi.logout();
+      setUser(null);          
       toast("Logged out successfully.", "success");
-      navigate("/login")
+      navigate("/login");    
     } catch (err) {
       if (axios.isAxiosError(err)) {
         toast(err.response?.data?.message ?? "Logout failed.", "error");
@@ -236,13 +230,13 @@ export default function Settings() {
     }
   }
 
-  // ── Delete account ────────────────────────────────────────────────────────
   async function handleSignout() {
     setSignoutLoading(true);
     try {
       await authApi.signout();
+      setUser(null);
       toast("Account deleted. Goodbye.");
-      setTimeout(() => navigate("/login"), 600);
+      navigate("/login");     
     } catch (err) {
       if (axios.isAxiosError(err)) {
         toast(err.response?.data?.message ?? "Failed to delete account.", "error");

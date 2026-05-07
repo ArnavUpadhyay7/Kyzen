@@ -14,8 +14,8 @@ import {
   Terminal,
   Lock,
 } from "lucide-react";
-import { useTokens } from "../../context/ThemeContext";
-import { useDevMode } from "../../context/DevModeContext";
+import { useTokens } from "../../state/theme/ThemeContext";
+import { useDevMode } from "../../state/devmode/DevModeContext";
 import DevModeModal from "./DevModeModal";
 
 type NavSection = { label: string; items: NavItem[] };
