@@ -224,7 +224,7 @@ export default function Settings() {
     try {
       await authApi.logout();
       toast("Logged out successfully.", "success");
-      setTimeout(() => navigate("/login"), 600);
+      navigate("/login")
     } catch (err) {
       if (axios.isAxiosError(err)) {
         toast(err.response?.data?.message ?? "Logout failed.", "error");
