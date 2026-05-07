@@ -47,6 +47,8 @@ model User {
   streak         Int       @default(0)
   lastActiveDate DateTime?
 
+  devMode Boolean @default(false)
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -81,17 +83,17 @@ model Task {
 }
 
 model Journal {
-  id   String @id @default(cuid())
+  id String @id @default(cuid())
 
   // Normalized to midnight UTC — one row per user per calendar day
   date DateTime
 
   // Entry fields (all optional so partial saves are allowed)
-  completed      String?
-  distractedBy   String?
-  biggestWin     String?
-  tomorrowFocus  String?
-  mood           Mood    @default(GOOD)
+  completed     String?
+  distractedBy  String?
+  biggestWin    String?
+  tomorrowFocus String?
+  mood          Mood    @default(GOOD)
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -103,7 +105,6 @@ model Journal {
 
   // One entry per user per day
   @@unique([userId, date])
-
   @@index([userId])
   @@index([userId, date])
   @@map("journals")

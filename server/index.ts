@@ -8,8 +8,9 @@ import taskRoutes    from "./routes/task.route";
 import journalRoutes from "./routes/journal.route";      
 import { getDashboard } from "./controllers/dashboard.controller";
 import { requireAuth }  from "./middleware/auth.middleware";
-import "./cron/expireTask";
 import githubRoutes from "./routes/github.route";
+import userRouter from "./routes/user.route";
+import "./cron/expireTask";
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use("/api/tasks",     requireAuth, taskRoutes);
 app.use("/api/journal",   requireAuth, journalRoutes);
 app.get("/api/dashboard", requireAuth, getDashboard);
 app.use("/api/github", requireAuth, githubRoutes);
+app.use("/api/user", userRouter);
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

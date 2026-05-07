@@ -28,6 +28,7 @@ function safeUser(user: {
   level: number;
   streak: number;
   lastActiveDate: Date | null;
+  devMode: boolean;          
   createdAt: Date;
   updatedAt: Date;
 }) {

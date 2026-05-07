@@ -1,5 +1,3 @@
-// services/github.service.ts
-
 const GH_API = "https://api.github.com";
 const GH_CONTRIB_API = "https://github-contributions-api.jogruber.de/v4";
 
