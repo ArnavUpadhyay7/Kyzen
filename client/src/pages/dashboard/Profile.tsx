@@ -34,11 +34,11 @@ interface Activity {
 
 // ─── Rarity config ────────────────────────────────────────────────────────────
 
-const RARITY_META: Record<Rarity, { glow: string; border: string; text: string; bg: string; label: string; particle: string }> = {
-  common:    { glow: "rgba(148,163,184,0.10)", border: "rgba(148,163,184,0.15)", text: "#94A3B8", bg: "rgba(148,163,184,0.05)", label: "Common",    particle: "#94A3B8" },
-  rare:      { glow: "rgba(59,130,246,0.16)",  border: "rgba(59,130,246,0.20)",  text: "#60A5FA", bg: "rgba(59,130,246,0.06)", label: "Rare",       particle: "#60A5FA" },
-  epic:      { glow: "rgba(139,92,246,0.20)",  border: "rgba(139,92,246,0.25)",  text: "#A78BFA", bg: "rgba(139,92,246,0.08)", label: "Epic",       particle: "#A78BFA" },
-  legendary: { glow: "rgba(251,191,36,0.20)",  border: "rgba(251,191,36,0.25)",  text: "#FCD34D", bg: "rgba(251,191,36,0.06)", label: "Legendary",  particle: "#FCD34D" },
+const RARITY_META: Record<Rarity, { glow: string; border: string; text: string; bg: string; label: string }> = {
+  common:    { glow: "rgba(148,163,184,0.10)", border: "rgba(148,163,184,0.15)", text: "#94A3B8", bg: "rgba(148,163,184,0.05)", label: "Common"    },
+  rare:      { glow: "rgba(59,130,246,0.16)",  border: "rgba(59,130,246,0.20)",  text: "#60A5FA", bg: "rgba(59,130,246,0.06)", label: "Rare"       },
+  epic:      { glow: "rgba(139,92,246,0.20)",  border: "rgba(139,92,246,0.25)",  text: "#A78BFA", bg: "rgba(139,92,246,0.08)", label: "Epic"       },
+  legendary: { glow: "rgba(251,191,36,0.20)",  border: "rgba(251,191,36,0.25)",  text: "#FCD34D", bg: "rgba(251,191,36,0.06)", label: "Legendary"  },
 };
 
 // ─── Static data ──────────────────────────────────────────────────────────────
@@ -96,14 +96,13 @@ function BadgeCard({ badge, large = false }: { badge: Badge; large?: boolean }) 
         style={{
           padding: large ? "24px 16px" : "20px 12px",
           background: badge.earned
-            ? `linear-gradient(145deg, ${r.bg}, rgba(0,0,0,0))`
-            : "rgba(255,255,255,0.02)",
-          border: `1px solid ${badge.earned ? r.border : "rgba(255,255,255,0.04)"}`,
-          boxShadow: badge.earned && hovered ? `0 8px 32px ${r.glow}, inset 0 1px 0 rgba(255,255,255,0.06)` : "none",
-          opacity: badge.earned ? 1 : 0.3,
+            ? `linear-gradient(145deg, ${r.bg}, transparent)`
+            : t.mutedBtn,
+          border: `1px solid ${badge.earned ? r.border : t.border}`,
+          boxShadow: badge.earned && hovered ? `0 8px 32px ${r.glow}, inset 0 1px 0 ${t.borderMed}` : "none",
+          opacity: badge.earned ? 1 : 0.35,
         }}
       >
-        {/* Rarity top accent */}
         {badge.earned && (
           <div
             className="absolute top-0 left-1/2 -translate-x-1/2 rounded-full"
@@ -111,7 +110,7 @@ function BadgeCard({ badge, large = false }: { badge: Badge; large?: boolean }) 
           />
         )}
 
-        {!badge.earned && <Lock size={8} className="absolute top-2.5 right-2.5" style={{ color: "rgba(255,255,255,0.15)" }} />}
+        {!badge.earned && <Lock size={8} className="absolute top-2.5 right-2.5" style={{ color: t.textFaint }} />}
         {badge.earned && badge.rarity === "legendary" && (
           <Sparkles size={9} className="absolute top-2.5 right-2.5" style={{ color: r.text, opacity: 0.7 }} />
         )}
@@ -121,16 +120,16 @@ function BadgeCard({ badge, large = false }: { badge: Badge; large?: boolean }) 
           style={{
             width: large ? 52 : 44,
             height: large ? 52 : 44,
-            background: badge.earned ? `${r.text}15` : "rgba(255,255,255,0.04)",
-            color: badge.earned ? r.text : "rgba(255,255,255,0.2)",
-            border: `1px solid ${badge.earned ? `${r.text}25` : "transparent"}`,
+            background: badge.earned ? `${r.text}15` : t.mutedBtn,
+            color: badge.earned ? r.text : t.textFaint,
+            border: `1px solid ${badge.earned ? `${r.text}25` : t.border}`,
           }}
         >
           {badge.icon}
         </div>
 
         <div className="text-center">
-          <p className="text-[11px] font-semibold" style={{ color: badge.earned ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.25)", letterSpacing: "-0.01em" }}>
+          <p className="text-[11px] font-semibold" style={{ color: badge.earned ? t.textPrimary : t.textFaint, letterSpacing: "-0.01em" }}>
             {badge.label}
           </p>
           {badge.earned && (
@@ -140,7 +139,6 @@ function BadgeCard({ badge, large = false }: { badge: Badge; large?: boolean }) 
           )}
         </div>
 
-        {/* Hover tooltip */}
         <AnimatePresence>
           {hovered && badge.earned && (
             <motion.div
@@ -150,15 +148,15 @@ function BadgeCard({ badge, large = false }: { badge: Badge; large?: boolean }) 
               transition={{ duration: 0.15 }}
               className="absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-full z-20 rounded-xl px-3 py-2 pointer-events-none"
               style={{
-                background: "rgba(10,10,20,0.96)",
+                background: t.modal,
                 border: `1px solid ${r.border}`,
-                boxShadow: `0 8px 24px rgba(0,0,0,0.6)`,
+                boxShadow: `0 8px 24px rgba(0,0,0,0.25)`,
                 backdropFilter: "blur(12px)",
                 width: 160,
                 marginTop: 8,
               }}
             >
-              <p className="text-[10px] leading-relaxed text-center" style={{ color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans', sans-serif" }}>
+              <p className="text-[10px] leading-relaxed text-center" style={{ color: t.textMuted, fontFamily: "'DM Sans', sans-serif" }}>
                 {badge.desc}
               </p>
             </motion.div>
@@ -181,7 +179,7 @@ function StatPill({ icon, label, value, color, sub }: {
         <span style={{ color, opacity: 0.7 }}>{icon}</span>
         <span className="text-[9px] uppercase tracking-[0.1em]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>{label}</span>
       </div>
-      <span className="text-[22px] font-bold tabular-nums" style={{ color: "rgba(255,255,255,0.92)", letterSpacing: "-0.03em", fontFamily: "'DM Sans', sans-serif" }}>{value}</span>
+      <span className="text-[22px] font-bold tabular-nums" style={{ color: t.textPrimary, letterSpacing: "-0.03em", fontFamily: "'DM Sans', sans-serif" }}>{value}</span>
       {sub && <span className="text-[9px]" style={{ color, fontFamily: "'DM Mono', monospace", opacity: 0.8 }}>{sub}</span>}
     </div>
   );
@@ -201,12 +199,15 @@ export default function Profile() {
   const xpPct     = Math.min(Math.round((currentXP / totalXP) * 100), 100);
   const char      = getCharacter(level);
 
-  const earnedBadges = BADGES.filter(b => b.earned);
+  const earnedBadges   = BADGES.filter(b => b.earned);
   const featuredBadges = BADGES.filter(b => b.featured && b.earned);
-  const allBadges      = [...BADGES.filter(b => b.featured && b.earned), ...BADGES.filter(b => !b.featured || !b.earned)];
 
-  const joinDate = "Jan 2025";
+  const joinDate    = "Jan 2025";
   const consistency = 78;
+
+  // Theme-aware surface colors
+  const surfaceBg    = t.isDark ? "rgba(255,255,255,0.03)" : t.card;
+  const subtleBorder = t.isDark ? "rgba(255,255,255,0.06)" : t.border;
 
   return (
     <div
@@ -215,25 +216,25 @@ export default function Profile() {
     >
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
       <div className="relative w-full overflow-hidden" style={{ minHeight: 360 }}>
-        {/* Atmospheric background */}
         <div className="absolute inset-0" style={{
           background: t.isDark
             ? `radial-gradient(ellipse 70% 100% at 20% 0%, ${char.color}18 0%, transparent 65%),
                radial-gradient(ellipse 50% 80% at 80% 20%, rgba(139,92,246,0.08) 0%, transparent 60%),
                linear-gradient(180deg, rgba(99,102,241,0.04) 0%, transparent 100%)`
-            : `radial-gradient(ellipse 70% 100% at 20% 0%, ${char.color}10 0%, transparent 65%),
+            : `radial-gradient(ellipse 70% 100% at 20% 0%, ${char.color}12 0%, transparent 65%),
+               radial-gradient(ellipse 50% 80% at 80% 20%, rgba(139,92,246,0.05) 0%, transparent 60%),
                linear-gradient(180deg, rgba(99,102,241,0.03) 0%, transparent 100%)`,
         }} />
-        {/* Subtle dot grid */}
+
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
+            backgroundImage: `radial-gradient(circle, ${t.isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"} 1px, transparent 1px)`,
             backgroundSize: "28px 28px",
             maskImage: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.4) 70%, transparent)",
           }}
         />
-        {/* Bottom fade into page */}
+
         <div className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
           style={{ background: `linear-gradient(to bottom, transparent, ${t.page})` }} />
 
@@ -250,22 +251,19 @@ export default function Profile() {
               <div
                 className="relative flex items-center justify-center rounded-3xl"
                 style={{
-                  width: 120,
-                  height: 120,
+                  width: 120, height: 120,
                   background: `linear-gradient(145deg, ${char.color}20, ${char.color}08)`,
                   border: `1px solid ${char.color}30`,
-                  boxShadow: `0 0 60px ${char.color}20, 0 0 120px ${char.color}08, inset 0 1px 0 rgba(255,255,255,0.08)`,
+                  boxShadow: `0 0 60px ${char.color}20, 0 0 120px ${char.color}08, inset 0 1px 0 ${t.borderMed}`,
                   color: char.color,
                 }}
               >
                 {char.icon}
-                {/* Rank badge */}
                 <div
                   className="absolute -bottom-3 -right-3 flex items-center justify-center rounded-xl text-[10px] font-bold text-white"
                   style={{
-                    width: 36,
-                    height: 36,
-                    background: `linear-gradient(135deg, #6366f1, #8b5cf6)`,
+                    width: 36, height: 36,
+                    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
                     border: `2px solid ${t.page}`,
                     fontFamily: "'DM Mono', monospace",
                     boxShadow: "0 4px 16px rgba(99,102,241,0.5)",
@@ -279,7 +277,6 @@ export default function Profile() {
 
             {/* Identity */}
             <div className="flex-1 min-w-0 pt-1">
-              {/* Tagline + rank */}
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -302,7 +299,6 @@ export default function Profile() {
                 </span>
               </motion.div>
 
-              {/* Username */}
               <motion.h1
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -318,32 +314,30 @@ export default function Profile() {
                 {username}
               </motion.h1>
 
-              {/* Meta row */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15, duration: 0.35 }}
                 className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-5"
               >
-                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: t.textMuted, fontFamily: "'DM Mono', monospace" }}>
                   <Hash size={10} style={{ opacity: 0.5 }} />
                   Level {level}
                 </span>
-                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: t.orange ?? "#f97316", fontFamily: "'DM Mono', monospace" }}>
+                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: t.orange, fontFamily: "'DM Mono', monospace" }}>
                   <Flame size={10} />
                   {streak}-day streak
                 </span>
-                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                <span className="flex items-center gap-1.5 text-[11px]" style={{ color: t.textMuted, fontFamily: "'DM Mono', monospace" }}>
                   <Award size={10} style={{ opacity: 0.5 }} />
                   {earnedBadges.length} badges
                 </span>
-                <span className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace", opacity: 0.5 }}>
+                <span className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
                   Since {joinDate}
                 </span>
-                {/* Future: clan slot */}
                 <span
                   className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full cursor-not-allowed"
-                  style={{ color: "rgba(255,255,255,0.2)", border: "1px dashed rgba(255,255,255,0.08)", fontFamily: "'DM Mono', monospace" }}
+                  style={{ color: t.textFaint, border: `1px dashed ${t.border}`, fontFamily: "'DM Mono', monospace" }}
                 >
                   <Users size={8} /> No Clan
                 </span>
@@ -366,7 +360,7 @@ export default function Profile() {
                 </div>
                 <div
                   className="relative h-2 rounded-full overflow-hidden"
-                  style={{ background: "rgba(255,255,255,0.06)" }}
+                  style={{ background: t.mutedBtn }}
                 >
                   <motion.div
                     className="absolute inset-y-0 left-0 rounded-full"
@@ -375,7 +369,6 @@ export default function Profile() {
                     transition={{ duration: 1.2, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
                     style={{ background: "linear-gradient(90deg, #6366f1, #a78bfa)" }}
                   />
-                  {/* Glow overlay */}
                   <motion.div
                     className="absolute inset-y-0 left-0 rounded-full"
                     initial={{ width: 0 }}
@@ -406,19 +399,16 @@ export default function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="rounded-2xl overflow-hidden"
-            style={{
-              background: t.isDark ? "rgba(255,255,255,0.03)" : t.card,
-              border: `1px solid ${t.border}`,
-            }}
+            style={{ background: surfaceBg, border: `1px solid ${subtleBorder}` }}
           >
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y sm:divide-y-0"
               style={{ borderColor: t.border }}>
-              <StatPill icon={<Zap size={11} />}         label="Total XP"     value="12,847"        color="#818cf8" sub="↑ 340 this week" />
-              <StatPill icon={<CheckCircle2 size={11} />} label="Completed"    value="97"            color="#4ade80" sub="3 this week" />
-              <StatPill icon={<Flame size={11} />}        label="Streak"       value={`${streak}d`}  color="#f97316" sub="current" />
-              <StatPill icon={<Trophy size={11} />}       label="Best Streak"  value="21d"           color="#facc15" sub="personal best" />
-              <StatPill icon={<TrendingUp size={11} />}   label="Consistency"  value={`${consistency}%`} color="#34d399" sub="last 30 days" />
-              <StatPill icon={<Target size={11} />}       label="Focus Score"  value="—"             color="#94a3b8" sub="coming soon" />
+              <StatPill icon={<Zap size={11} />}          label="Total XP"    value="12,847"            color="#818cf8" sub="↑ 340 this week" />
+              <StatPill icon={<CheckCircle2 size={11} />}  label="Completed"   value="97"                color="#4ade80" sub="3 this week" />
+              <StatPill icon={<Flame size={11} />}         label="Streak"      value={`${streak}d`}      color="#f97316" sub="current" />
+              <StatPill icon={<Trophy size={11} />}        label="Best Streak" value="21d"               color="#facc15" sub="personal best" />
+              <StatPill icon={<TrendingUp size={11} />}    label="Consistency" value={`${consistency}%`} color="#34d399" sub="last 30 days" />
+              <StatPill icon={<Target size={11} />}        label="Focus Score" value="—"                 color="#94a3b8" sub="coming soon" />
             </div>
           </motion.div>
 
@@ -442,7 +432,6 @@ export default function Profile() {
               </span>
             </div>
 
-            {/* Featured badges — larger */}
             {featuredBadges.length > 0 && (
               <div className="grid grid-cols-2 gap-3 mb-3">
                 {featuredBadges.map((badge, i) => (
@@ -458,7 +447,6 @@ export default function Profile() {
               </div>
             )}
 
-            {/* All other badges */}
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
               {BADGES.filter(b => !b.featured || !b.earned).map((badge, i) => (
                 <motion.div
@@ -487,15 +475,8 @@ export default function Profile() {
             </h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              {/* Contribution graph — 3 cols */}
               <div className="lg:col-span-3">
-                <div
-                  className="rounded-2xl p-5"
-                  style={{
-                    background: t.isDark ? "rgba(255,255,255,0.02)" : t.card,
-                    border: `1px solid ${t.border}`,
-                  }}
-                >
+                <div className="rounded-2xl p-5" style={{ background: surfaceBg, border: `1px solid ${subtleBorder}` }}>
                   <p className="text-[10px] uppercase tracking-[0.08em] mb-4" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
                     Contribution — Last 53 weeks
                   </p>
@@ -503,15 +484,8 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Recent activity — 2 cols */}
               <div className="lg:col-span-2">
-                <div
-                  className="rounded-2xl overflow-hidden h-full"
-                  style={{
-                    background: t.isDark ? "rgba(255,255,255,0.02)" : t.card,
-                    border: `1px solid ${t.border}`,
-                  }}
-                >
+                <div className="rounded-2xl overflow-hidden h-full" style={{ background: surfaceBg, border: `1px solid ${subtleBorder}` }}>
                   <div className="px-5 pt-5 pb-3">
                     <p className="text-[10px] uppercase tracking-[0.08em]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
                       Recent Activity
@@ -552,7 +526,7 @@ export default function Profile() {
                   <div className="px-5 pb-5">
                     <button
                       className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] transition-colors"
-                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${t.border}`, color: t.textFaint, fontFamily: "'DM Mono', monospace" }}
+                      style={{ background: t.mutedBtn, border: `1px solid ${t.border}`, color: t.textFaint, fontFamily: "'DM Mono', monospace" }}
                     >
                       View all <ChevronRight size={10} />
                     </button>
@@ -589,7 +563,10 @@ export default function Profile() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.54 + i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                     className="rounded-2xl p-5"
-                    style={{ background: d.bg, border: `1px solid ${d.color}20` }}
+                    style={{
+                      background: t.isDark ? d.bg : t.card,
+                      border: `1px solid ${d.color}${t.isDark ? "20" : "30"}`,
+                    }}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: d.color, fontFamily: "'DM Mono', monospace" }}>
@@ -600,14 +577,14 @@ export default function Profile() {
                       </span>
                     </div>
                     <div className="flex items-end gap-2 mb-3">
-                      <span className="text-[32px] font-bold leading-none" style={{ color: "rgba(255,255,255,0.9)", letterSpacing: "-0.04em" }}>
+                      <span className="text-[32px] font-bold leading-none" style={{ color: t.textPrimary, letterSpacing: "-0.04em" }}>
                         {d.count}
                       </span>
-                      <span className="text-[13px] pb-1" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}>
+                      <span className="text-[13px] pb-1" style={{ color: t.textMuted, fontFamily: "'DM Mono', monospace" }}>
                         / {d.total}
                       </span>
                     </div>
-                    <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                    <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: t.mutedBtn }}>
                       <motion.div
                         className="h-full rounded-full"
                         initial={{ width: 0 }}
@@ -616,7 +593,7 @@ export default function Profile() {
                         style={{ background: d.color }}
                       />
                     </div>
-                    <p className="text-[9px] mt-2" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}>
+                    <p className="text-[9px] mt-2" style={{ color: t.textMuted, fontFamily: "'DM Mono', monospace" }}>
                       {pct}% of goal
                     </p>
                   </motion.div>
@@ -634,19 +611,19 @@ export default function Profile() {
             <div
               className="rounded-2xl px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between"
               style={{
-                background: "rgba(99,102,241,0.04)",
-                border: "1px dashed rgba(99,102,241,0.15)",
+                background: t.accentSoft,
+                border: `1px dashed ${t.accentBorder}`,
               }}
             >
               <div className="flex items-center gap-4">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}
+                  style={{ background: t.accentSoft, border: `1px solid ${t.accentBorder}` }}
                 >
-                  <Users size={16} style={{ color: "#818cf8", opacity: 0.6 }} />
+                  <Users size={16} style={{ color: t.accent, opacity: 0.6 }} />
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.01em" }}>
+                  <p className="text-[13px] font-semibold" style={{ color: t.textMuted, letterSpacing: "-0.01em" }}>
                     Clans & Social — Coming Soon
                   </p>
                   <p className="text-[10px] mt-0.5" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
@@ -656,7 +633,7 @@ export default function Profile() {
               </div>
               <span
                 className="text-[9px] px-3 py-1.5 rounded-full uppercase tracking-widest shrink-0"
-                style={{ background: "rgba(99,102,241,0.1)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.2)", fontFamily: "'DM Mono', monospace" }}
+                style={{ background: t.accentSoft, color: t.accent, border: `1px solid ${t.accentBorder}`, fontFamily: "'DM Mono', monospace" }}
               >
                 Planned
               </span>

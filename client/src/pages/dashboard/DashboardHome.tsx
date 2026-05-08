@@ -8,6 +8,7 @@ import {
 import { useDashboardStore, type Difficulty, type Task } from "../../state/dashboard/usedashboardstore";
 import { useTokens } from "../../state/theme/ThemeContext";
 import ContributionGraph from "../../components/dashboard/ContributionGraph";
+import { useAuth } from "../../state/auth/AuthContext";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -291,8 +292,9 @@ export default function DashboardHome() {
   }
 
   const card = { background: t.card, border: `1px solid ${t.border}` };
+  const { user } = useAuth();
 
-  const displayName    = dashboard?.username ?? "You";
+  const displayName = user?.username ?? "User";
   const displayInitial = displayName[0]?.toUpperCase() ?? "K";
 
   return (
