@@ -845,12 +845,12 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
       {data.pinnedRepos.length > 0 && (
         <motion.div {...stagger(6)}>
           <p
-            className="text-[10px] uppercase tracking-[0.1em] mb-3"
+            className="text-[10px] uppercase tracking-widest mb-3"
             style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}
           >
             Top Repositories
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-4">
             {data.pinnedRepos.map((repo) => (
               <div
                 key={repo.name}
