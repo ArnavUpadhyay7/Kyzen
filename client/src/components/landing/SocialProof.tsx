@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform, } from "framer-motion";
-import { borders, spacing, typography } from "../../design-system";
+import { borders, spacing, typography } from "./design-system";
 import { SectionBadge } from "../ui/SectionBadge";
 import { SectionHeading } from "../ui/SectionHeading";
 import { Card } from "../ui/Card";

@@ -1,4 +1,4 @@
-import { gradients, typography } from "../../design-system";
+import { gradients, typography } from "../landing/design-system";
 
 export const SectionHeading = ({ white, purple, sub }: { white: string; purple: string; sub: string }) => (
   <>

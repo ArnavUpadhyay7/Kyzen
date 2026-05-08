@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { palette } from "../../design-system";
+import { palette } from "../landing/design-system";
 import {motion, useInView} from "framer-motion";
 
 type SkillItem = { name: string; level: number; max: number; color: string };

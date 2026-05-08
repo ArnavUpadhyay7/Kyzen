@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Link } from "react-router-dom";
 import dashboardHero from "../../assets/dashboard_hero.png";
-import { palette, gradients, shadows, typography } from "../../design-system";
+import { palette, gradients, shadows, typography } from "./design-system";
 
 const fadeUp = (delay: number) => ({
   initial: { opacity: 0, y: 32 },

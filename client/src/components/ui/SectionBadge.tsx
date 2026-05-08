@@ -1,4 +1,4 @@
-import { borders, typography } from "../../design-system";
+import { borders, typography } from "../landing/design-system";
 
 export const SectionBadge = ({ text }: { text: string }) => (
   <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5"

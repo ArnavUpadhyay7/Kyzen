@@ -6,7 +6,7 @@ import Footer from "../components/global/Footer";
 import Hero from "../components/landing/Hero";
 import Features from "../components/landing/Features";
 import HowItWorks from "../components/landing/HowItWorks";
-import { palette } from "../design-system";
+import { palette } from "../components/landing/design-system";
 import SocialProof from "../components/landing/SocialProof";
 
 function useLenis() {

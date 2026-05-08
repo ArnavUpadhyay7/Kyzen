@@ -1,4 +1,4 @@
-import { borders, gradients, shadows, anim } from "../../design-system";
+import { borders, gradients, shadows, anim } from "../landing/design-system";
 import {motion} from "framer-motion";
 const { fadeUp } = anim;
 
