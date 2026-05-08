@@ -142,7 +142,7 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
   // Strip time — keeps day boundary clean
   today.setHours(0, 0, 0, 0);
 
-  const todayIso  = localIso(today);
+  // const todayIso  = localIso(today);
   const dayOfWeek = today.getDay(); // 0 = Sun
 
   // Start on the Sunday 52 full weeks before the current week's Sunday

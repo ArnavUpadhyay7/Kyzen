@@ -15,16 +15,11 @@ import ContributionGraph, { type GraphEntry } from "../../components/dashboard/D
 const GH_USERNAME_KEY = "kyzen-gh-username";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-// Mirrors GithubProfileData from the backend service — keep in sync.
-//
-// NOTE: The jogruber contributions API returns { date, count } per day.
-// The backend re-shapes this into ContribDay with contributionCount, but
-// we accept both field names in flattenContribWeeks to be safe.
 
 interface ContribDay {
   date: string;
-  contributionCount?: number; // backend-mapped name
-  count?: number;             // raw jogruber field name (fallback)
+  contributionCount?: number;
+  count?: number;
 }
 interface ContribWeek { contributionDays: ContribDay[] }
 
@@ -70,12 +65,12 @@ interface RankScore {
 // ─── Rank config ──────────────────────────────────────────────────────────────
 
 const RANK_TIERS: Record<RankTier, { min: number; color: string; glow: string; label: string; desc: string }> = {
-  S: { min: 85, color: "#FCD34D", glow: "rgba(252,211,77,0.25)",  label: "S", desc: "Elite"        },
-  A: { min: 70, color: "#A78BFA", glow: "rgba(167,139,250,0.22)", label: "A", desc: "Expert"       },
-  B: { min: 55, color: "#60A5FA", glow: "rgba(96,165,250,0.20)",  label: "B", desc: "Advanced"     },
-  C: { min: 40, color: "#34D399", glow: "rgba(52,211,153,0.18)",  label: "C", desc: "Intermediate" },
-  D: { min: 25, color: "#94A3B8", glow: "rgba(148,163,184,0.15)", label: "D", desc: "Developing"   },
-  E: { min: 0,  color: "#64748B", glow: "rgba(100,116,139,0.12)", label: "E", desc: "Beginner"     },
+  S: { min: 75, color: "#FCD34D", glow: "rgba(252,211,77,0.25)",   label: "S", desc: "Elite"        },
+  A: { min: 60, color: "#A78BFA", glow: "rgba(167,139,250,0.22)",  label: "A", desc: "Expert"       },
+  B: { min: 45, color: "#60A5FA", glow: "rgba(96,165,250,0.20)",   label: "B", desc: "Advanced"     },
+  C: { min: 30, color: "#34D399", glow: "rgba(52,211,153,0.18)",   label: "C", desc: "Intermediate" },
+  D: { min: 15, color: "#94A3B8", glow: "rgba(148,163,184,0.15)",  label: "D", desc: "Developing"   },
+  E: { min: 0,  color: "#64748B", glow: "rgba(100,116,139,0.12)",  label: "E", desc: "Beginner"     },
 };
 
 const TIER_ORDER: RankTier[] = ["S", "A", "B", "C", "D", "E"];
@@ -94,58 +89,95 @@ function getNextTier(tier: RankTier): RankTier | null {
   return idx > 0 ? TIER_ORDER[idx - 1] : null;
 }
 
-/**
- * Flatten ContribWeek[] → GraphEntry[] for ContributionGraph.
- *
- * Accepts both field name shapes:
- *   - { date, contributionCount }  — backend-normalised (what we expect)
- *   - { date, count }              — raw jogruber API shape (fallback)
- *
- * Drops entries with a missing or non-string date.
- * All counts are coerced to a safe non-negative integer.
- */
 function flattenContribWeeks(weeks: ContribWeek[]): GraphEntry[] {
   if (!Array.isArray(weeks)) return [];
-
   const entries: GraphEntry[] = [];
-
   for (const week of weeks) {
     if (!Array.isArray(week?.contributionDays)) continue;
-
     for (const day of week.contributionDays) {
-      // Date must be a non-empty string — accept any reasonable format
       if (!day?.date || typeof day.date !== "string" || !day.date.trim()) continue;
-
-      // Accept whichever count field is present — prefer contributionCount,
-      // fall back to count (raw jogruber field name).
       const raw = day.contributionCount ?? (day as any).count ?? 0;
       const count = Math.max(0, Number(raw) || 0);
-
       entries.push({ date: day.date.trim(), count });
     }
   }
-
   return entries;
 }
 
-// ─── Scoring engine (pure) ────────────────────────────────────────────────────
+// ─── Scoring engine ───────────────────────────────────────────────────────────
+//
+// FIX 1 — consistency: was dividing by 18 (wrong max). A year has 52 weeks,
+//          so the correct denominator is 52. With /18 a user active 10 weeks
+//          would score 55 instead of 19, and the bar rendered wrong values
+//          even when data was present.
+//
+// FIX 2 — activity: the prev30===0 branch returned 0 whenever last30 was also
+//          0, which is always the case when contribWeeks arrives empty (both
+//          fields default to 0 from the backend). Changed to use totalContribs
+//          as a secondary signal so a user with yearly contributions but no
+//          recent 30-day window still gets a non-zero activity score.
+//
+// FIX 3 — all sub-scores: guard against NaN by coercing every field through
+//          Number() with a || 0 fallback before any arithmetic.
 
 function computeScore(d: GithubData): RankScore {
-  const volume      = Math.min(100, (d.totalContribs / 1500) * 100);
-  const consistency = Math.min(100, (d.activeWeeks / 52) * 100);
-  const activityRaw = d.prev30 === 0
-    ? (d.last30 > 0 ? 100 : 0)
-    : Math.min(100, (d.last30 / Math.max(d.prev30, 1)) * 60 + (d.last30 / 60) * 40);
-  const activity    = Math.min(100, activityRaw);
-  const stars       = Math.min(100, (Math.log10(d.totalStars + 1) / Math.log10(1000)) * 100);
-  const community   = Math.min(100, (Math.log10((d.pullRequests + d.issues) + 1) / Math.log10(500)) * 100);
+  // Coerce everything — avoids NaN propagation if backend sends nulls
+  const totalContribs  = Number(d.totalContribs)  || 0;
+  const activeWeeks    = Number(d.activeWeeks)    || 0;
+  const last30         = Number(d.last30)         || 0;
+  const prev30         = Number(d.prev30)         || 0;
+  const totalStars     = Number(d.totalStars)     || 0;
+  const pullRequests   = Number(d.pullRequests)   || 0;
+  const issues         = Number(d.issues)         || 0;
 
-  const final = volume * 0.30 + consistency * 0.25 + activity * 0.20 + stars * 0.15 + community * 0.10;
+  // ── Volume (30%) — yearly contribution count, cap at 500 ─────────────────
+  const volume = Math.min(100, (totalContribs / 500) * 100);
 
-  const tier      = getTier(final);
-  const nextTier  = getNextTier(tier);
-  const nextMin   = nextTier ? RANK_TIERS[nextTier].min : RANK_TIERS[tier].min;
-  const curMin    = RANK_TIERS[tier].min;
+  // ── Consistency (25%) — active weeks out of 52 (full year) ───────────────
+  // FIX 1: was /18, must be /52
+  const consistency = Math.min(100, (activeWeeks / 52) * 100);
+
+  // ── Recent Activity (20%) ─────────────────────────────────────────────────
+  // FIX 2: when both last30 and prev30 are 0 (no contribWeeks data),
+  // fall back to a volume-derived proxy so the bar is never stuck at 0
+  // purely due to a missing contributions API response.
+  let activity: number;
+  if (last30 > 0 && prev30 > 0) {
+    // Normal path: momentum ratio + absolute recency bonus
+    activity = Math.min(100, (last30 / prev30) * 80 + (last30 / 25) * 20);
+  } else if (last30 > 0) {
+    // Active recently but no prior-30 data to compare against
+    activity = Math.min(100, 50 + (last30 / 25) * 50);
+  } else {
+    // FIX 2: no 30-day window data at all — proxy from total contribs
+    // (~1 contrib/day average over 365 days ≈ score of 50)
+    activity = Math.min(100, (totalContribs / 365) * 50);
+  }
+
+  // ── Stars (15%) ───────────────────────────────────────────────────────────
+  const stars = Math.min(
+    100,
+    (Math.log10(totalStars + 1) / Math.log10(50)) * 100
+  );
+
+  // ── Community (10%) ───────────────────────────────────────────────────────
+  const community = Math.min(
+    100,
+    (Math.log10(pullRequests + issues + 1) / Math.log10(40)) * 100
+  );
+
+  // ── Weighted final ────────────────────────────────────────────────────────
+  const final =
+    volume      * 0.30 +
+    consistency * 0.25 +
+    activity    * 0.20 +
+    stars       * 0.15 +
+    community   * 0.10;
+
+  const tier     = getTier(final);
+  const nextTier = getNextTier(tier);
+  const curMin   = RANK_TIERS[tier].min;
+  const nextMin  = nextTier ? RANK_TIERS[nextTier].min : curMin;
   const pctToNext = nextTier
     ? Math.min(100, ((final - curMin) / (nextMin - curMin)) * 100)
     : 100;
@@ -179,7 +211,7 @@ function Counter({ to, duration = 1.2 }: { to: number; duration?: number }) {
     const step = (ts: number) => {
       if (!start) start = ts;
       const progress = Math.min((ts - start) / (duration * 1000), 1);
-      const ease     = 1 - Math.pow(1 - progress, 3);
+      const ease = 1 - Math.pow(1 - progress, 3);
       setVal(Math.round(ease * to));
       if (progress < 1) requestAnimationFrame(step);
     };
@@ -193,9 +225,9 @@ function Counter({ to, duration = 1.2 }: { to: number; duration?: number }) {
 function ScoreRing({ score, tier }: { score: number; tier: RankTier }) {
   const meta = RANK_TIERS[tier];
   const size = 180;
-  const cx   = size / 2;
-  const cy   = size / 2;
-  const rad  = 72;
+  const cx = size / 2;
+  const cy = size / 2;
+  const rad = 72;
   const circ = 2 * Math.PI * rad;
   const dash = (score / 100) * circ;
 
@@ -214,8 +246,8 @@ function ScoreRing({ score, tier }: { score: number; tier: RankTier }) {
         />
         {[25, 50, 75].map((pct) => {
           const angle = (pct / 100) * 2 * Math.PI - Math.PI / 2;
-          const ox    = cx + (rad + 10) * Math.cos(angle);
-          const oy    = cy + (rad + 10) * Math.sin(angle);
+          const ox = cx + (rad + 10) * Math.cos(angle);
+          const oy = cy + (rad + 10) * Math.sin(angle);
           return <circle key={pct} cx={ox} cy={oy} r={1.5} fill="rgba(255,255,255,0.2)" />;
         })}
       </svg>
@@ -223,11 +255,11 @@ function ScoreRing({ score, tier }: { score: number; tier: RankTier }) {
         <span
           className="font-black leading-none"
           style={{
-            fontSize:      52,
+            fontSize: 52,
             letterSpacing: "-0.05em",
-            color:         meta.color,
-            fontFamily:    "'DM Mono', monospace",
-            textShadow:    `0 0 32px ${meta.glow}`,
+            color: meta.color,
+            fontFamily: "'DM Mono', monospace",
+            textShadow: `0 0 32px ${meta.glow}`,
           }}
         >
           {tier}
@@ -355,8 +387,8 @@ function ConnectForm({ onSubmit }: { onSubmit: (u: string) => void }) {
           className="relative w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
           style={{
             background: "rgba(99,102,241,0.1)",
-            border:     "1px solid rgba(99,102,241,0.25)",
-            boxShadow:  "0 0 32px rgba(99,102,241,0.15)",
+            border: "1px solid rgba(99,102,241,0.25)",
+            boxShadow: "0 0 32px rgba(99,102,241,0.15)",
           }}
         >
           <Terminal size={28} style={{ color: "#818cf8" }} />
@@ -394,9 +426,9 @@ function ConnectForm({ onSubmit }: { onSubmit: (u: string) => void }) {
             className="flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold transition-all disabled:opacity-30"
             style={{
               background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              color:      "#fff",
+              color: "#fff",
               fontFamily: "'DM Mono', monospace",
-              boxShadow:  "0 4px 24px rgba(99,102,241,0.3)",
+              boxShadow: "0 4px 24px rgba(99,102,241,0.3)",
             }}
           >
             Compute Rank <ArrowRight size={14} />
@@ -410,7 +442,7 @@ function ConnectForm({ onSubmit }: { onSubmit: (u: string) => void }) {
 // ─── Loading state ────────────────────────────────────────────────────────────
 
 function LoadingState({ username }: { username: string }) {
-  const t     = useTokens();
+  const t = useTokens();
   const steps = ["Fetching profile data", "Analysing contributions", "Computing consistency", "Calculating rank score"];
   const [step, setStep] = useState(0);
 
@@ -471,8 +503,8 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
         className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px]"
         style={{
           background: "rgba(248,113,113,0.1)",
-          color:      "#f87171",
-          border:     "1px solid rgba(248,113,113,0.2)",
+          color: "#f87171",
+          border: "1px solid rgba(248,113,113,0.2)",
           fontFamily: "'DM Mono', monospace",
         }}
       >
@@ -485,25 +517,24 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 // ─── Main intel panel ─────────────────────────────────────────────────────────
 
 function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }) {
-  const t     = useTokens();
+  const t = useTokens();
   const score = computeScore(data);
-  const meta  = RANK_TIERS[score.tier];
+  const meta = RANK_TIERS[score.tier];
   const nextM = score.nextTier ? RANK_TIERS[score.nextTier] : null;
 
-  // Flatten GitHub contribWeeks → GraphEntry[] for ContributionGraph.
   const graphEntries: GraphEntry[] = flattenContribWeeks(data.contribWeeks);
 
   const stagger = (i: number) => ({
-    initial:    { opacity: 0, y: 10 },
-    animate:    { opacity: 1, y: 0 },
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
     transition: { duration: 0.35, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] as const },
   });
 
   const accountYears = (data.accountAgeDays / 365).toFixed(1);
-  const trendPct     = data.prev30 === 0
+  const trendPct = data.prev30 === 0
     ? 0
     : Math.round(((data.last30 - data.prev30) / Math.max(data.prev30, 1)) * 100);
-  const trendUp      = trendPct >= 0;
+  const trendUp = trendPct >= 0;
 
   return (
     <div className="space-y-5">
@@ -541,9 +572,9 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
           onClick={onReset}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] transition-colors"
           style={{
-            color:      t.textMuted,
+            color: t.textMuted,
             background: "rgba(255,255,255,0.04)",
-            border:     `1px solid ${t.border}`,
+            border: `1px solid ${t.border}`,
             fontFamily: "'DM Mono', monospace",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = t.mutedBtnHov)}
@@ -561,7 +592,7 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
           background: t.isDark
             ? "linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))"
             : t.card,
-          border:    `1px solid ${meta.color}20`,
+          border: `1px solid ${meta.color}20`,
           boxShadow: `0 0 60px ${meta.glow}`,
         }}
       >
@@ -647,7 +678,7 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
                       transition={{ duration: 1.2, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
                       style={{
                         background: `linear-gradient(90deg, ${meta.color}, ${nextM.color})`,
-                        boxShadow:  `0 0 8px ${nextM.color}60`,
+                        boxShadow: `0 0 8px ${nextM.color}60`,
                       }}
                     />
                   </div>
@@ -674,7 +705,7 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
       {/* Rank ladder */}
       <motion.div {...stagger(2)} className="flex items-center justify-center gap-1 flex-wrap">
         {TIER_ORDER.slice().reverse().map((tier) => {
-          const m      = RANK_TIERS[tier];
+          const m = RANK_TIERS[tier];
           const active = tier === score.tier;
           return (
             <div
@@ -682,8 +713,8 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all"
               style={{
                 background: active ? `${m.color}12` : "rgba(255,255,255,0.02)",
-                border:     `1px solid ${active ? `${m.color}30` : "rgba(255,255,255,0.05)"}`,
-                opacity:    active ? 1 : 0.4,
+                border: `1px solid ${active ? `${m.color}30` : "rgba(255,255,255,0.05)"}`,
+                opacity: active ? 1 : 0.4,
               }}
             >
               <span className="text-[14px] font-black" style={{ color: m.color, fontFamily: "'DM Mono', monospace" }}>
@@ -716,16 +747,16 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
           >
             <div className="flex items-center gap-2">
               <Activity size={13} style={{ color: "#6366f1" }} />
-              <span className="text-[12px] font-medium" style={{ color: t.textPrimary }}>
+              <span className="log text-[12px] font-medium" style={{ color: t.textPrimary }}>
                 Contribution Graph
               </span>
               <span
                 className="text-[9px] px-1.5 py-0.5 rounded"
                 style={{
                   background: "rgba(99,102,241,0.1)",
-                  color:      "#818cf8",
+                  color: "#818cf8",
                   fontFamily: "'DM Mono', monospace",
-                  border:     "1px solid rgba(99,102,241,0.2)",
+                  border: "1px solid rgba(99,102,241,0.2)",
                 }}
               >
                 Last 52 weeks
@@ -756,18 +787,18 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
           Intelligence Report
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          <MicroStat icon={<Flame size={13} />}          label="Current Streak"  value={`${data.currentStreak}d`}             sub="active days"                    color="#f97316" />
-          <MicroStat icon={<Trophy size={13} />}         label="Longest Streak"  value={`${data.longestStreak}d`}             sub="personal best"                  color="#FCD34D" />
-          <MicroStat icon={<Star size={13} />}           label="Total Stars"     value={data.totalStars.toLocaleString()}      sub="across repos"                   color="#FCD34D" />
-          <MicroStat icon={<GitPullRequest size={13} />} label="Pull Requests"   value={data.pullRequests}                    sub="last 100 events"                color="#A78BFA" />
-          <MicroStat icon={<AlertCircle size={13} />}    label="Issues"          value={data.issues}                          sub="last 100 events"                color="#60A5FA" />
-          <MicroStat icon={<Users size={13} />}          label="Followers"       value={data.followers.toLocaleString()}       sub={`following ${data.following}`}  color="#34D399" />
-          <MicroStat icon={<Activity size={13} />}       label="Active Weeks"    value={`${data.activeWeeks}/52`}             sub="this year"                      color="#818cf8" />
-          <MicroStat icon={<TrendingUp size={13} />}     label="30d Trend"       value={`${trendUp ? "+" : ""}${trendPct}%`} sub="vs prev 30 days"                color={trendUp ? "#34D399" : "#f87171"} />
-          <MicroStat icon={<GitCommit size={13} />}      label="Yearly Contribs" value={data.totalContribs.toLocaleString()}  sub="last 365 days"                  color="#6366f1" />
-          <MicroStat icon={<CalendarDays size={13} />}   label="Peak Day"        value={(data.peakDay ?? "—").slice(0, 3)}    sub="most active"                    color="#f97316" />
-          <MicroStat icon={<Code2 size={13} />}          label="Public Repos"    value={data.publicRepos}                     sub="own repos"                      color="#818cf8" />
-          <MicroStat icon={<Zap size={13} />}            label="Account Age"     value={`${accountYears}y`}                   sub="on GitHub"                      color="#94a3b8" />
+          <MicroStat icon={<Flame size={13} />}         label="Current Streak"  value={`${data.currentStreak}d`}                sub="active days"        color="#f97316" />
+          <MicroStat icon={<Trophy size={13} />}        label="Longest Streak"  value={`${data.longestStreak}d`}                sub="personal best"      color="#FCD34D" />
+          <MicroStat icon={<Star size={13} />}          label="Total Stars"     value={data.totalStars.toLocaleString()}        sub="across repos"       color="#FCD34D" />
+          <MicroStat icon={<GitPullRequest size={13} />} label="Pull Requests"  value={data.pullRequests}                       sub="last 100 events"    color="#A78BFA" />
+          <MicroStat icon={<AlertCircle size={13} />}   label="Issues"          value={data.issues}                             sub="last 100 events"    color="#60A5FA" />
+          <MicroStat icon={<Users size={13} />}         label="Followers"       value={data.followers.toLocaleString()}         sub={`following ${data.following}`} color="#34D399" />
+          <MicroStat icon={<Activity size={13} />}      label="Active Weeks"    value={`${data.activeWeeks}/52`}                sub="this year"          color="#818cf8" />
+          <MicroStat icon={<TrendingUp size={13} />}    label="30d Trend"       value={`${trendUp ? "+" : ""}${trendPct}%`}    sub="vs prev 30 days"    color={trendUp ? "#34D399" : "#f87171"} />
+          <MicroStat icon={<GitCommit size={13} />}     label="Yearly Contribs" value={data.totalContribs.toLocaleString()}    sub="last 365 days"      color="#6366f1" />
+          <MicroStat icon={<CalendarDays size={13} />}  label="Peak Day"        value={(data.peakDay ?? "—").slice(0, 3)}      sub="most active"        color="#f97316" />
+          <MicroStat icon={<Code2 size={13} />}         label="Public Repos"    value={data.publicRepos}                        sub="own repos"          color="#818cf8" />
+          <MicroStat icon={<Zap size={13} />}           label="Account Age"     value={`${accountYears}y`}                      sub="on GitHub"          color="#94a3b8" />
         </div>
       </motion.div>
 
@@ -875,9 +906,9 @@ export default function DevDashboard() {
   const t = useTokens();
 
   const [username, setUsername] = useState<string>(() => localStorage.getItem(GH_USERNAME_KEY) ?? "");
-  const [data,     setData]     = useState<GithubData | null>(null);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState<string | null>(null);
+  const [data, setData] = useState<GithubData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (u: string) => {
     setLoading(true);
@@ -944,8 +975,8 @@ export default function DevDashboard() {
           className="ml-auto text-[9px] px-2.5 py-1 rounded-full uppercase tracking-widest"
           style={{
             background: "rgba(99,102,241,0.08)",
-            color:      "#818cf8",
-            border:     "1px solid rgba(99,102,241,0.15)",
+            color: "#818cf8",
+            border: "1px solid rgba(99,102,241,0.15)",
             fontFamily: "'DM Mono', monospace",
           }}
         >

@@ -2,28 +2,28 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Flame, Plus, Zap, Trash2, Pencil, CheckCircle2,
-  X, ChevronDown, History, Circle, Sword, Shield, Star,
-  Loader2, AlertCircle,
+  X, ChevronDown, History, Loader2, AlertCircle,
 } from "lucide-react";
 import { useDashboardStore, type Difficulty, type Task } from "../../state/dashboard/usedashboardstore";
 import { useTokens } from "../../state/theme/ThemeContext";
 import ContributionGraph from "../../components/dashboard/ContributionGraph";
 import { useAuth } from "../../state/auth/AuthContext";
+import character_mascot from "../../assets/logo.png"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DIFF_META: Record<Difficulty, { label: string; color: string; bg: string; xp: number }> = {
-  EASY:   { label: "Easy",   color: "#4ade80", bg: "rgba(74,222,128,0.10)",  xp: 30  },
-  MEDIUM: { label: "Medium", color: "#facc15", bg: "rgba(250,204,21,0.10)",  xp: 60  },
-  HARD:   { label: "Hard",   color: "#f87171", bg: "rgba(248,113,113,0.10)", xp: 100 },
+  EASY: { label: "Easy", color: "#4ade80", bg: "rgba(74,222,128,0.10)", xp: 30 },
+  MEDIUM: { label: "Medium", color: "#facc15", bg: "rgba(250,204,21,0.10)", xp: 60 },
+  HARD: { label: "Hard", color: "#f87171", bg: "rgba(248,113,113,0.10)", xp: 100 },
 };
 
-const CHARACTER_TITLES: Record<number, { title: string; icon: React.ReactNode }> = {
-  1: { title: "Novice",     icon: <Circle size={28} className="text-[#6366f1]" /> },
-  2: { title: "Apprentice", icon: <Star   size={28} className="text-[#6366f1]" /> },
-  3: { title: "Adept",      icon: <Shield size={28} className="text-[#6366f1]" /> },
-  4: { title: "Veteran",    icon: <Sword  size={28} className="text-[#6366f1]" /> },
-  5: { title: "Champion",   icon: <Sword  size={28} className="text-[#a78bfa]" /> },
+const CHARACTER_TITLES: Record<number, { title: string }> = {
+  1: { title: "Novice" },
+  2: { title: "Apprentice" },
+  3: { title: "Adept" },
+  4: { title: "Veteran" },
+  5: { title: "Champion" },
 };
 
 function getCharacter(level: number) {
@@ -115,9 +115,9 @@ function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => 
 }
 
 function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }) {
-  const t       = useTokens();
+  const t = useTokens();
   const grouped = groupByDate(tasks);
-  const dates   = Object.keys(grouped).reverse();
+  const dates = Object.keys(grouped).reverse();
 
   return (
     <motion.div
@@ -208,13 +208,13 @@ function DashboardSkeleton() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div className="lg:col-span-8 flex flex-col gap-4">
           <div style={{ ...shimmer, height: 220, borderRadius: 16 }} />
-          <div style={{ ...shimmer, height: 48,  borderRadius: 16 }} />
+          <div style={{ ...shimmer, height: 48, borderRadius: 16 }} />
           <div style={{ ...shimmer, height: 160, borderRadius: 16 }} />
         </div>
         <div className="lg:col-span-4 flex flex-col gap-4">
           <div style={{ ...shimmer, height: 160, borderRadius: 16 }} />
           <div style={{ ...shimmer, height: 120, borderRadius: 16 }} />
-          <div style={{ ...shimmer, height: 72,  borderRadius: 16 }} />
+          <div style={{ ...shimmer, height: 72, borderRadius: 16 }} />
         </div>
       </div>
     </div>
@@ -235,14 +235,14 @@ export default function DashboardHome() {
     clearXpPopup,
   } = useDashboardStore();
 
-  const [newTitle,    setNewTitle]    = useState("");
-  const [newDiff,     setNewDiff]     = useState<Difficulty>("MEDIUM");
-  const [editingId,   setEditingId]   = useState<string | null>(null);
-  const [editTitle,   setEditTitle]   = useState("");
-  const [editDiff,    setEditDiff]    = useState<Difficulty>("MEDIUM");
+  const [newTitle, setNewTitle] = useState("");
+  const [newDiff, setNewDiff] = useState<Difficulty>("MEDIUM");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDiff, setEditDiff] = useState<Difficulty>("MEDIUM");
   const [showHistory, setShowHistory] = useState(false);
-  const [diffOpen,    setDiffOpen]    = useState(false);
-  const [toastMsg,    setToastMsg]    = useState<string | null>(null);
+  const [diffOpen, setDiffOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -264,9 +264,9 @@ export default function DashboardHome() {
 
   if (loading && !dashboard) return <DashboardSkeleton />;
 
-  const activeTasks    = tasks.filter((t) => !t.completed);
-  const completedTasks = tasks.filter((t) =>  t.completed);
-  const xpPct          = dashboard && dashboard.totalXPForLevel > 0
+  const activeTasks = tasks.filter((t) => !t.completed);
+  const completedTasks = tasks.filter((t) => t.completed);
+  const xpPct = dashboard && dashboard.totalXPForLevel > 0
     ? Math.min(Math.round((dashboard.currentXP / dashboard.totalXPForLevel) * 100), 100)
     : 0;
 
@@ -588,7 +588,7 @@ export default function DashboardHome() {
               <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>Last 53 weeks</span>
             </div>
             {loading ? (
-              <div className="h-[130px] rounded-lg" style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite" }} />
+              <div className="h-32.5 rounded-lg" style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite" }} />
             ) : (
               <ContributionGraph data={dashboard?.contributionGraph ?? []} />
             )}
@@ -602,43 +602,100 @@ export default function DashboardHome() {
           <motion.section
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-2xl p-5 transition-colors"
+            className="rounded-2xl overflow-hidden transition-colors relative"
             style={card}
           >
-            <p className="text-[11px] uppercase tracking-[0.07em] mb-4" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-              Character
-            </p>
-            <div className="flex items-center gap-4">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
-                style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}
-              >
-                {getCharacter(dashboard?.level ?? 1).icon}
-              </div>
-              <div>
-                <p className="text-[16px] font-semibold mb-0.5" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>
-                  {getCharacter(dashboard?.level ?? 1).title}
-                </p>
-                <p className="text-[12px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                  Level {dashboard?.level ?? "─"}
-                </p>
+            {/* Background glow orb */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+              <div style={{
+                position: "absolute", bottom: -40, right: -20,
+                width: 200, height: 200,
+                background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)",
+                filter: "blur(20px)",
+              }} />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 relative z-10">
+              <p className="text-[11px] uppercase tracking-[0.07em]"
+                style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                Character
+              </p>
+              <div className="flex items-center gap-2">
+                {dashboard && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg"
+                    style={{ background: "rgba(251,146,60,0.10)", border: "1px solid rgba(251,146,60,0.18)" }}>
+                    <Flame size={10} style={{ color: t.orange }} />
+                    <span className="text-[10px] font-semibold"
+                      style={{ color: t.orange, fontFamily: "'DM Mono', monospace" }}>
+                      {dashboard.streak}
+                    </span>
+                  </div>
+                )}
+                <span className="text-[10px] px-2.5 py-0.5 rounded-lg font-semibold"
+                  style={{ background: t.accentSoft, color: "#818cf8", border: `1px solid ${t.accentBorder}`, fontFamily: "'DM Mono', monospace" }}>
+                  LVL {dashboard?.level ?? "─"}
+                </span>
               </div>
             </div>
-            <div className="mt-4">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                  {dashboard?.currentXP ?? 0} / {dashboard?.totalXPForLevel ?? "─"} XP
-                </span>
-                <span className="text-[11px] text-[#6366f1]" style={{ fontFamily: "'DM Mono', monospace" }}>{xpPct}%</span>
+
+            {/* Mascot + info */}
+            <div className="flex items-stretch gap-0 pt-4 pb-5 px-5 relative z-10">
+
+              {/* Mascot box - fix needed */}
+              <div className="shrink-0 mr-5">
+                <div
+                  className="w-25 h-25 rounded-3xl overflow-hidden flex items-center justify-center"
+                  style={{
+                    background:
+                      "radial-gradient(ellipse at 50% 120%, rgba(99,102,241,0.35) 0%, rgba(6,6,16,0.98) 60%)",
+                    border: "1px solid rgba(99,102,241,0.28)",
+                  }}
+                >
+                  <img
+                    src={character_mascot}
+                    alt="character"
+                    className="w-full h-[200%] object-contain"
+                    draggable={false}
+                  />
+                </div>
               </div>
-              <div className="h-2 w-full rounded-full" style={{ background: t.inputBg }}>
-                <motion.div
-                  className="h-full rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${xpPct}%` }}
-                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ background: "linear-gradient(90deg, #6366f1, #a78bfa)" }}
-                />
+
+              {/* Text + XP */}
+              <div className="flex-1 min-w-0 flex flex-col justify-between">
+                <div>
+                  <p className="text-[24px] font-semibold leading-none mb-1"
+                    style={{ color: t.textPrimary, letterSpacing: "-0.03em", fontFamily: "'DM Sans', sans-serif" }}>
+                    {getCharacter(dashboard?.level ?? 1).title}
+                  </p>
+                  <p className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                    Level {dashboard?.level ?? "─"} · {dashboard?.currentXP ?? 0} XP earned
+                  </p>
+                </div>
+
+                {/* XP bar block */}
+                <div className="mt-3">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                      {dashboard?.currentXP ?? 0} / {dashboard?.totalXPForLevel ?? "─"} XP
+                    </span>
+                    <span className="text-[10px] font-semibold" style={{ color: "#818cf8", fontFamily: "'DM Mono', monospace" }}>
+                      {xpPct}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: t.inputBg }}>
+                    <motion.div
+                      className="h-full rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${xpPct}%` }}
+                      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ background: "linear-gradient(90deg, #6366f1, #a78bfa)" }}
+                    />
+                  </div>
+                  <p className="text-[10px] mt-1.5" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                    {dashboard?.xpToNextLevel ?? "─"} XP to next level
+                  </p>
+                </div>
               </div>
             </div>
           </motion.section>
@@ -655,9 +712,9 @@ export default function DashboardHome() {
             </p>
             <div className="grid grid-cols-3 gap-3">
               {([
-                { label: "Tasks", value: dashboard?.todayStats.totalTasks     ?? activeTasks.length    },
-                { label: "Done",  value: dashboard?.todayStats.completedTasks ?? completedTasks.length },
-                { label: "XP",    value: dashboard?.todayStats.xpEarned       ?? 0                     },
+                { label: "Tasks", value: dashboard?.todayStats.totalTasks ?? activeTasks.length },
+                { label: "Done", value: dashboard?.todayStats.completedTasks ?? completedTasks.length },
+                { label: "XP", value: dashboard?.todayStats.xpEarned ?? 0 },
               ] as const).map(({ label, value }) => (
                 <div
                   key={label}
@@ -675,39 +732,30 @@ export default function DashboardHome() {
             </div>
           </motion.section>
 
-          {/* XP Remaining */}
+          {/* XP to next level pill */}
           <motion.section
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-2xl p-5 flex items-center gap-3 transition-colors"
+            className="rounded-2xl px-5 py-4 flex items-center gap-3 transition-colors"
             style={card}
           >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "rgba(167,139,250,0.10)" }}
-            >
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "rgba(167,139,250,0.10)" }}>
               {loading
                 ? <Loader2 size={15} className="text-[#a78bfa] animate-spin" />
                 : <Zap size={15} className="text-[#a78bfa]" />
               }
             </div>
-            <div>
-              <p className="text-[15px] font-semibold" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>
-                {dashboard?.xpToNextLevel ?? "─"} XP
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>
+                {dashboard?.xpToNextLevel ?? "─"} XP to Level {dashboard ? dashboard.level + 1 : "─"}
               </p>
-              <p className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                to reach Level {dashboard ? dashboard.level + 1 : "─"}
+              <p className="text-[10px] mt-0.5" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                keep completing quests to rank up
               </p>
             </div>
-            {dashboard && (
-              <div className="ml-auto flex items-center gap-1" style={{ color: t.orange }}>
-                <Flame size={13} />
-                <span className="text-[12px] font-medium" style={{ fontFamily: "'DM Mono', monospace" }}>
-                  {dashboard.streak}
-                </span>
-              </div>
-            )}
           </motion.section>
+
         </div>
       </div>
     </div>
