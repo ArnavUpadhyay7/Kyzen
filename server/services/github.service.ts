@@ -47,6 +47,7 @@ interface GhRepo {
 
 interface GhEvent {
   type: string;
+  created_at: string;
 }
 
 interface ContribDay {
@@ -102,6 +103,39 @@ const LANG_COLORS: Record<string, string> = {
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+// ─── Fallback: derive contribution-like data from public events ───────────────
+//
+// When the third-party contributions API fails or returns null, we synthesise
+// a sparse ContribDay[] from the user's public events (max 100 events, ~90 days
+// coverage in practice). Counts are a lower-bound approximation — every event
+// on a given date is counted as one contribution for that date.
+//
+function contribsFromEvents(events: GhEvent[]): ContribDay[] {
+  const dayCounts: Record<string, number> = {};
+
+  for (const e of events) {
+    if (!e.created_at) continue;
+    // Normalise to YYYY-MM-DD
+    const date = e.created_at.slice(0, 10);
+    dayCounts[date] = (dayCounts[date] ?? 0) + 1;
+  }
+
+  if (Object.keys(dayCounts).length === 0) return [];
+
+  // Build a contiguous day range from earliest date to today
+  const dates = Object.keys(dayCounts).sort();
+  const start = new Date(dates[0] + "T12:00:00");
+  const end = new Date();
+  const result: ContribDay[] = [];
+
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const iso = d.toISOString().slice(0, 10);
+    result.push({ date: iso, contributionCount: dayCounts[iso] ?? 0 });
+  }
+
+  return result;
+}
+
 // ─── Main fetch function ──────────────────────────────────────────────────────
 
 export async function getGithubProfile(username: string): Promise<GithubProfileData> {
@@ -112,7 +146,12 @@ export async function getGithubProfile(username: string): Promise<GithubProfileD
     ghFetch<GhUser>(`/users/${encoded}`),
     ghFetch<GhRepo[]>(`/users/${encoded}/repos?per_page=100&sort=pushed`),
     ghFetch<GhEvent[]>(`/users/${encoded}/events/public?per_page=100`),
-    fetch(`${GH_CONTRIB_API}/${encoded}?y=last`).then((r) => (r.ok ? r.json() as Promise<ContribApiResponse> : null)),
+    fetch(`${GH_CONTRIB_API}/${encoded}?y=last`)
+      .then((r) => {
+        if (!r.ok) return null;
+        return r.json() as Promise<ContribApiResponse>;
+      })
+      .catch(() => null), // <-- BUG FIX: network errors were silently dropping data
   ]);
 
   // User is mandatory — propagate error if it failed
@@ -158,30 +197,45 @@ export async function getGithubProfile(username: string): Promise<GithubProfileD
   const issues = eventList.filter((e) => e.type === "IssuesEvent").length;
 
   // ── Contributions ─────────────────────────────────────────────────────────
-  let contribWeeks: ContribWeek[] = [];
+  // FIX: when the third-party API returns null, fall back to event-derived data
+  // so that Consistency and Recent Activity always have something to work with.
+  let rawDays: ContribDay[] = [];
   let totalContribs = 0;
 
   if (contribData) {
-    const days: ContribDay[] = contribData.contributions ?? [];
+    rawDays = contribData.contributions ?? [];
     totalContribs =
       contribData.total?.["lastYear"] ??
-      days.reduce((s: number, d: ContribDay) => s + d.contributionCount, 0);
+      rawDays.reduce((s, d) => s + d.contributionCount, 0);
+  } else if (eventList.length > 0) {
+    // Fallback path — derive from events
+    rawDays = contribsFromEvents(eventList);
+    totalContribs = rawDays.reduce((s, d) => s + d.contributionCount, 0);
+  }
 
-    for (let i = 0; i < days.length; i += 7) {
-      contribWeeks.push({ contributionDays: days.slice(i, i + 7) });
-    }
+  // Chunk flat ContribDay[] into weeks of 7
+  const contribWeeks: ContribWeek[] = [];
+  for (let i = 0; i < rawDays.length; i += 7) {
+    contribWeeks.push({ contributionDays: rawDays.slice(i, i + 7) });
   }
 
   // ── Derived stats ─────────────────────────────────────────────────────────
   const allDays = contribWeeks.flatMap((w) => w.contributionDays);
+  // FIX: sort by date before slicing; rawDays from the fallback path are already
+  // sorted, but the API path order is not guaranteed.
   const sorted = [...allDays].sort((a, b) => a.date.localeCompare(b.date));
 
   const activeWeeks = contribWeeks.filter((w) =>
     w.contributionDays.some((d) => d.contributionCount > 0),
   ).length;
 
-  const last30 = sorted.slice(-30).reduce((s, d) => s + d.contributionCount, 0);
-  const prev30 = sorted.slice(-60, -30).reduce((s, d) => s + d.contributionCount, 0);
+  // FIX: guard against empty sorted array to avoid NaN on slice(-30) etc.
+  const last30 = sorted.length > 0
+    ? sorted.slice(-30).reduce((s, d) => s + d.contributionCount, 0)
+    : 0;
+  const prev30 = sorted.length > 30
+    ? sorted.slice(-60, -30).reduce((s, d) => s + d.contributionCount, 0)
+    : 0;
 
   // Current streak (from end)
   let currentStreak = 0;

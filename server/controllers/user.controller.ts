@@ -4,6 +4,7 @@ import { AuthRequest } from "../middleware/auth.middleware";
 
 /**
  * PATCH /api/user/preferences
+ * Only for DevMode preference
  */
 export async function updatePreferences(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user!.id;
