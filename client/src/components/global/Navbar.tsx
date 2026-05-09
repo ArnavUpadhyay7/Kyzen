@@ -1,96 +1,157 @@
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
-const NAV_LINKS = ["Hero", "About", "Features", "Pricing", "Changelog"];
+function useScrollDirection() {
+  const [visible, setVisible] = useState(true);
+  const [atTop, setAtTop]     = useState(true);
+  const lastY   = useRef(0);
+  const ticking = useRef(false);
+
+  useEffect(() => {
+    const THRESHOLD = 8;
+    function onScroll() {
+      if (ticking.current) return;
+      ticking.current = true;
+      requestAnimationFrame(() => {
+        const y   = window.scrollY;
+        const top = y < 24;
+        setAtTop(top);
+        if (!top) {
+          const delta = y - lastY.current;
+          if (Math.abs(delta) > THRESHOLD) setVisible(delta < 0);
+        } else {
+          setVisible(true);
+        }
+        lastY.current   = y;
+        ticking.current = false;
+      });
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return { visible, atTop };
+}
+
+function KyzenLogo() {
+  return (
+    <Link to="/" className="flex items-center gap-2.5 select-none shrink-0 px-2">
+      <div
+        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+        style={{
+          background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
+          boxShadow: "0 0 12px rgba(139,92,246,0.5)",
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+          <path d="M3 2v10M3 7l5-5M3 7l5 5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
+      <span
+        style={{
+          fontFamily: "'Barlow', sans-serif",
+          fontSize: 15,
+          fontWeight: 600,
+          color: "rgba(255,255,255,0.9)",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        Kyzen
+      </span>
+    </Link>
+  );
+}
+
+function CTAButton() {
+  return (
+    <Link to="/signup" className="shrink-0">
+      <motion.button
+        whileHover={{ scale: 1.03, boxShadow: "0 0 26px rgba(139,92,246,0.65), 0 2px 14px rgba(0,0,0,0.45)" }}
+        whileTap={{ scale: 0.97 }}
+        className="relative overflow-hidden flex items-center gap-1.5 rounded-full text-white cursor-pointer select-none"
+        style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 13.5,
+          fontWeight: 500,
+          letterSpacing: "0.01em",
+          paddingLeft: 18,
+          paddingRight: 18,
+          paddingTop: 8,
+          paddingBottom: 8,
+          background: "linear-gradient(135deg, #7c3aed 0%, #9333ea 60%, #a855f7 100%)",
+          boxShadow: "0 0 18px rgba(124,58,237,0.42), 0 2px 8px rgba(0,0,0,0.3)",
+          border: "1px solid rgba(167,139,250,0.22)",
+        }}
+      >
+        <span
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{
+            background: "linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.1) 50%, transparent 65%)",
+            backgroundSize: "300% 100%",
+            animation: "nav-shimmer 3s ease-in-out infinite 2s",
+          }}
+        />
+        Get Early Access
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.75 }}>
+          <path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </motion.button>
+    </Link>
+  );
+}
 
 export default function Navbar() {
-  const [active, setActive] = useState("Hero");
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const { visible, atTop } = useScrollDirection();
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap');
+        @keyframes nav-shimmer {
+          0%   { background-position: 200% 0 }
+          100% { background-position: -100% 0 }
+        }
+      `}</style>
 
-      {/* Desktop */}
-      <div className="fixed inset-x-0 top-0 z-50 hidden md:flex justify-center pt-5"
-        style={{ fontFamily: "'DM Sans', sans-serif" }}>
-        <nav
-          className="flex items-center gap-1 px-2 py-2 rounded-full"
+      <motion.div
+        className="fixed inset-x-0 top-0 z-[100] flex justify-center pointer-events-none"
+        style={{ paddingTop: 20, paddingLeft: 24, paddingRight: 24 }}
+        animate={{ y: visible ? 0 : -80, opacity: visible ? 1 : 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.6 }}
+      >
+        <motion.nav
+          className="pointer-events-auto flex items-center justify-between"
+          animate={{
+            background: atTop
+              ? "rgba(10,5,25,0.42)"
+              : "rgba(10,5,25,0.80)",
+            boxShadow: atTop
+              ? "0 1px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04)"
+              : "0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(139,92,246,0.18), inset 0 1px 0 rgba(255,255,255,0.06)",
+            borderColor: atTop
+              ? "rgba(139,92,246,0.12)"
+              : "rgba(139,92,246,0.25)",
+          }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           style={{
-            background: "rgba(18,10,40,0.52)",
-            backdropFilter: "blur(22px)",
-            WebkitBackdropFilter: "blur(22px)",
-            border: "1px solid rgba(139,92,246,0.2)",
-            boxShadow: "0 4px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)",
+            /* mobile: fills available width. md+: capped and centered */
+            width: "min(100%, 1200px)",
+            borderRadius: 9999,
+            border: "1px solid",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            paddingLeft: 18,
+            paddingRight: 7,
+            paddingTop: 7,
+            paddingBottom: 7,
+            gap: 80,
           }}
         >
-          {NAV_LINKS.map((l) => (
-            <a
-              key={l}
-              href="#"
-              onClick={() => setActive(l)}
-              className={`px-5 py-2 rounded-full text-[14px] transition-all duration-200 ${
-                active === l
-                  ? "bg-white/10 text-white/92 font-medium"
-                  : "text-white/45 hover:text-white/75 hover:bg-white/[0.04] font-normal"
-              }`}
-            >
-              {l}
-            </a>
-          ))}
-        </nav>
-      </div>
-
-      {/* Mobile */}
-      <div
-        className="fixed inset-x-0 top-0 z-50 flex md:hidden items-center justify-between px-5 h-14"
-        style={{
-          fontFamily: "'DM Sans', sans-serif",
-          background: "rgba(7,4,26,0.88)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderBottom: "1px solid rgba(139,92,246,0.12)",
-        }}
-      >
-        <span className="text-white/50 text-[13px] tracking-widest uppercase font-normal"></span>
-        <button onClick={() => setMobileOpen((p) => !p)} className="flex flex-col gap-[5px] p-2" aria-label="Toggle menu">
-          <span className="block w-[18px] h-px bg-white/50 rounded-full transition-all duration-200"
-            style={{ transform: mobileOpen ? "rotate(45deg) translate(4px,4px)" : "none" }} />
-          <span className="block w-[13px] h-px bg-white/50 rounded-full transition-all duration-200"
-            style={{ opacity: mobileOpen ? 0 : 1 }} />
-          <span className="block w-[18px] h-px bg-white/50 rounded-full transition-all duration-200"
-            style={{ transform: mobileOpen ? "rotate(-45deg) translate(4px,-4px)" : "none" }} />
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-x-0 top-14 z-40 md:hidden flex flex-col px-5 py-4 gap-0.5"
-            style={{ fontFamily: "'DM Sans', sans-serif", background: "rgba(7,4,26,0.97)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(139,92,246,0.1)" }}
-          >
-            {NAV_LINKS.map((l, i) => (
-              <motion.a
-                key={l}
-                href="#"
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
-                onClick={() => { setActive(l); setMobileOpen(false); }}
-                className={`py-3 text-[14px] border-b border-white/[0.04] last:border-0 transition-colors ${
-                  active === l ? "text-white/85 font-medium" : "text-white/40 font-normal"
-                }`}
-              >
-                {l}
-              </motion.a>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <KyzenLogo />
+          <CTAButton />
+        </motion.nav>
+      </motion.div>
     </>
   );
 }
