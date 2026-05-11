@@ -22,6 +22,9 @@ export default function SocialProof() {
     { handle: "@0xmarcel", rank: "ARCHITECT III", text: "I've shipped more in the last 30 days than in the previous 6 months. Kyzen's quest system rewired how I think about work.", xp: "28,400 XP" },
     { handle: "@devkira_", rank: "SENTINEL IV", text: "The streak system is ruthless. Miss one day and you feel it. That friction is exactly the accountability I needed.", xp: "91,200 XP" },
     { handle: "@nullbyte", rank: "CODER II", text: "First time I've ever felt excited about LeetCode. When a hard problem becomes a quest with XP, your brain processes it differently.", xp: "14,700 XP" },
+    { handle: "@0xmarcel", rank: "ARCHITECT III", text: "I've shipped more in the last 30 days than in the previous 6 months. Kyzen's quest system rewired how I think about work.", xp: "28,400 XP" },
+    { handle: "@devkira_", rank: "SENTINEL IV", text: "The streak system is ruthless. Miss one day and you feel it. That friction is exactly the accountability I needed.", xp: "91,200 XP" },
+    { handle: "@nullbyte", rank: "CODER II", text: "First time I've ever felt excited about LeetCode. When a hard problem becomes a quest with XP, your brain processes it differently.", xp: "14,700 XP" },
   ];
 
   return (
@@ -64,7 +67,7 @@ export default function SocialProof() {
         {/* Testimonials */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {testimonials.map((t, i) => (
-            <Card key={i} delay={0.2 + i * 0.1} className="p-6 group">
+            <Card key={i} delay={0.2 + i * 0.1} className={`p-6 group ${i >= 3 ? "hidden md:block" : ""}`}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white"
                   style={{ background: "rgba(109,40,217,0.3)", border: borders.accent }}>
