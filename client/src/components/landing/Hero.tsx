@@ -86,11 +86,11 @@ export function HeroContent() {
             }}
             whileTap={{ scale: 0.975 }}
             className="btn-shimmer relative overflow-hidden flex items-center gap-2
-                       text-white font-semibold cursor-pointer select-none
-                       rounded-[10px] px-6 py-[11px] text-[14px] tracking-[0.01em]"
+             text-white font-semibold cursor-pointer select-none
+             rounded-[10px] px-6 py-[11px] text-[14px] tracking-[0.01em]"
             style={{
               fontFamily: typography.body,
-              background: "linear-gradient(135deg, #6d28d9 0%, #7c3aed 60%, #8b5cf6 100%)",
+              background: "linear-gradient(135deg, rgba(109,40,217,0.85) 0%, rgba(124,58,237,0.85) 60%, rgba(139,92,246,0.85) 100%)",
               boxShadow: "0 0 22px rgba(109,40,217,0.38), 0 2px 10px rgba(0,0,0,0.32)",
               border: "1px solid rgba(139,92,246,0.22)",
             }}
@@ -98,7 +98,7 @@ export function HeroContent() {
             Get Early Access
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="white" strokeWidth="1.8"
-                strokeLinecap="round" strokeLinejoin="round"/>
+                strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </motion.button>
         </Link>
@@ -123,8 +123,8 @@ export function HeroContent() {
         >
           Watch demo
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.3"/>
-            <path d="M6.5 5.5l4 2.5-4 2.5V5.5z" fill="currentColor"/>
+            <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M6.5 5.5l4 2.5-4 2.5V5.5z" fill="currentColor" />
           </svg>
         </motion.button>
       </motion.div>
