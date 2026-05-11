@@ -185,7 +185,7 @@ const Footer = () => {
               animate={{ x: ["-120%", "220%"] }}
               transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
             />
-            Create Your Character
+            Join now
           </motion.button>
 
           <motion.button
