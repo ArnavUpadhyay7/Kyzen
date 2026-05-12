@@ -1,10 +1,5 @@
 import { motion } from "framer-motion";
 
-/*
-  Global keyframe for Aceternity's Spotlight component.
-  Defined here (in the top-level scene) so it's injected before any Spotlight
-  renders — covers both the Hero standalone route and Landing's sticky zone.
-*/
 const SpotlightKeyframes = () => (
   <style>{`
     @keyframes spotlight {
@@ -17,7 +12,6 @@ const SpotlightKeyframes = () => (
   `}</style>
 );
 
-// ─── Subtle star field ───────────────────────────────────────────────────────
 const Starfield = ({ count = 40 }: { count?: number }) => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
     {Array.from({ length: count }).map((_, i) => (
@@ -43,30 +37,20 @@ const Starfield = ({ count = 40 }: { count?: number }) => (
   </div>
 );
 
-// ────────────────────────────────────────────────────────────────────────────
-
 export default function HeroScene() {
   return (
     <div
       className="absolute inset-0 z-0 overflow-hidden"
       style={{ background: "#080808" }}
     >
-      {/* Inject spotlight keyframes globally */}
       <SpotlightKeyframes />
 
-      {/*
-        Grid with radial edge-fade mask.
-        Same 72px grid and #171717 line colour as before — only the mask is new.
-        The mask fades the grid lines to transparent at all four edges so they
-        "dissolve into the dark" rather than hard-stopping at the viewport edge.
-        Centre of the ellipse is pushed up (at 50% 35%) so the top area —
-        where the spotlight lands — has maximum grid visibility.
-      */}
+      {/* Grid with radial edge-fade mask */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           WebkitMaskImage: "radial-gradient(ellipse 90% 75% at 50% 35%, black 25%, rgba(0,0,0,0.6) 55%, transparent 100%)",
-          maskImage:        "radial-gradient(ellipse 90% 75% at 50% 35%, black 25%, rgba(0,0,0,0.6) 55%, transparent 100%)",
+          maskImage:       "radial-gradient(ellipse 90% 75% at 50% 35%, black 25%, rgba(0,0,0,0.6) 55%, transparent 100%)",
         }}
       >
         <div
@@ -80,20 +64,6 @@ export default function HeroScene() {
           }}
         />
       </div>
-
-      {/* Top-left light rays — unchanged */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          top: 0,
-          left: 0,
-          width: "75%",
-          height: "65%",
-          background:
-            "conic-gradient(from 0deg at 0% 0%, rgba(255,255,255,0.09) 0deg, rgba(255,255,255,0.03) 28deg, transparent 42deg)",
-          filter: "blur(18px)",
-        }}
-      />
 
       <Starfield count={40} />
 

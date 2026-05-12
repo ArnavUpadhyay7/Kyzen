@@ -88,12 +88,9 @@ export default function Landing() {
         ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.38); border-radius: 2px; }
 
         /*
-          SPOTLIGHT FIX — define the keyframe the Aceternity component expects.
-          animate-spotlight is a custom Tailwind animation that must be declared
-          in tailwind.config.js. If it's missing from that config, the class
-          compiles to nothing and opacity-0 wins permanently.
-          Defining it here in a global <style> guarantees it works regardless.
-          animation-fill-mode: forwards keeps it visible after the animation ends.
+          animate-spotlight keyframe — must be defined before any Spotlight
+          renders. The SVG starts at opacity-0 and this animates it to
+          full opacity, kept visible via animation-fill-mode: forwards.
         */
         @keyframes spotlight {
           0%   { opacity: 0; }
@@ -110,25 +107,75 @@ export default function Landing() {
       <div ref={pinRef} className="relative" style={{ height: "350vh" }}>
         <div className="sticky top-0 h-screen overflow-hidden">
 
-          {/* Background scene */}
           <HeroScene />
 
           {/*
-            SPOTLIGHT — added here in Landing.tsx's sticky scene.
-            Previously it only existed in the standalone Hero.tsx default export
-            which is never rendered when using Landing.tsx as the main route.
-            This is why it was never visible.
+            ── MULTI-RAY SPOTLIGHT ─────────────────────────────────────────
+            The proven working offset for top-left corner placement is:
+              md:-top-120 md:-left-60   (desktop)
+                 -top-180    -left-60   (mobile)
 
-            Placed FIRST after HeroScene so it renders above the background
-            but below all content layers (which are z-[15], z-[20], z-[25]).
+            These large negative values shift the oversized SVG (138vw × 169vh)
+            so its ellipse bright tip sits exactly at the viewport's top-left
+            corner on every screen size.
 
-            opacity-[0.9] overrides the base opacity-0 via tailwind-merge in cn().
-            NO blur-3xl — that double-blurs the already feGaussianBlur-heavy SVG.
+            For multiple soft rays: each Spotlight is wrapped in a div that
+            rotates around "top left" origin. The rotation fans the beams out
+            from the same corner source. Small angles keep rays close together
+            for a natural multi-beam look like the reference image.
+
+            The wrapper div has NO opacity — only rotation.
+            The Spotlight className carries the offset + final opacity.
+            The animate-spotlight keyframe (defined above) fades each SVG
+            from opacity-0 → the declared opacity value automatically.
+
+            Stagger the animation delays via inline style on each wrapper
+            so rays don't all appear simultaneously.
           */}
-          <Spotlight
-            className="-top-[20%] -left-[10%] opacity-[0.9]"
-            fill="white"
-          />
+
+          {/* Ray 1 — main beam, no rotation, brightest */}
+          <div
+            className="pointer-events-none absolute inset-0 z-[5]"
+            style={{ transform: "rotate(0deg)", transformOrigin: "top left" }}
+          >
+            <Spotlight
+              className="md:-top-120 md:-left-60 -top-180 -left-60 opacity-[0.85]"
+              fill="white"
+            />
+          </div>
+
+          {/* Ray 2 — rotated slightly upward, medium brightness */}
+          <div
+            className="pointer-events-none absolute inset-0 z-[5]"
+            style={{ transform: "rotate(-8deg)", transformOrigin: "top left" }}
+          >
+            <Spotlight
+              className="md:-top-120 md:-left-60 -top-180 -left-60 opacity-[0.50]"
+              fill="white"
+            />
+          </div>
+
+          {/* Ray 3 — rotated slightly downward, softer fill */}
+          <div
+            className="pointer-events-none absolute inset-0 z-[5]"
+            style={{ transform: "rotate(10deg)", transformOrigin: "top left" }}
+          >
+            <Spotlight
+              className="md:-top-120 md:-left-60 -top-180 -left-60 opacity-[0.35]"
+              fill="white"
+            />
+          </div>
+
+          {/* Ray 4 — wider downward scatter, very soft */}
+          <div
+            className="pointer-events-none absolute inset-0 z-[5]"
+            style={{ transform: "rotate(22deg)", transformOrigin: "top left" }}
+          >
+            <Spotlight
+              className="md:-top-120 md:-left-60 -top-180 -left-60 opacity-[0.20]"
+              fill="white"
+            />
+          </div>
 
           {/* Dashboard */}
           <motion.div
@@ -141,16 +188,6 @@ export default function Landing() {
               willChange: "transform",
             }}
           >
-            {/* Purple glow beneath card */}
-            <motion.div
-              className="absolute left-[8%] right-[8%] bottom-[-24px] h-[180px] pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(ellipse 80% 100% at 50% 100%, rgba(109,40,217,0.60) 0%, transparent 68%)",
-                filter: "blur(52px)",
-                opacity: dashGlow,
-              }}
-            />
             <motion.div
               className="w-full max-w-[1220px] pointer-events-none"
               style={{
