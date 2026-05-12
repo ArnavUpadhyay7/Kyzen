@@ -6,20 +6,20 @@ export default function DashboardCard() {
     <div
       className="w-full overflow-hidden relative rounded-[14px]"
       style={{
-        background: "#05030f",
+        background: "#080808",
         boxShadow: `
-          0 0 0 1px rgba(109,40,217,0.28),
-          0 0 80px rgba(88,28,220,0.22),
-          0 48px 120px rgba(0,0,0,0.82),
-          inset 0 1px 0 rgba(255,255,255,0.055)
+          0 0 0 1px rgba(255,255,255,0.12),
+          0 0 80px rgba(255,255,255,0.04),
+          0 48px 120px rgba(0,0,0,0.85),
+          inset 0 1px 0 rgba(255,255,255,0.07)
         `,
       }}
     >
-      {/* Top edge light line */}
+      {/* Top edge light line — white shimmer instead of purple */}
       <div
         className="absolute inset-x-0 top-0 h-px pointer-events-none z-10"
         style={{
-          background: "linear-gradient(90deg, transparent 8%, rgba(109,40,217,0.5) 35%, rgba(167,139,250,0.9) 50%, rgba(109,40,217,0.5) 65%, transparent 92%)",
+          background: "linear-gradient(90deg, transparent 8%, rgba(255,255,255,0.18) 35%, rgba(255,255,255,0.70) 50%, rgba(255,255,255,0.18) 65%, transparent 92%)",
         }}
       />
 
@@ -27,8 +27,8 @@ export default function DashboardCard() {
       <div
         className="relative flex items-center gap-2 px-4 py-2.5"
         style={{
-          background: "rgba(5,3,15,0.98)",
-          borderBottom: "1px solid rgba(109,40,217,0.12)",
+          background: "rgba(6,6,6,0.98)",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
         }}
       >
         {/* Traffic lights */}
@@ -51,17 +51,17 @@ export default function DashboardCard() {
           <div
             className="flex items-center gap-1.5 px-3 py-1 rounded-md"
             style={{
-              background: "rgba(255,255,255,0.035)",
-              border: "1px solid rgba(255,255,255,0.065)",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
             <svg width="8" height="9" viewBox="0 0 9 10" fill="none" className="opacity-30">
-              <rect x="0.5" y="3.5" width="8" height="6" rx="1" stroke="#a78bfa" strokeWidth="1"/>
-              <path d="M2.5 3.5V3a2 2 0 014 0v.5" stroke="#a78bfa" strokeWidth="1"/>
+              <rect x="0.5" y="3.5" width="8" height="6" rx="1" stroke="white" strokeWidth="1"/>
+              <path d="M2.5 3.5V3a2 2 0 014 0v.5" stroke="white" strokeWidth="1"/>
             </svg>
             <span
               className="text-[10px] tracking-[0.04em]"
-              style={{ color: "rgba(167,139,250,0.32)", fontFamily: typography.mono }}
+              style={{ color: "rgba(255,255,255,0.28)", fontFamily: typography.mono }}
             >
               app.kyzen.dev/dashboard
             </span>

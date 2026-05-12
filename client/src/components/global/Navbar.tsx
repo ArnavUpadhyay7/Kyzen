@@ -40,12 +40,12 @@ function KyzenLogo() {
       <div
         className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
         style={{
-          background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-          boxShadow: "0 0 12px rgba(139,92,246,0.5)",
+          background: "#ffffff",
+          boxShadow: "0 0 12px rgba(255,255,255,0.25)",
         }}
       >
         <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-          <path d="M3 2v10M3 7l5-5M3 7l5 5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 2v10M3 7l5-5M3 7l5 5" stroke="black" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
       <span
@@ -67,34 +67,35 @@ function CTAButton() {
   return (
     <Link to="/signup" className="shrink-0">
       <motion.button
-        whileHover={{ scale: 1.03, boxShadow: "0 0 26px rgba(139,92,246,0.65), 0 2px 14px rgba(0,0,0,0.45)" }}
+        whileHover={{ scale: 1.03, boxShadow: "0 0 26px rgba(255,255,255,0.25), 0 2px 14px rgba(0,0,0,0.5)" }}
         whileTap={{ scale: 0.97 }}
-        className="relative overflow-hidden flex items-center gap-1.5 rounded-full text-white cursor-pointer select-none"
+        className="relative overflow-hidden flex items-center gap-1.5 rounded-full cursor-pointer select-none"
         style={{
           fontFamily: "'DM Sans', sans-serif",
           fontSize: 13.5,
-          fontWeight: 500,
+          fontWeight: 600,
           letterSpacing: "0.01em",
           paddingLeft: 18,
           paddingRight: 18,
           paddingTop: 8,
           paddingBottom: 8,
-          background: "linear-gradient(135deg, #7c3aed 0%, #9333ea 60%, #a855f7 100%)",
-          boxShadow: "0 0 18px rgba(124,58,237,0.42), 0 2px 8px rgba(0,0,0,0.3)",
-          border: "1px solid rgba(167,139,250,0.22)",
+          background: "#ffffff",
+          color: "#000000",
+          boxShadow: "0 0 16px rgba(255,255,255,0.14), 0 2px 8px rgba(0,0,0,0.4)",
+          border: "1px solid rgba(255,255,255,0.85)",
         }}
       >
         <span
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
-            background: "linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.1) 50%, transparent 65%)",
+            background: "linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.18) 50%, transparent 65%)",
             backgroundSize: "300% 100%",
             animation: "nav-shimmer 3s ease-in-out infinite 2s",
           }}
         />
-        Get Early Access
-        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.75 }}>
-          <path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        Start Free
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.6 }}>
+          <path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="black" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </motion.button>
     </Link>
@@ -124,18 +125,17 @@ export default function Navbar() {
           className="pointer-events-auto flex items-center justify-between"
           animate={{
             background: atTop
-              ? "rgba(10,5,25,0.42)"
-              : "rgba(10,5,25,0.80)",
+              ? "rgba(8,8,8,0.45)"
+              : "rgba(8,8,8,0.82)",
             boxShadow: atTop
-              ? "0 1px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04)"
-              : "0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(139,92,246,0.18), inset 0 1px 0 rgba(255,255,255,0.06)",
+              ? "0 1px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)"
+              : "0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.10), inset 0 1px 0 rgba(255,255,255,0.07)",
             borderColor: atTop
-              ? "rgba(139,92,246,0.12)"
-              : "rgba(139,92,246,0.25)",
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(255,255,255,0.14)",
           }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           style={{
-            /* mobile: fills available width. md+: capped and centered */
             width: "min(100%, 1200px)",
             borderRadius: 9999,
             border: "1px solid",

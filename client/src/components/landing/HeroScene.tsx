@@ -1,5 +1,22 @@
 import { motion } from "framer-motion";
 
+/*
+  Global keyframe for Aceternity's Spotlight component.
+  Defined here (in the top-level scene) so it's injected before any Spotlight
+  renders — covers both the Hero standalone route and Landing's sticky zone.
+*/
+const SpotlightKeyframes = () => (
+  <style>{`
+    @keyframes spotlight {
+      0%   { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    .animate-spotlight {
+      animation: spotlight 2s ease 0.5s 1 forwards;
+    }
+  `}</style>
+);
+
 // ─── Subtle star field ───────────────────────────────────────────────────────
 const Starfield = ({ count = 40 }: { count?: number }) => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -12,9 +29,9 @@ const Starfield = ({ count = 40 }: { count?: number }) => (
           left: `${Math.random() * 100}%`,
           width: Math.random() > 0.92 ? 2 : 1,
           height: Math.random() > 0.92 ? 2 : 1,
-          opacity: Math.random() * 0.18 + 0.04,
+          opacity: Math.random() * 0.10 + 0.02,
         }}
-        animate={{ opacity: [null as any, 0.03, 0.22] }}
+        animate={{ opacity: [null as any, 0.02, 0.12] }}
         transition={{
           duration: 3 + Math.random() * 5,
           repeat: Infinity,
@@ -32,99 +49,60 @@ export default function HeroScene() {
   return (
     <div
       className="absolute inset-0 z-0 overflow-hidden"
-      style={{ background: "#07041a" }}
+      style={{ background: "#080808" }}
     >
-      {/* ── 1. Grid lines — the "professional" layer ── */}
+      {/* Inject spotlight keyframes globally */}
+      <SpotlightKeyframes />
+
+      {/*
+        Grid with radial edge-fade mask.
+        Same 72px grid and #171717 line colour as before — only the mask is new.
+        The mask fades the grid lines to transparent at all four edges so they
+        "dissolve into the dark" rather than hard-stopping at the viewport edge.
+        Centre of the ellipse is pushed up (at 50% 35%) so the top area —
+        where the spotlight lands — has maximum grid visibility.
+      */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `
-            linear-gradient(rgba(139,92,246,0.07) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(139,92,246,0.07) 1px, transparent 1px)
-          `,
-          backgroundSize: "72px 72px",
-          // Fade the grid toward the edges so it doesn't look boxy
-          maskImage: "radial-gradient(ellipse 90% 80% at 50% 40%, black 0%, transparent 80%)",
-          WebkitMaskImage: "radial-gradient(ellipse 90% 80% at 50% 40%, black 0%, transparent 80%)",
+          WebkitMaskImage: "radial-gradient(ellipse 90% 75% at 50% 35%, black 25%, rgba(0,0,0,0.6) 55%, transparent 100%)",
+          maskImage:        "radial-gradient(ellipse 90% 75% at 50% 35%, black 25%, rgba(0,0,0,0.6) 55%, transparent 100%)",
         }}
-      />
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)
+            `,
+            backgroundSize: "72px 72px",
+          }}
+        />
+      </div>
 
-      {/* ── 2. Center spotlight — mimics the Vantrix "beam" ── */}
-      {/* Primary glow — wide, diffuse */}
+      {/* Top-left light rays — unchanged */}
       <div
         className="absolute pointer-events-none"
         style={{
-          top: "-10%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "900px",
-          height: "600px",
+          top: 0,
+          left: 0,
+          width: "75%",
+          height: "65%",
           background:
-            "radial-gradient(ellipse 60% 55% at 50% 0%, rgba(109,40,217,0.28) 0%, rgba(88,28,220,0.10) 40%, transparent 70%)",
-          filter: "blur(1px)",
-        }}
-      />
-      {/* Tighter inner highlight — the bright center of the beam */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          top: "-5%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "480px",
-          height: "380px",
-          background:
-            "radial-gradient(ellipse 50% 50% at 50% 0%, rgba(139,92,246,0.22) 0%, rgba(109,40,217,0.06) 55%, transparent 75%)",
+            "conic-gradient(from 0deg at 0% 0%, rgba(255,255,255,0.09) 0deg, rgba(255,255,255,0.03) 28deg, transparent 42deg)",
+          filter: "blur(18px)",
         }}
       />
 
-      {/* ── 3. Ambient base haze ── */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 100% 55% at 50% 65%, rgba(55,14,150,0.10) 0%, transparent 65%)",
-        }}
-      />
+      <Starfield count={40} />
 
-      {/* ── 4. Starfield (very subtle) ── */}
-      <Starfield count={45} />
-
-      {/* ── 5. Bottom fade — hero melts into content below ── */}
       <div
         className="absolute inset-x-0 bottom-0 pointer-events-none"
         style={{
-          height: "52%",
+          height: "50%",
           background:
-            "linear-gradient(to top, #07041a 0%, rgba(7,4,26,0.92) 20%, rgba(7,4,26,0.4) 55%, transparent 100%)",
-          zIndex: 4,
-        }}
-      />
-
-      {/* ── 6. Side vignettes — keeps grid from looking harsh at edges ── */}
-      <div
-        className="absolute inset-y-0 left-0 pointer-events-none"
-        style={{
-          width: "16%",
-          background: "linear-gradient(to right, rgba(7,4,26,0.7) 0%, transparent 100%)",
-          zIndex: 4,
-        }}
-      />
-      <div
-        className="absolute inset-y-0 right-0 pointer-events-none"
-        style={{
-          width: "16%",
-          background: "linear-gradient(to left, rgba(7,4,26,0.7) 0%, transparent 100%)",
-          zIndex: 4,
-        }}
-      />
-
-      {/* ── 7. Top scrim — headline readability ── */}
-      <div
-        className="absolute inset-x-0 top-0 pointer-events-none"
-        style={{
-          height: "30%",
-          background: "linear-gradient(to bottom, rgba(7,4,26,0.25) 0%, transparent 100%)",
+            "linear-gradient(to top, #080808 0%, rgba(8,8,8,0.92) 20%, rgba(8,8,8,0.4) 55%, transparent 100%)",
           zIndex: 4,
         }}
       />
