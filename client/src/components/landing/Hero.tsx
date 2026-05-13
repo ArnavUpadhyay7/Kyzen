@@ -1,132 +1,233 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { typography } from "./design-system";
-import { cn } from "../../lib/utils";
-import { Spotlight } from "../ui/Spotlight";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
+// ─── KEYFRAMES ────────────────────────────────────────────────────────────────
+const HeroKeyframes = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');
+
+    /* PROGRESS word glow — text-shadow works on solid-color text,
+       but we need drop-shadow for gradient text */
+    @keyframes progress-bloom {
+      0%, 100% {
+        filter:
+          drop-shadow(0 0 20px rgba(91,127,255,0.45))
+          drop-shadow(0 0 55px rgba(91,127,255,0.18));
+      }
+      50% {
+        filter:
+          drop-shadow(0 0 32px rgba(91,127,255,0.65))
+          drop-shadow(0 0 80px rgba(91,127,255,0.28));
+      }
+    }
+    .progress-word {
+      display: inline-block;
+      animation: progress-bloom 4s ease-in-out infinite;
+    }
+
+    /* CTA bloom orb — breathes beneath the button */
+    @keyframes bloom-breathe {
+      0%, 100% { opacity: 0.55; transform: scale(1);    }
+      50%       { opacity: 0.82; transform: scale(1.10); }
+    }
+    .cta-bloom-anim { animation: bloom-breathe 3.6s ease-in-out infinite; }
+
+    /* Spark chase around button border */
+    @keyframes spark-loop {
+      0%   { stroke-dashoffset: 1000; opacity: 1; }
+      80%  { opacity: 1; }
+      100% { stroke-dashoffset: 0;    opacity: 0; }
+    }
+    .spark-path {
+      stroke-dasharray: 120 880;
+      stroke-dashoffset: 1000;
+      animation: spark-loop 2.8s cubic-bezier(0.4,0,0.6,1) infinite;
+    }
+    .spark-path-b {
+      stroke-dasharray: 80 920;
+      stroke-dashoffset: 1000;
+      animation: spark-loop 2.8s cubic-bezier(0.4,0,0.6,1) infinite 1.4s;
+    }
+
+    @keyframes spotlight { 0% { opacity: 0; } 100% { opacity: 1; } }
+    .animate-spotlight { animation: spotlight 2s ease 0.5s 1 forwards; }
+  `}</style>
+);
+
+
+// ─── HERO CONTENT (used in Landing sticky pin zone) ───────────────────────────
 export function HeroContent() {
   return (
     <>
-      <style>{`
-        @keyframes shimmer-sweep {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -100% 0; }
-        }
-        .btn-shimmer::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          border-radius: 10px;
-          background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%);
-          background-size: 300% 100%;
-          animation: shimmer-sweep 3.5s ease-in-out infinite 2s;
-          pointer-events: none;
-        }
+      <HeroKeyframes />
 
-        /*
-          CRITICAL FIX: Define the @keyframes that Aceternity's animate-spotlight class needs.
-          Tailwind's animate-spotlight is a *custom* animation — it must be registered in
-          tailwind.config.js under theme.extend.keyframes.  If it's missing there, the class
-          compiles to nothing and opacity-0 wins forever.
-          Defining it here in a <style> block makes it work unconditionally.
-          The animation goes opacity 0→1 and is kept at 1 via forwards fill-mode.
-        */
-        @keyframes spotlight {
-          0%   { opacity: 0; }
-          100% { opacity: 1; }
-        }
-        .animate-spotlight {
-          animation: spotlight 2s ease 0.5s 1 forwards;
-        }
-      `}</style>
-
+      {/* Headline */}
       <motion.h1
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.72, delay: 0.10, ease }}
-        className="font-black uppercase leading-[0.92] mb-6 select-none"
+        className="font-black uppercase select-none"
         style={{
           fontFamily: typography.display,
-          fontSize: "clamp(3rem, 7.2vw, 6.5rem)",
-          letterSpacing: "-0.03em",
-          background: "linear-gradient(to bottom, #ffffff 0%, #f3f3f3 35%, #cfcfcf 100%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
+          fontSize: "clamp(3.6rem, 9vw, 7.4rem)",
+          lineHeight: 0.90,
+          letterSpacing: "-0.02em",
+          marginBottom: "28px",
+          textAlign: "center",
         }}
       >
-        <span className="block">Turn Grind</span>
-        <span className="block">Into Progress</span>
+        <span
+          className="block"
+          style={{
+            background: "linear-gradient(180deg, #F5F7FF 0%, #C8CFEE 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          Turn Grind
+        </span>
+        <span className="block">
+          <span
+            style={{
+              background: "linear-gradient(180deg, #E0E8FF 0%, #A8B8EE 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            Into{" "}
+          </span>
+          <span
+            className="progress-word"
+            style={{
+              background: "linear-gradient(135deg, #B7CCFF 0%, #7AA2FF 45%, #5B7FFF 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            Progress
+          </span>
+        </span>
       </motion.h1>
 
+      {/* Subtitle */}
       <motion.p
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.62, delay: 0.18, ease }}
-        className="mb-9 leading-relaxed max-w-[420px] select-none"
+        transition={{ duration: 0.62, delay: 0.20, ease }}
+        className="select-none"
         style={{
           fontFamily: typography.body,
-          fontSize: "clamp(0.88rem, 1.3vw, 1rem)",
-          color: "rgba(255,255,255,0.45)",
+          fontSize: "clamp(0.88rem, 1.35vw, 1.02rem)",
+          color: "rgba(255,255,255,0.62)",
           fontWeight: 400,
+          lineHeight: 1.65,
+          maxWidth: "440px",
+          marginBottom: "36px",
+          textAlign: "center",
         }}
       >
         The RPG layer for your developer life. Quests, XP, streaks —
+        <br />
         your progress, finally quantified.
       </motion.p>
 
+      {/* ── CTA ROW ───────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, delay: 0.26, ease }}
-        className="flex items-center gap-3 flex-wrap"
+        transition={{ duration: 0.58, delay: 0.30, ease }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "14px",
+          flexWrap: "wrap",
+        }}
       >
-        <Link to="/signup">
+        {/* ── PRIMARY CTA ─────────────────────────────────────────
+            Reference shows: white pill button, visible blue-violet
+            bloom radiating beneath/around it — not just a shadow.
+            The bloom is the defining feature: a colored aura.
+        ────────────────────────────────────────────────────────── */}
+        <Link to="/signup" style={{ textDecoration: "none" }}>
           <motion.button
             whileHover={{
               scale: 1.025,
-              boxShadow: "0 0 28px rgba(255,255,255,0.22), 0 4px 16px rgba(0,0,0,0.5)",
+              boxShadow: `
+                0 0 0 1px rgba(125,185,255,0.22),
+                0 8px 40px rgba(110,168,255,0.62),
+                0 0 65px rgba(110,168,255,0.38),
+                0 0 110px rgba(110,168,255,0.18)
+              `,
             }}
             whileTap={{ scale: 0.975 }}
-            className="btn-shimmer relative overflow-hidden flex items-center gap-2
-             font-semibold cursor-pointer select-none
-             rounded-[10px] px-6 py-[11px] text-[14px] tracking-[0.01em]"
+            className="btn-primary-shine btn-primary-glow"
             style={{
-              fontFamily: typography.body,
-              background: "#ffffff",
-              color: "#000000",
-              boxShadow: "0 0 18px rgba(255,255,255,0.12), 0 2px 10px rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.9)",
+              position: "relative",
+              overflow: "hidden",
+              background: "#FFFFFF",
+              color: "#0A0D12",
+              border: "none",
+              // Pill shape — matches reference exactly
+              borderRadius: "999px",
+              height: "50px",
+              padding: "0 28px",
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 600,
+              fontSize: "15px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              whiteSpace: "nowrap",
             }}
           >
             Get Early Access
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="black" strokeWidth="1.8"
-                strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M3 8h10M9 4l4 4-4 4"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </motion.button>
         </Link>
 
+        {/* ── SECONDARY CTA ───────────────────────────────────────
+            Transparent, thin border, pill shape, subtle
+        ────────────────────────────────────────────────────────── */}
         <motion.button
           whileHover={{
-            color: "rgba(255,255,255,0.85)",
-            borderColor: "rgba(255,255,255,0.30)",
+            borderColor: "rgba(125,185,255,0.35)",
+            color: "#FFFFFF",
+            boxShadow: "0 0 22px rgba(125,185,255,0.10)",
           }}
           whileTap={{ scale: 0.975 }}
-          className="flex items-center gap-2 cursor-pointer select-none
-                     rounded-[10px] px-5 py-[11px] text-[13.5px] font-medium
-                     transition-colors duration-150"
           style={{
-            fontFamily: typography.body,
-            color: "rgba(255,255,255,0.50)",
-            background: "transparent",
-            border: "1px solid rgba(255,255,255,0.14)",
-            letterSpacing: "0.005em",
+            background: "rgba(255,255,255,0.04)",
+            color: "#D0D6E2",
+            border: "1px solid rgba(255,255,255,0.13)",
+            borderRadius: "999px",
+            height: "50px",
+            padding: "0 26px",
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 500,
+            fontSize: "15px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            whiteSpace: "nowrap",
+            transition: "border-color 0.2s, color 0.2s, box-shadow 0.2s",
           }}
         >
           Book a Demo
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.3" />
             <path d="M6.5 5.5l4 2.5-4 2.5V5.5z" fill="currentColor" />
           </svg>
@@ -136,61 +237,114 @@ export function HeroContent() {
   );
 }
 
+// ─── STANDALONE HERO ROUTE ────────────────────────────────────────────────────
 export default function Hero() {
   return (
-    <section className="relative w-full min-h-[100dvh] flex flex-col overflow-hidden">
+    <section
+      style={{
+        position: "relative",
+        width: "100%",
+        minHeight: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        background: "#07090D",
+      }}
+    >
+      <HeroKeyframes />
 
-      {/*
-        ── LAYER 1 (z-0): Spotlight ─────────────────────────────────────────
-        Placed FIRST in DOM so nothing painted later can obscure it without
-        an explicit higher z-index.
-
-        The Spotlight SVG's own class string is:
-          "animate-spotlight pointer-events-none absolute z-[1] h-[169%] w-[138%] lg:w-[84%] opacity-0"
-        cn() with tailwind-merge merges our className in — opacity-[0.9] wins over
-        opacity-0 because tailwind-merge resolves the same utility group to the last one.
-        The @keyframes defined above animates it from 0 → opacity-[0.9].
-
-        NO blur-3xl — that was double-blurring an already feGaussianBlur-heavy SVG.
-        Position: top-left origin, large enough that beam sweeps over the headline.
-      */}
-      <Spotlight
-        className="-top-40 left-0 md:-top-20 md:left-10 opacity-[0.9]"
-        fill="white"
+      {/* Grid */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `
+            linear-gradient(#141823 1px, transparent 1px),
+            linear-gradient(90deg, #141823 1px, transparent 1px)
+          `,
+          backgroundSize: "60px 60px",
+          opacity: 0.2,
+          pointerEvents: "none",
+        }}
       />
 
-      {/*
-        ── LAYER 2 (z-0): Grid with radial edge fade ─────────────────────────
-        Same 40px grid as before, but wrapped in a container that applies a
-        radial mask — full opacity in the centre, fading to transparent at all
-        four edges. This gives the "grid lines dissolve into darkness" effect
-        used by Linear/Vercel without changing the grid colour or density.
-      */}
-      <div
-        className="pointer-events-none absolute inset-0 select-none"
+      {/* Spotlight — all layers start at opacity 0, fade in staggered */}
+      {/* Outer fan */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 1, 0.82, 1] }}
+        transition={{
+          duration: 2.2, delay: 0.2,
+          ease: [0.22, 1, 0.36, 1],
+          times: [0, 0.6, 0.8, 1],
+          repeat: Infinity,
+        }}
         style={{
-          WebkitMaskImage: "radial-gradient(ellipse 85% 80% at 50% 40%, black 30%, transparent 100%)",
-          maskImage:        "radial-gradient(ellipse 85% 80% at 50% 40%, black 30%, transparent 100%)",
+          position: "absolute", top: 0, left: 0,
+          width: "72vw", height: "85vh",
+          background: `radial-gradient(ellipse at 0% 0%,
+            rgba(50,90,255,0.45) 0%, rgba(40,80,230,0.20) 30%,
+            rgba(30,60,200,0.06) 58%, transparent 75%)`,
+          filter: "blur(80px)",
+          pointerEvents: "none", zIndex: 1,
+        }}
+      />
+      {/* Mid cone */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.92, 0.72, 0.92] }}
+        transition={{
+          duration: 2.6, delay: 0.5,
+          ease: [0.22, 1, 0.36, 1],
+          times: [0, 0.55, 0.78, 1],
+          repeat: Infinity,
+        }}
+        style={{
+          position: "absolute", top: 0, left: 0,
+          width: "48vw", height: "65vh",
+          background: `radial-gradient(ellipse at 0% 0%,
+            rgba(80,120,255,0.55) 0%, rgba(60,100,255,0.22) 28%,
+            rgba(40,80,230,0.07) 55%, transparent 72%)`,
+          filter: "blur(55px)",
+          pointerEvents: "none", zIndex: 2,
+        }}
+      />
+      {/* Hot core */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.88, 0.68, 0.88] }}
+        transition={{
+          duration: 3.0, delay: 0.9,
+          ease: [0.22, 1, 0.36, 1],
+          times: [0, 0.5, 0.75, 1],
+          repeat: Infinity,
+        }}
+        style={{
+          position: "absolute", top: "-40px", left: "-40px",
+          width: "320px", height: "320px",
+          background: `radial-gradient(ellipse at 20% 20%,
+            rgba(160,190,255,0.60) 0%, rgba(100,150,255,0.28) 30%,
+            rgba(70,110,255,0.08) 58%, transparent 75%)`,
+          filter: "blur(38px)",
+          pointerEvents: "none", zIndex: 3,
+        }}
+      />
+
+      {/* Content */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          paddingTop: "18vh",
+          paddingLeft: "24px",
+          paddingRight: "24px",
+          width: "100%",
         }}
       >
-        <div
-          className={cn(
-            "absolute inset-0 [background-size:40px_40px]",
-            "[background-image:linear-gradient(to_right,#171717_1px,transparent_1px),linear-gradient(to_bottom,#171717_1px,transparent_1px)]",
-          )}
-        />
-      </div>
-
-      {/*
-        ── LAYER 3 (z-10): Content ───────────────────────────────────────────
-      */}
-      <div
-        className="relative z-10 flex flex-col pt-[18vh]
-                   px-6 sm:px-12 lg:px-20 w-full max-w-7xl mx-auto"
-      >
-        <div className="max-w-2xl">
-          <HeroContent />
-        </div>
+        <HeroContent />
       </div>
     </section>
   );

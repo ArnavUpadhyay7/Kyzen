@@ -1,72 +1,77 @@
 // ─── PALETTE ──────────────────────────────────────────────────────────────────
 export const palette = {
-  // Core canvas — pure black base
-  canvas:    "#080808",         // single dark bg, every section sits on this
-  canvasMid: "#0d0d0d",         // subtle elevation — cards, panels
-  canvasHigh: "#141414",        // floating elements, modals
+  canvas:      "#02040A",
+  canvasMid:   "#050816",
+  canvasHigh:  "#0A0F1E",
 
-  // White/grey spectrum — the single accent ramp (replaces purple)
-  white:     "#ffffff",
-  grey50:    "#f9f9f9",
-  grey100:   "#e8e8e8",
-  grey200:   "#cccccc",
-  grey300:   "#aaaaaa",
-  grey400:   "#888888",
-  grey500:   "#666666",
-  grey600:   "#444444",
-  grey700:   "#2a2a2a",
-  grey800:   "#1a1a1a",
-  grey900:   "#111111",
+  white:       "#ffffff",
+  text90:      "rgba(245,247,255,0.90)",
+  text70:      "rgba(245,247,255,0.70)",
+  text62:      "rgba(255,255,255,0.62)",
+  text35:      "rgba(255,255,255,0.35)",
+  text20:      "rgba(255,255,255,0.20)",
+  text08:      "rgba(255,255,255,0.08)",
 
-  // Neutral text scale
-  text90:    "rgba(255,255,255,0.90)",
-  text70:    "rgba(255,255,255,0.70)",
-  text50:    "rgba(255,255,255,0.50)",
-  text35:    "rgba(255,255,255,0.35)",
-  text20:    "rgba(255,255,255,0.20)",
-  text08:    "rgba(255,255,255,0.08)",
-  text04:    "rgba(255,255,255,0.04)",
+  blue:        "#4D7CFF",
+  blueMid:     "#6EA8FF",
+  blueDeep:    "#5B7FFF",
+  purple:      "#7C4DFF",
 } as const;
 
 // ─── GRADIENTS ────────────────────────────────────────────────────────────────
 export const gradients = {
-  // White-to-grey text gradient for headings
-  whiteText: "linear-gradient(135deg, #ffffff 0%, #e0e0e0 60%, #b8b8b8 100%)",
+  headingWhite: "linear-gradient(180deg, #F5F7FF 0%, #C8CFEE 100%)",
+  headingGrey:  "linear-gradient(180deg, #E0E8FF 0%, #A8B8EE 100%)",
 
-  // Button fill — solid white for primary CTA
-  buttonFill: "#ffffff",
+  // Hero headline accent — blue → violet (used on "PROGRESS")
+  progressWord: "linear-gradient(135deg, #B7CCFF 0%, #7AA2FF 45%, #5B7FFF 100%)",
 
-  // Card/panel top-edge shimmer — white toned
-  cardEdgeShimmer: "linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.12) 50%, transparent 90%)",
-  cardEdgeShimmerFeatured: "linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.30) 50%, transparent 95%)",
+  // Section heading accent — purple/violet (used by SectionHeading)
+  // Kept as a separate key so section headings can stay purple-toned
+  // while the hero "PROGRESS" word stays blue-toned
+  purpleText: "linear-gradient(135deg, #a78bfa 0%, #7C4DFF 55%, #6D28D9 100%)",
 
-  // Ambient scene glows — white/grey spotlight from top center (matches Vantrix)
-  sceneCenter: "radial-gradient(ellipse 80% 55% at 50% 0%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 40%, transparent 70%)",
-  sceneLeft:   "radial-gradient(ellipse 50% 80% at 0% 50%, rgba(0,0,0,0.5) 0%, transparent 60%)",
-  sceneBottom: "radial-gradient(ellipse 80% 60% at 50% 100%, rgba(20,20,20,0.95) 0%, transparent 65%)",
-} as const;
+  gridLines:    "rgba(88,120,255,0.08)",
 
-// ─── SHADOWS ─────────────────────────────────────────────────────────────────
-export const shadows = {
-  card:         "0 4px 24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
-  cardFeatured: "0 0 40px rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.10)",
-  button:       "0 0 24px rgba(255,255,255,0.18), 0 4px 16px rgba(0,0,0,0.5)",
-  glow:         "0 0 60px rgba(255,255,255,0.08)",
+  spotlightInner: "rgba(77,124,255,0.42)",
+  spotlightMid:   "rgba(59,130,246,0.24)",
+
+  ctaGlow:    "rgba(110,168,255,0.55)",
+  dashBorder: "rgba(122,162,255,0.42)",
+  dashGlow:   "rgba(76,110,245,0.35)",
 } as const;
 
 // ─── BORDERS ─────────────────────────────────────────────────────────────────
+// Used by SectionBadge and any card/panel components
 export const borders = {
   subtle:   "1px solid rgba(255,255,255,0.06)",
-  medium:   "1px solid rgba(255,255,255,0.12)",
-  accent:   "1px solid rgba(255,255,255,0.22)",
-  featured: "1px solid rgba(255,255,255,0.40)",
+  medium:   "1px solid rgba(255,255,255,0.11)",
+  accent:   "1px solid rgba(109,40,217,0.35)",   // purple accent — SectionBadge
+  blue:     "1px solid rgba(77,124,255,0.28)",
+  blueMid:  "1px solid rgba(110,168,255,0.42)",
+  featured: "1px solid rgba(255,255,255,0.22)",
 } as const;
 
 // ─── TYPOGRAPHY ──────────────────────────────────────────────────────────────
 export const typography = {
-  display: "'Barlow', sans-serif",  // headings, big numbers
-  body:    "'DM Sans', sans-serif", // UI text, labels, descriptions
-  mono:    "ui-monospace, 'JetBrains Mono', monospace", // code, tags
+  // Barlow Condensed for hero/display headings (ultra-bold condensed)
+  // Components should import weight 700/800/900 from Google Fonts:
+  // "Barlow+Condensed:wght@700;800;900"
+  display: "'Barlow Condensed', 'Barlow', sans-serif",
+
+  // DM Sans for body copy, labels, subtitles
+  body:    "'DM Sans', 'Inter', sans-serif",
+
+  // Monospace for stats, code, tags
+  mono:    "ui-monospace, 'JetBrains Mono', monospace",
+} as const;
+
+// ─── SHADOWS ─────────────────────────────────────────────────────────────────
+export const shadows = {
+  card:         "0 4px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05)",
+  cardFeatured: "0 0 40px rgba(77,124,255,0.08), 0 4px 24px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.08)",
+  button:       "0 6px 28px rgba(110,168,255,0.40), 0 0 44px rgba(110,168,255,0.22)",
+  glow:         "0 0 60px rgba(77,124,255,0.10)",
 } as const;
 
 // ─── SPACING ─────────────────────────────────────────────────────────────────
@@ -76,7 +81,7 @@ export const spacing = {
   maxWidth:  "max-w-6xl mx-auto",
 } as const;
 
-// ─── ANIMATION PRESETS ────────────────────────────────────────────────────────
+// ─── ANIMATION PRESETS ───────────────────────────────────────────────────────
 export const anim = {
   fadeUp: (delay = 0) => ({
     initial: { opacity: 0, y: 36 },

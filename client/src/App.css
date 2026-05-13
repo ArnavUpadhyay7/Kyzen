@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;700;800;900&family=DM+Sans:wght@300;400;500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
@@ -16,3 +17,75 @@
     transform: translate(-50%, -40%) scale(1);
   }
 }
+
+/*
+ * Kyzen Hero — Global styles
+ * Import in your main index.css or App.tsx
+ */
+
+
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: auto; }
+
+/* ── Selection ──────────────────────────────────────────────────────────── */
+::selection { background: rgba(77,124,255,0.28); }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: #02040A; }
+::-webkit-scrollbar-thumb { background: rgba(77,124,255,0.38); border-radius: 2px; }
+
+/* ── Spotlight keyframe (MUST be global) ────────────────────────────────── */
+@keyframes spotlight {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+.animate-spotlight {
+  animation: spotlight 2s ease 0.5s 1 forwards;
+}
+
+/* ── Shimmer sweep (shared by nav + hero CTAs) ──────────────────────────── */
+@keyframes shimmer-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* ── CTA glow pulse ────────────────────────────────────────────────────── */
+@keyframes cta-pulse {
+  0%,100% {
+    box-shadow:
+      0 0 40px rgba(110,168,255,0.55),
+      0 0 80px rgba(110,168,255,0.18),
+      0 4px 20px rgba(0,0,0,0.50);
+  }
+  50% {
+    box-shadow:
+      0 0 55px rgba(110,168,255,0.72),
+      0 0 110px rgba(110,168,255,0.25),
+      0 4px 20px rgba(0,0,0,0.50);
+  }
+}
+.cta-pulse { animation: cta-pulse 3.5s ease-in-out infinite; }
+
+/* ── PROGRESS word glow ─────────────────────────────────────────────────── */
+@keyframes progress-glow {
+  0%,100% {
+    text-shadow:
+      0 0 40px rgba(91,127,255,0.45),
+      0 0 80px rgba(91,127,255,0.18);
+  }
+  50% {
+    text-shadow:
+      0 0 60px rgba(91,127,255,0.65),
+      0 0 120px rgba(91,127,255,0.28);
+  }
+}
+.progress-word { animation: progress-glow 4s ease-in-out infinite; }
+
+/* ── Grid breathe ───────────────────────────────────────────────────────── */
+@keyframes grid-breathe {
+  0%,100% { opacity: 0.60; }
+  50%      { opacity: 0.80; }
+}
+.grid-breathe { animation: grid-breathe 14s ease-in-out infinite; }
