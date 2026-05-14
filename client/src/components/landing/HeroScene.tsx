@@ -1,46 +1,49 @@
-import { motion } from "framer-motion";
+// import { motion } from "framer-motion";
 
 // Stars: sparse, weighted toward right half and upper area to match reference
-const STARS = Array.from({ length: 38 }, (_, i) => ({
-  id: i,
-  // Bias stars toward right side and upper regions like the reference
-  top:  `${(i * 53.3 + 7) % 82}%`,
-  left: `${30 + (i * 47.1 + 19) % 68}%`,
-  size: (i * 9 + 5) % 11 > 8 ? 2 : 1,
-  minOp: 0.06 + ((i * 7) % 4) * 0.015,
-  maxOp: 0.20 + ((i * 11) % 5) * 0.03,
-  dur: 3.5 + (i % 5) * 1.3,
-  delay: (i * 1.9) % 9,
-}));
+// const STARS = Array.from({ length: 38 }, (_, i) => ({
+//   id: i,
+//   // Bias stars toward right side and upper regions like the reference
+//   top:  `${(i * 53.3 + 7) % 82}%`,
+//   left: `${30 + (i * 47.1 + 19) % 68}%`,
+//   size: (i * 9 + 5) % 11 > 8 ? 2 : 1,
+//   minOp: 0.06 + ((i * 7) % 4) * 0.015,
+//   maxOp: 0.20 + ((i * 11) % 5) * 0.03,
+//   dur: 3.5 + (i % 5) * 1.3,
+//   delay: (i * 1.9) % 9,
+// }));
 
-function Starfield() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 2 }}>
-      {STARS.map((s) => (
-        <motion.div
-          key={s.id}
-          className="absolute rounded-full"
-          style={{
-            top: s.top,
-            left: s.left,
-            width: s.size,
-            height: s.size,
-            background: "#ffffff",
-            filter: "blur(0.3px)",
-          }}
-          animate={{ opacity: [s.minOp, s.maxOp, s.minOp] }}
-          transition={{
-            duration: s.dur,
-            repeat: Infinity,
-            repeatType: "mirror",
-            delay: s.delay,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+// function Starfield() {
+//   return (
+//     <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 2 }}>
+//       {STARS.map((s) => (
+//         <motion.div
+//           key={s.id}
+//           className="absolute rounded-full"
+//           style={{
+//             top: s.top,
+//             left: s.left,
+//             width: s.size,
+//             height: s.size,
+//             background: "#ffffff",
+//             filter: "blur(0.3px)",
+//           }}
+//           animate={{ opacity: [s.minOp, s.maxOp, s.minOp] }}
+//           transition={{
+//             duration: s.dur,
+//             repeat: Infinity,
+//             repeatType: "mirror",
+//             delay: s.delay,
+//             ease: "easeInOut",
+//           }}
+//         />
+//       ))}
+//     </div>
+//   );
+// }
+
+
+// TO DO - Starfield animation is hidden behind Hero, fix that shit.
 
 export default function HeroScene() {
   return (
@@ -146,7 +149,7 @@ export default function HeroScene() {
       />
 
       {/* ── STARS ───────────────────────────────────────────────────── */}
-      <Starfield />
+      {/* <Starfield /> */}
 
       {/* ── BOTTOM VIGNETTE ─────────────────────────────────────────── */}
       <div
