@@ -9,7 +9,10 @@ export const Spotlight = ({ className, fill }: SpotlightProps) => {
   return (
     <svg
       className={cn(
-        "animate-spotlight pointer-events-none absolute z-[1] h-[169%] w-[138%] lg:w-[84%] opacity-0",
+        // Removed: animate-spotlight opacity-0
+        // Parent motion.div controls opacity — having both causes the double-flash:
+        // CSS keyframe fires on paint (frame 1), then framer takes over (frame 2+)
+        "pointer-events-none absolute z-[1] h-[169%] w-[138%] lg:w-[84%]",
         className
       )}
       xmlns="http://www.w3.org/2000/svg"
@@ -38,8 +41,16 @@ export const Spotlight = ({ className, fill }: SpotlightProps) => {
           colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity="0" result="BackgroundImageFix" />
-          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
-          <feGaussianBlur stdDeviation="151" result="effect1_foregroundBlur_1065_8" />
+          <feBlend
+            mode="normal"
+            in="SourceGraphic"
+            in2="BackgroundImageFix"
+            result="shape"
+          />
+          <feGaussianBlur
+            stdDeviation="151"
+            result="effect1_foregroundBlur_1065_8"
+          />
         </filter>
       </defs>
     </svg>
