@@ -1,216 +1,240 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { typography } from "../landing/design-system";
+import { Link } from "react-router-dom";
+
+// ── Design tokens — blue system matching all sections ─────────────────────────
+const T = {
+  bg:        "#07090D",
+  blue:      "#4D7CFF",
+  blueMid:   "#6EA8FF",
+  blueLight: "#93C5FD",
+  blueDeep:  "#3B5BDB",
+  border:    "rgba(77,124,255,0.16)",
+  borderAcc: "rgba(110,168,255,0.32)",
+  text:      "rgba(245,247,255,0.88)",
+  textSub:   "rgba(180,200,240,0.58)",
+  textMute:  "rgba(130,155,210,0.38)",
+};
+
+// Stable star data — outside component, no re-generation on render
+const STARS = Array.from({ length: 55 }, (_, i) => ({
+  id: i,
+  top:  `${(i * 41.3 + 17) % 100}%`,
+  left: `${(i * 67.1 + 29) % 100}%`,
+  size: (i * 9 + 5) % 11 > 8 ? 2 : 1,
+  minOp: 0.04 + ((i * 7) % 5) * 0.01,
+  maxOp: 0.18 + ((i * 11) % 6) * 0.025,
+  dur: 3 + (i % 6) * 1.1,
+  delay: (i * 1.6) % 9,
+}));
+
+// Floating accent diamond — now blue-tinted
+function Diamond({ style }: { style: React.CSSProperties }) {
+  return (
+    <motion.div
+      className="absolute pointer-events-none"
+      style={{
+        width: 8, height: 8,
+        background: "rgba(77,124,255,0.35)",
+        rotate: 45,
+        ...style,
+      }}
+      animate={{ y: [0, -12, 0], opacity: [0.25, 0.65, 0.25] }}
+      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
 
 const Footer = () => {
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
-  const scale = useTransform(scrollYProgress, [0.1, 0.5], [0.93, 1]);
+  const scale   = useTransform(scrollYProgress, [0.1, 0.5], [0.93, 1]);
   const opacity = useTransform(scrollYProgress, [0.1, 0.4], [0, 1]);
-
-  const GlowOrb = ({ className }: { className: string }) => (
-    <div className={`absolute rounded-full blur-[120px] pointer-events-none select-none ${className}`} />
-  );
-
-  const Starfield = ({ count = 60 }: { count?: number }) => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: count }).map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full bg-white"
-          style={{
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 100}%`,
-            width: Math.random() > 0.9 ? 2 : 1,
-            height: Math.random() > 0.9 ? 2 : 1,
-            opacity: Math.random() * 0.3 + 0.05,
-          }}
-          animate={{ opacity: [null as any, 0.04, 0.4] }}
-          transition={{
-            duration: 2 + Math.random() * 5,
-            repeat: Infinity,
-            repeatType: "reverse",
-            delay: Math.random() * 6,
-          }}
-        />
-      ))}
-    </div>
-  );
-
-  /* Floating diamond */
-  const Diamond = ({ style }: { style: React.CSSProperties }) => (
-    <motion.div
-      className="absolute pointer-events-none"
-      style={{ width: 9, height: 9, background: "rgba(139,92,246,0.4)", rotate: 45, ...style }}
-      animate={{ y: [0, -12, 0], opacity: [0.3, 0.75, 0.3] }}
-      transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-    />
-  );
 
   return (
     <footer
       ref={sectionRef}
       className="relative flex flex-col items-center justify-center py-36 overflow-hidden"
-      style={{ background: "#07041a" }}
+      style={{ background: T.bg }}
     >
-      {/* Shared page background layers */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 110% 70% at 50% 60%, rgba(88,28,220,0.18) 0%, rgba(55,14,150,0.07) 45%, transparent 70%)",
-        }}
-      />
-      {/* Top glow line — matches Hero */}
-      <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ zIndex: 2 }}>
-        <div
-          className="w-full"
-          style={{
-            height: "1px",
-            background:
-              "linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.06) 20%, rgba(210,190,255,0.4) 50%, rgba(255,255,255,0.06) 80%, transparent 95%)",
-          }}
-        />
+      {/* Grid — same as every other section */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: `
+          linear-gradient(rgba(77,124,255,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(77,124,255,0.04) 1px, transparent 1px)
+        `,
+        backgroundSize: "60px 60px",
+        opacity: 0.65,
+      }} />
+
+      {/* Top divider line — blue, matching Landing.tsx SectionDivider */}
+      <div className="absolute inset-x-0 top-0 h-px pointer-events-none z-10" style={{
+        background: "linear-gradient(90deg, transparent 0%, rgba(77,124,255,0.20) 15%, rgba(110,168,255,0.55) 50%, rgba(77,124,255,0.20) 85%, transparent 100%)",
+      }} />
+
+      {/* Ambient center glow — blue, not purple */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: `
+          radial-gradient(ellipse 85% 60% at 50% 55%, rgba(77,124,255,0.08) 0%, rgba(50,90,200,0.03) 45%, transparent 70%),
+          radial-gradient(ellipse 40% 30% at 15% 20%, rgba(77,124,255,0.04) 0%, transparent 60%),
+          radial-gradient(ellipse 35% 28% at 85% 15%, rgba(77,124,255,0.035) 0%, transparent 60%)
+        `,
+      }} />
+
+      {/* Dot grid — blue tint */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: "radial-gradient(circle, rgba(77,124,255,0.06) 1px, transparent 1px)",
+        backgroundSize: "44px 44px",
+        maskImage: "radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 85%)",
+        WebkitMaskImage: "radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 85%)",
+      }} />
+
+      {/* Stars */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {STARS.map((s) => (
+          <motion.div key={s.id} className="absolute rounded-full"
+            style={{
+              top: s.top, left: s.left,
+              width: s.size, height: s.size,
+              background: "#ffffff",
+              filter: "blur(0.3px)",
+            }}
+            animate={{ opacity: [s.minOp, s.maxOp, s.minOp] }}
+            transition={{ duration: s.dur, repeat: Infinity, repeatType: "mirror", delay: s.delay, ease: "easeInOut" }}
+          />
+        ))}
       </div>
 
-      <GlowOrb className="w-[800px] h-[500px] bg-purple-900/20 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-      <GlowOrb className="w-[400px] h-[300px] bg-violet-900/15 bottom-0 left-0" />
-      <GlowOrb className="w-[350px] h-[280px] bg-indigo-900/12 top-0 right-0" />
-
-      {/* Dot grid */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: "radial-gradient(circle, rgba(139,92,246,0.055) 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-          maskImage: "radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 85%)",
-        }}
-      />
-
-      <Starfield count={65} />
-
-      {/* Floating diamonds */}
-      <Diamond style={{ top: "18%", left: "8%", width: 8, height: 8 }} />
-      <Diamond style={{ top: "30%", right: "7%", width: 10, height: 10 }} />
-      <Diamond style={{ bottom: "28%", left: "12%", width: 7, height: 7 }} />
-      <Diamond style={{ bottom: "20%", right: "14%", width: 9, height: 9 }} />
-      <Diamond style={{ top: "55%", left: "5%", width: 6, height: 6 }} />
-      <Diamond style={{ top: "12%", right: "22%", width: 7, height: 7 }} />
+      {/* Floating diamonds — blue */}
+      <Diamond style={{ top: "18%", left: "8%"   }} />
+      <Diamond style={{ top: "30%", right: "7%"  }} />
+      <Diamond style={{ bottom: "28%", left: "12%" }} />
+      <Diamond style={{ bottom: "20%", right: "14%" }} />
+      <Diamond style={{ top: "55%", left: "5%"   }} />
+      <Diamond style={{ top: "12%", right: "22%" }} />
 
       {/* ── CTA block ── */}
-      <motion.div
-        style={{ scale, opacity }}
-        className="relative z-10 max-w-3xl mx-auto px-6 text-center"
-      >
-        {/* Badge */}
-        <div
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-7"
-          style={{
-            background: "rgba(109,40,217,0.12)",
-            border: "1px solid rgba(139,92,246,0.28)",
-          }}
-        >
-          <span style={{ color: "#a78bfa", fontSize: 12 }}>✦</span>
-          <span
-            className="font-medium tracking-widest uppercase"
+      <motion.div style={{ scale, opacity }}
+        className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+
+        {/* Badge — blue, matching Features/HowItWorks eyebrow */}
+        <div className="flex items-center justify-center gap-3 mb-7">
+          <div className="h-px w-10" style={{ background: "linear-gradient(90deg, transparent, rgba(77,124,255,0.45))" }} />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full"
             style={{
-              fontSize: 10,
-              color: "rgba(167,139,250,0.85)",
-              letterSpacing: "0.14em",
-              fontFamily: "'DM Sans', sans-serif",
-            }}
-          >
-            Your Journey Begins
-          </span>
+              background: "rgba(77,124,255,0.10)",
+              border: `1px solid ${T.border}`,
+            }}>
+            <span style={{ color: T.blueMid, fontSize: 12 }}>✦</span>
+            <span className="font-medium tracking-widest uppercase"
+              style={{ fontSize: 10, color: "rgba(110,168,255,0.80)", letterSpacing: "0.14em", fontFamily: typography.body }}>
+              Your Journey Begins
+            </span>
+          </div>
+          <div className="h-px w-10" style={{ background: "linear-gradient(90deg, rgba(77,124,255,0.45), transparent)" }} />
         </div>
 
-        {/* Headline */}
-        <h2
-          className="font-black uppercase leading-none mb-6"
+        {/* Headline — Barlow Condensed, blue accent matching PROGRESS + Gamified */}
+        <h2 className="font-black uppercase leading-none mb-6"
           style={{
-            fontFamily: "'Barlow', sans-serif",
-            fontSize: "clamp(3rem,9vw,7rem)",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          <span className="text-white">Ready to</span>
+            fontFamily: typography.display,
+            fontSize: "clamp(3rem, 9vw, 7rem)",
+            letterSpacing: "-0.025em",
+          }}>
+          <span style={{ color: "#ffffff" }}>Ready to</span>
           <br />
-          <span
-            style={{
-              background:
-                "linear-gradient(135deg,#7c3aed 0%,#9333ea 35%,#a855f7 65%,#c084fc 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
+          <span style={{
+            background: "linear-gradient(135deg, #B7CCFF 0%, #6EA8FF 35%, #4D7CFF 65%, #7AA2FF 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            // Bloom glow — matches hero PROGRESS word
+            filter: "drop-shadow(0 0 28px rgba(77,124,255,0.35)) drop-shadow(0 0 60px rgba(77,124,255,0.15))",
+          }}>
             Level Up?
           </span>
         </h2>
 
-        <p
-          className="mb-10 leading-relaxed"
+        <p className="leading-relaxed mb-10"
           style={{
-            fontSize: "clamp(0.9rem,1.5vw,1.05rem)",
-            color: "rgba(190,175,230,0.42)",
+            fontSize: "clamp(0.9rem, 1.5vw, 1.05rem)",
+            color: T.textSub,
             maxWidth: 460,
             margin: "0 auto 2.5rem",
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
+            fontFamily: typography.body,
+          }}>
           Join thousands of developers who transformed their daily grind into a legendary quest.
         </p>
 
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-6">
-          <motion.button
-            whileHover={{ scale: 1.05, boxShadow: "0 0 60px rgba(139,92,246,0.55)" }}
-            whileTap={{ scale: 0.97 }}
-            className="relative px-10 py-4 rounded-xl font-black text-white uppercase overflow-hidden cursor-pointer"
-            style={{
-              fontFamily: "'Barlow', sans-serif",
-              fontSize: "clamp(0.7rem,1.2vw,0.8rem)",
-              letterSpacing: "0.1em",
-              background: "linear-gradient(135deg,#7c3aed 0%,#9333ea 55%,#a855f7 100%)",
-              border: "1px solid rgba(167,139,250,0.2)",
-              boxShadow: "0 0 44px rgba(124,58,237,0.5), inset 0 1px 0 rgba(255,255,255,0.1)",
-            }}
-          >
-            {/* Shimmer */}
-            <motion.span
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%)",
-              }}
-              animate={{ x: ["-120%", "220%"] }}
-              transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
-            />
-            Join now
-          </motion.button>
+        {/* CTAs — primary uses hero EarlyAccessButton language */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-8">
 
+          {/* Primary — white pill with blue bloom, matches hero "Get Early Access" */}
+          <Link to="/signup" style={{ textDecoration: "none" }}>
+            <motion.button
+              whileHover={{
+                scale: 1.03,
+                boxShadow: "0 0 40px rgba(110,168,255,0.48), 0 0 80px rgba(77,124,255,0.22), 0 6px 24px rgba(0,0,0,0.5)",
+              }}
+              whileTap={{ scale: 0.975 }}
+              className="relative overflow-hidden cursor-pointer font-semibold"
+              style={{
+                fontFamily: typography.body,
+                fontSize: 15,
+                background: "#ffffff",
+                color: "#0A0D12",
+                border: "none",
+                borderRadius: "999px",
+                padding: "14px 36px",
+                letterSpacing: "0.01em",
+                boxShadow: "0 0 28px rgba(110,168,255,0.32), 0 0 55px rgba(77,124,255,0.14), 0 4px 18px rgba(0,0,0,0.4)",
+                cursor: "pointer",
+              }}>
+              {/* Shimmer sweep — same as hero button */}
+              <motion.span
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: "linear-gradient(110deg, transparent 28%, rgba(255,255,255,0.55) 50%, transparent 72%)",
+                  borderRadius: "999px",
+                }}
+                animate={{ x: ["-130%", "160%"] }}
+                transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 2.8, ease: "easeInOut" }}
+              />
+              Join Now →
+            </motion.button>
+          </Link>
+
+          {/* Secondary — ghost, matches hero "Book a Demo" */}
           <motion.button
-            whileHover={{ color: "rgba(210,198,255,0.7)" }}
-            className="cursor-pointer transition-colors font-medium"
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: "clamp(0.75rem,1.1vw,0.82rem)",
-              color: "rgba(167,139,250,0.4)",
-              letterSpacing: "0.04em",
+            whileHover={{
+              color: "rgba(180,215,255,0.85)",
+              borderColor: "rgba(110,168,255,0.35)",
+              boxShadow: "0 0 20px rgba(77,124,255,0.10)",
             }}
-          >
+            className="cursor-pointer font-medium transition-all"
+            style={{
+              fontFamily: typography.body,
+              fontSize: 14,
+              color: T.textMute,
+              letterSpacing: "0.04em",
+              background: "transparent",
+              border: `1px solid rgba(255,255,255,0.10)`,
+              borderRadius: "999px",
+              padding: "13px 26px",
+              transition: "all 0.2s",
+            }}>
             Browse Guilds →
           </motion.button>
         </div>
 
-        <p
-          className="font-mono"
-          style={{
-            fontSize: 11,
-            color: "rgba(167,139,250,0.25)",
-            letterSpacing: "0.1em",
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
+        {/* Fine print */}
+        <p style={{
+          fontSize: 11,
+          color: T.textMute,
+          fontFamily: typography.mono,
+          letterSpacing: "0.10em",
+        }}>
           Free to start · No credit card required · Season 01 live now
         </p>
       </motion.div>
@@ -218,59 +242,41 @@ const Footer = () => {
       {/* ── Bottom bar ── */}
       <div
         className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 mt-24 pt-7 flex flex-col md:flex-row justify-between items-center gap-5"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-      >
-        {/* Logo */}
+        style={{ borderTop: `1px solid ${T.border}` }}>
+
+        {/* Logo — blue accent */}
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center"
             style={{
-              background: "linear-gradient(135deg,#7c3aed,#a855f7)",
-              boxShadow: "0 0 16px rgba(139,92,246,0.45)",
+              background: `linear-gradient(135deg, ${T.blueDeep}, ${T.blue})`,
+              boxShadow: `0 0 16px rgba(77,124,255,0.40)`,
+              border: `1px solid ${T.border}`,
               fontSize: 13,
-            }}
-          >
-            <span className="font-black text-white" style={{ fontFamily: "'Barlow', sans-serif" }}>K</span>
+            }}>
+            <span className="font-black text-white" style={{ fontFamily: typography.display }}>K</span>
           </div>
-          <span
-            className="font-black text-white tracking-widest text-lg"
-            style={{ fontFamily: "'Barlow', sans-serif", letterSpacing: "0.1em" }}
-          >
-            KYZEN<span style={{ color: "#9333ea" }}>.</span>
+          <span className="font-black text-white tracking-widest text-lg"
+            style={{ fontFamily: typography.display, letterSpacing: "0.10em" }}>
+            KYZEN<span style={{ color: T.blueMid }}>.</span>
           </span>
         </div>
 
         {/* Nav links */}
         <div className="flex gap-7">
           {["Privacy", "Terms", "Status", "GitHub"].map((l) => (
-            <a
-              key={l}
-              href="#"
+            <a key={l} href="#"
               className="transition-colors"
-              style={{
-                fontSize: 11,
-                color: "rgba(167,139,250,0.25)",
-                letterSpacing: "0.08em",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "rgba(196,181,253,0.6)")}
-              onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "rgba(167,139,250,0.25)")}
-            >
+              style={{ fontSize: 11, color: T.textMute, letterSpacing: "0.08em", fontFamily: typography.body }}
+              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "rgba(180,210,255,0.65)")}
+              onMouseLeave={(e) => ((e.target as HTMLElement).style.color = T.textMute)}>
               {l}
             </a>
           ))}
         </div>
 
         {/* Copyright */}
-        <div
-          style={{
-            fontSize: 11,
-            color: "rgba(167,139,250,0.2)",
-            fontFamily: "'DM Sans', sans-serif",
-            letterSpacing: "0.05em",
-          }}
-        >
-          © 2024 KYZEN SYSTEMS
+        <div style={{ fontSize: 11, color: T.textMute, fontFamily: typography.mono, letterSpacing: "0.05em" }}>
+          © 2025 KYZEN SYSTEMS
         </div>
       </div>
     </footer>
