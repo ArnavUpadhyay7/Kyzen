@@ -605,15 +605,6 @@ export default function DashboardHome() {
             className="rounded-2xl overflow-hidden transition-colors relative"
             style={card}
           >
-            {/* Background glow orb */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-              <div style={{
-                position: "absolute", bottom: -40, right: -20,
-                width: 200, height: 200,
-                background: "radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)",
-                filter: "blur(20px)",
-              }} />
-            </div>
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 relative z-10">

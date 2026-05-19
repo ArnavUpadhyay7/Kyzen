@@ -51,57 +51,59 @@ export interface ThemeTokens {
   graphL2:       string;
   graphL3:       string;
   graphL4:       string;
-  graphLabel:    string;   // month label fill
-  graphDayLabel: string;   // Mon/Wed/Fri fill
-  contribText:   string;   // "N tasks completed…" muted colour
+  graphLabel:    string;
+  graphDayLabel: string;
+  contribText:   string;
 
   // Theme flag
   isDark:        boolean;
 }
 
-// ── Dark palette ──────────────────────────────────────────────────────────────
+// ── Dark palette — matches reference screenshot exactly ───────────────────────
 
 const DARK: ThemeTokens = {
-  page:          "#0c0c0f",
-  card:          "#111115",
-  cardHover:     "#16161a",
-  cardAlt:       "rgba(255,255,255,0.025)",
-  modal:         "#111115",
-  sidebar:       "#0e0e12",
-  sidebarBorder: "rgba(255,255,255,0.05)",
-  topbar:        "rgba(11,11,15,0.95)",
+  // Deep navy space background
+  page:          "#080c1a",
+  card:          "rgba(10,16,35,0.90)",
+  cardHover:     "rgba(14,22,50,0.95)",
+  cardAlt:       "rgba(255,255,255,0.03)",
+  modal:         "rgba(8,12,28,0.98)",
+  sidebar:       "#070b1c",
+  sidebarBorder: "rgba(99,102,241,0.15)",
+  topbar:        "rgba(7,11,28,0.96)",
 
-  border:        "rgba(255,255,255,0.06)",
-  borderMed:     "rgba(255,255,255,0.10)",
+  border:        "rgba(99,102,241,0.15)",
+  borderMed:     "rgba(99,102,241,0.25)",
 
   textPrimary:   "#ffffff",
-  textSecondary: "#bbbbbb",
-  textMuted:     "#666666",
-  textFaint:     "#3a3a3a",
+  textSecondary: "rgba(255,255,255,0.80)",
+  textMuted:     "rgba(255,255,255,0.40)",
+  textFaint:     "rgba(255,255,255,0.22)",
 
-  mutedBtn:      "rgba(255,255,255,0.05)",
-  mutedBtnHov:   "rgba(255,255,255,0.09)",
+  mutedBtn:      "rgba(255,255,255,0.06)",
+  mutedBtnHov:   "rgba(255,255,255,0.10)",
   inputBg:       "rgba(255,255,255,0.04)",
-  inputBorder:   "rgba(255,255,255,0.07)",
+  inputBorder:   "rgba(255,255,255,0.08)",
 
   accent:        "#6366f1",
   accentSoft:    "rgba(99,102,241,0.15)",
-  accentBorder:  "rgba(99,102,241,0.25)",
-  violet:        "#8b5cf6",
+  accentBorder:  "rgba(129,140,248,0.30)",
+  violet:        "#818cf8",
 
   success:       "#4ade80",
   warning:       "#facc15",
   danger:        "#f87171",
   orange:        "#f97316",
 
+  // Blue glowing graph cells matching reference
   graphEmpty:    "rgba(255,255,255,0.05)",
-  graphL1:       "rgba(99,102,241,0.25)",
-  graphL2:       "rgba(99,102,241,0.45)",
-  graphL3:       "rgba(99,102,241,0.70)",
-  graphL4:       "#6366f1",
-  graphLabel:    "#444",
-  graphDayLabel: "#3a3a3a",
-  contribText:   "#888",
+  graphL1:       "rgba(59,130,246,0.30)",
+  graphL2:       "rgba(99,102,241,0.55)",
+  graphL3:       "rgba(99,102,241,0.78)",
+  graphL4:       "#818cf8",
+  graphLabel:    "rgba(255,255,255,0.28)",
+  graphDayLabel: "rgba(255,255,255,0.22)",
+  contribText:   "rgba(255,255,255,0.40)",
 
   isDark:        true,
 };
@@ -134,7 +136,7 @@ const LIGHT: ThemeTokens = {
   accent:        "#6366f1",
   accentSoft:    "rgba(99,102,241,0.12)",
   accentBorder:  "rgba(99,102,241,0.30)",
-  violet:        "#8b5cf6",
+  violet:        "#818cf8",
 
   success:       "#16a34a",
   warning:       "#ca8a04",
@@ -143,8 +145,8 @@ const LIGHT: ThemeTokens = {
 
   graphEmpty:    "rgba(0,0,0,0.07)",
   graphL1:       "rgba(99,102,241,0.20)",
-  graphL2:       "rgba(99,102,241,0.38)",
-  graphL3:       "rgba(99,102,241,0.58)",
+  graphL2:       "rgba(99,102,241,0.40)",
+  graphL3:       "rgba(99,102,241,0.62)",
   graphL4:       "#6366f1",
   graphLabel:    "#aaa",
   graphDayLabel: "#bbb",
