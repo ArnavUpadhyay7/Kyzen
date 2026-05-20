@@ -39,7 +39,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { icon: <LayoutDashboard size={15} />, label: "Dashboard",   to: "/dashboard" },
       { icon: <Swords size={15} />,          label: "Quests",      to: "/dashboard/quests",  badge: 3 },
-      { icon: <ScrollText size={15} />,      label: "Journal",     to: "/dashboard/journal" },
+      { icon: <ScrollText size={15} />,      label: "Workspace",   to: "/dashboard/workspace" },
       { icon: <Terminal size={15} />,        label: "Dev Mode",    to: "/dashboard/dev",     devGated: true },
     ],
   },
@@ -117,7 +117,7 @@ function DesktopNavLink({ item, onLockedClick }: { item: NavItem; onLockedClick:
           )}
           {item.badge && !item.devGated && (
             <span
-              className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+              className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-4.5 text-center"
               style={{
                 background: isActive ? "rgba(129,140,248,0.25)" : t.accentSoft,
                 color: "#818cf8",

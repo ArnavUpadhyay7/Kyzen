@@ -10,7 +10,7 @@ import { Toaster } from "./components/ui/Toast";
 import { ProtectedRoute, PublicRoute } from "./components/auth/ProtectedRoute";
 import Settings from './pages/dashboard/Settings';
 import DevDashboard from './pages/dashboard/DevDashboard';
-import Journal from './pages/dashboard/Journal';
+import Workspace from './pages/dashboard/Workspace';
 
 function App() {
   return (
@@ -31,7 +31,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index                element={<DashboardHome />} />
             <Route path="quests"        element={<DashboardHome />} />
-            <Route path="journal"       element={<Journal />} />
+            <Route path="workspace"       element={<Workspace />} />
             <Route path="leaderboard"   element={<DashboardHome />} />
             <Route path="profile"       element={<Profile />} />
             <Route path="settings"      element={<Settings />} />
