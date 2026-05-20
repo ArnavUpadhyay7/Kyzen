@@ -38,7 +38,6 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Main Menu",
     items: [
       { icon: <LayoutDashboard size={15} />, label: "Dashboard",   to: "/dashboard" },
-      { icon: <Swords size={15} />,          label: "Quests",      to: "/dashboard/quests",  badge: 3 },
       { icon: <ScrollText size={15} />,      label: "Workspace",   to: "/dashboard/workspace" },
       { icon: <Terminal size={15} />,        label: "Dev Mode",    to: "/dashboard/dev",     devGated: true },
     ],

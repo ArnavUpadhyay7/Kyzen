@@ -11,6 +11,7 @@ import { ProtectedRoute, PublicRoute } from "./components/auth/ProtectedRoute";
 import Settings from './pages/dashboard/Settings';
 import DevDashboard from './pages/dashboard/DevDashboard';
 import Workspace from './pages/dashboard/Workspace';
+import LeaderboardPage from './pages/dashboard/Leaderboards';
 
 function App() {
   return (
@@ -30,9 +31,8 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index                element={<DashboardHome />} />
-            <Route path="quests"        element={<DashboardHome />} />
             <Route path="workspace"       element={<Workspace />} />
-            <Route path="leaderboard"   element={<DashboardHome />} />
+            <Route path="leaderboard"   element={<LeaderboardPage />} />
             <Route path="profile"       element={<Profile />} />
             <Route path="settings"      element={<Settings />} />
             <Route path="dev"           element={<DevDashboard />} />
