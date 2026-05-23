@@ -1,20 +1,13 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/global/Sidebar";
-import { DashboardThemeProvider, useTokens } from "../state/theme/ThemeContext";
+import { DashboardThemeProvider } from "../state/theme/ThemeContext";
 import { DevModeProvider } from "../state/devmode/DevModeContext";
 
 function ThemedShell() {
-  const t = useTokens();
   return (
-    <div
-      className="flex h-screen w-full overflow-hidden transition-colors duration-300"
-      style={{ background: t.page }}
-    >
+    <div className="flex h-screen w-full overflow-hidden bg-dash-page transition-colors duration-300">
       <Sidebar />
-      <main
-        className="flex-1 overflow-y-auto flex flex-col min-w-0 md:pt-0 pt-14 transition-colors duration-300"
-        style={{ background: t.page }}
-      >
+      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-dash-page pt-14 transition-colors duration-300 md:pt-0">
         <Outlet />
       </main>
     </div>
@@ -23,15 +16,10 @@ function ThemedShell() {
 
 export default function DashboardLayout() {
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
-      `}</style>
-      <DashboardThemeProvider>
-        <DevModeProvider>
-          <ThemedShell />
-        </DevModeProvider>
-      </DashboardThemeProvider>
-    </>
+    <DashboardThemeProvider>
+      <DevModeProvider>
+        <ThemedShell />
+      </DevModeProvider>
+    </DashboardThemeProvider>
   );
 }

@@ -1,21 +1,46 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Flame, Plus, Zap, Trash2, Pencil, CheckCircle2,
-  X, ChevronDown, History, Loader2, AlertCircle,
+  Flame,
+  Plus,
+  Zap,
+  Trash2,
+  Pencil,
+  CheckCircle2,
+  X,
+  ChevronDown,
+  History,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useDashboardStore, type Difficulty, type Task } from "../../state/dashboard/usedashboardstore";
-import { useTokens } from "../../state/theme/ThemeContext";
 import ContributionGraph from "../../components/dashboard/ContributionGraph";
 import { useAuth } from "../../state/auth/AuthContext";
-import character_mascot from "../../assets/logo.png"
+import character_mascot from "../../assets/logo.png";
+import {
+  DashboardBadge,
+  DashboardButton,
+  DashboardCard,
+  DashboardInput,
+  DashboardProgress,
+} from "../../components/dashboard/ui";
+import { cn } from "../../lib/utils";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DIFF_META: Record<Difficulty, { label: string; color: string; bg: string; xp: number }> = {
-  EASY: { label: "Easy", color: "#4ade80", bg: "rgba(74,222,128,0.10)", xp: 30 },
-  MEDIUM: { label: "Medium", color: "#facc15", bg: "rgba(250,204,21,0.10)", xp: 60 },
-  HARD: { label: "Hard", color: "#f87171", bg: "rgba(248,113,113,0.10)", xp: 100 },
+const DIFF_META: Record<
+  Difficulty,
+  { label: string; xp: number; badgeVariant: "success" | "warning" | "danger" }
+> = {
+  EASY: { label: "Easy", xp: 30, badgeVariant: "success" },
+  MEDIUM: { label: "Medium", xp: 60, badgeVariant: "warning" },
+  HARD: { label: "Hard", xp: 100, badgeVariant: "danger" },
+};
+
+const DIFF_TEXT_CLASS: Record<Difficulty, string> = {
+  EASY: "text-dash-success",
+  MEDIUM: "text-dash-warning",
+  HARD: "text-dash-danger",
 };
 
 const CHARACTER_TITLES: Record<number, { title: string }> = {
@@ -35,7 +60,9 @@ function groupByDate(tasks: Task[]): Record<string, Task[]> {
     .filter((task) => task.completed && task.completedAt)
     .reduce<Record<string, Task[]>>((acc, task) => {
       const date = new Date(task.completedAt!).toLocaleDateString("en-US", {
-        weekday: "short", month: "short", day: "numeric",
+        weekday: "short",
+        month: "short",
+        day: "numeric",
       });
       (acc[date] ??= []).push(task);
       return acc;
@@ -47,37 +74,37 @@ function groupByDate(tasks: Task[]): Record<string, Task[]> {
 function DiffBadge({ diff }: { diff: Difficulty }) {
   const m = DIFF_META[diff] ?? DIFF_META.MEDIUM;
   return (
-    <span
-      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md tracking-wide"
-      style={{ color: m.color, background: m.bg, fontFamily: "'DM Mono', monospace" }}
-    >
+    <DashboardBadge variant={m.badgeVariant} className="text-[10px]">
       {m.label}
-    </span>
+    </DashboardBadge>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-4 font-dash-mono text-[11px] uppercase tracking-[0.07em] text-dash-faint">
+      {children}
+    </p>
   );
 }
 
 function XpPopup({ xp, onDone }: { xp: number; onDone: () => void }) {
   return (
     <motion.div
-      className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
       <motion.div
-        className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold text-2xl"
-        style={{
-          background: "rgba(99,102,241,0.18)",
-          border: "1px solid rgba(139,92,246,0.4)",
-          backdropFilter: "blur(12px)",
-          fontFamily: "'DM Sans', sans-serif",
-          letterSpacing: "-0.02em",
-        }}
+        className="flex items-center gap-2 rounded-2xl border border-dash-accent-border bg-dash-accent-soft px-6 py-3 font-dash-sans text-2xl font-bold tracking-tight text-dash-primary backdrop-blur-md"
         initial={{ scale: 0.6, y: 30, opacity: 0 }}
         animate={{ scale: 1, y: -20, opacity: 1 }}
         exit={{ scale: 0.8, y: -60, opacity: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         onAnimationComplete={onDone}
       >
-        <Zap size={20} className="text-[#a78bfa]" />
+        <Zap size={20} className="text-dash-violet" />
         +{xp} XP
       </motion.div>
     </motion.div>
@@ -85,7 +112,6 @@ function XpPopup({ xp, onDone }: { xp: number; onDone: () => void }) {
 }
 
 function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  const t = useTokens();
   useEffect(() => {
     const timer = setTimeout(onDismiss, 4000);
     return () => clearTimeout(timer);
@@ -93,84 +119,68 @@ function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => 
 
   return (
     <motion.div
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl"
-      style={{
-        background: "rgba(248,113,113,0.12)",
-        border: "1px solid rgba(248,113,113,0.25)",
-        backdropFilter: "blur(12px)",
-      }}
+      className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-xl border border-dash-danger/25 bg-dash-danger/15 px-4 py-2.5 backdrop-blur-md"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
     >
-      <AlertCircle size={13} className="text-[#f87171] shrink-0" />
-      <span className="text-[12px]" style={{ color: t.textSecondary, fontFamily: "'DM Sans', sans-serif" }}>
-        {message}
-      </span>
-      <button onClick={onDismiss}>
-        <X size={12} style={{ color: t.textFaint }} />
+      <AlertCircle size={13} className="shrink-0 text-dash-danger" />
+      <span className="font-dash-sans text-[12px] text-dash-secondary">{message}</span>
+      <button type="button" onClick={onDismiss} className="text-dash-faint hover:text-dash-muted">
+        <X size={12} />
       </button>
     </motion.div>
   );
 }
 
 function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }) {
-  const t = useTokens();
-  const grouped = groupByDate(tasks);
-  const dates = Object.keys(grouped).reverse();
+  const grouped = useMemo(() => groupByDate(tasks), [tasks]);
+  const dates = useMemo(() => Object.keys(grouped).reverse(), [grouped]);
 
   return (
     <motion.div
-      className="fixed inset-0 z-40 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)" }}
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <motion.div
-        className="w-full max-w-md rounded-2xl p-6 overflow-y-auto max-h-[80vh]"
-        style={{ background: t.modal, border: `1px solid ${t.border}` }}
+        className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-2xl border border-dash-border bg-dash-modal p-6"
         initial={{ scale: 0.94, y: 16, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.94, y: 8, opacity: 0 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h2
-            className="text-base font-semibold"
-            style={{ color: t.textPrimary, fontFamily: "'DM Sans', sans-serif", letterSpacing: "-0.02em" }}
-          >
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="font-dash-sans text-base font-semibold tracking-tight text-dash-primary">
             Task History
           </h2>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: t.mutedBtn }}
-          >
-            <X size={13} style={{ color: t.textMuted }} />
-          </button>
+          <DashboardButton variant="muted" size="sm" onClick={onClose} className="h-7 w-7 p-0">
+            <X size={13} />
+          </DashboardButton>
         </div>
         {dates.length === 0 ? (
-          <p className="text-[13px] text-center py-8" style={{ color: t.textFaint, fontFamily: "'DM Sans', sans-serif" }}>
+          <p className="py-8 text-center font-dash-sans text-[13px] text-dash-faint">
             No completed tasks yet.
           </p>
         ) : (
           <div className="flex flex-col gap-5">
             {dates.map((date) => (
               <div key={date}>
-                <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
+                <p className="mb-2 font-dash-mono text-[10px] uppercase tracking-widest text-dash-faint">
                   {date}
                 </p>
                 <div className="flex flex-col gap-1.5">
                   {grouped[date].map((task) => (
                     <div
                       key={task.id}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg"
-                      style={{ background: t.cardAlt, border: `1px solid ${t.border}` }}
+                      className="flex items-center justify-between rounded-lg border border-dash-border bg-dash-card-alt px-3 py-2"
                     >
                       <div className="flex items-center gap-2.5">
-                        <CheckCircle2 size={13} className="text-[#6366f1] shrink-0" />
-                        <span className="text-[13px] line-through" style={{ color: t.textMuted, fontFamily: "'DM Sans', sans-serif" }}>
+                        <CheckCircle2 size={13} className="shrink-0 text-dash-accent" />
+                        <span className="font-dash-sans text-[13px] text-dash-muted line-through">
                           {task.title}
                         </span>
                       </div>
@@ -188,35 +198,84 @@ function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }
 }
 
 function DashboardSkeleton() {
-  const t = useTokens();
-  const shimmer = {
-    background: t.inputBg,
-    borderRadius: 8,
-    animation: "pulse 1.5s ease-in-out infinite",
-  } as React.CSSProperties;
-
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8" style={{ background: t.page }}>
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }`}</style>
-      <div className="flex items-center gap-4 mb-8">
-        <div style={{ ...shimmer, width: 40, height: 40, borderRadius: 12 }} />
-        <div className="flex-1 flex flex-col gap-2">
-          <div style={{ ...shimmer, width: 120, height: 14 }} />
-          <div style={{ ...shimmer, width: "100%", height: 6, borderRadius: 999 }} />
+    <div className="min-h-screen bg-dash-page p-4 md:p-6 lg:p-8">
+      <div className="mb-8 flex items-center gap-4">
+        <div className="h-10 w-10 animate-pulse rounded-xl bg-dash-input" />
+        <div className="flex flex-1 flex-col gap-2">
+          <div className="h-3.5 w-28 animate-pulse rounded bg-dash-input" />
+          <div className="h-1.5 w-full animate-pulse rounded-full bg-dash-input" />
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-8 flex flex-col gap-4">
-          <div style={{ ...shimmer, height: 220, borderRadius: 16 }} />
-          <div style={{ ...shimmer, height: 48, borderRadius: 16 }} />
-          <div style={{ ...shimmer, height: 160, borderRadius: 16 }} />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="flex flex-col gap-4 lg:col-span-8">
+          <div className="h-[220px] animate-pulse rounded-2xl bg-dash-card" />
+          <div className="h-12 animate-pulse rounded-2xl bg-dash-card" />
+          <div className="h-40 animate-pulse rounded-2xl bg-dash-card" />
         </div>
-        <div className="lg:col-span-4 flex flex-col gap-4">
-          <div style={{ ...shimmer, height: 160, borderRadius: 16 }} />
-          <div style={{ ...shimmer, height: 120, borderRadius: 16 }} />
-          <div style={{ ...shimmer, height: 72, borderRadius: 16 }} />
+        <div className="flex flex-col gap-4 lg:col-span-4">
+          <div className="h-40 animate-pulse rounded-2xl bg-dash-card" />
+          <div className="h-28 animate-pulse rounded-2xl bg-dash-card" />
+          <div className="h-[72px] animate-pulse rounded-2xl bg-dash-card" />
         </div>
       </div>
+    </div>
+  );
+}
+
+function DifficultyPicker({
+  value,
+  onChange,
+  open,
+  onOpenChange,
+}: {
+  value: Difficulty;
+  onChange: (d: Difficulty) => void;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => onOpenChange(!open)}
+        className={cn(
+          "flex items-center gap-1.5 rounded-lg border border-dash-input-border bg-dash-input px-2.5 py-2 font-dash-mono text-[12px] transition-colors",
+          DIFF_TEXT_CLASS[value],
+        )}
+      >
+        {DIFF_META[value]?.label ?? "Medium"}
+        <ChevronDown size={11} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="absolute right-0 top-full z-20 mt-1 min-w-[100px] overflow-hidden rounded-xl border border-dash-border-med bg-dash-card"
+            initial={{ opacity: 0, y: -4, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.96 }}
+            transition={{ duration: 0.15 }}
+          >
+            {(["EASY", "MEDIUM", "HARD"] as Difficulty[]).map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => {
+                  onChange(d);
+                  onOpenChange(false);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2 px-3 py-2 font-dash-mono text-[12px] transition-colors hover:bg-dash-muted-btn-hover",
+                  DIFF_TEXT_CLASS[d],
+                )}
+              >
+                {DIFF_META[d].label}
+                <span className="ml-auto text-[10px] text-dash-faint">+{DIFF_META[d].xp}</span>
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -224,14 +283,19 @@ function DashboardSkeleton() {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashboardHome() {
-  const t = useTokens();
-
   const {
-    dashboard, tasks,
-    loading, tasksLoading,
-    error, xpPopup,
-    fetchDashboard, fetchTasks,
-    createTask, updateTask, deleteTask, completeTask,
+    dashboard,
+    tasks,
+    loading,
+    tasksLoading,
+    error,
+    xpPopup,
+    fetchDashboard,
+    fetchTasks,
+    createTask,
+    updateTask,
+    deleteTask,
+    completeTask,
     clearXpPopup,
   } = useDashboardStore();
 
@@ -245,11 +309,12 @@ export default function DashboardHome() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchDashboard();
     fetchTasks();
-  }, []);
+  }, [fetchDashboard, fetchTasks]);
 
   useEffect(() => {
     if (error) setToastMsg(error);
@@ -260,493 +325,397 @@ export default function DashboardHome() {
       const timer = setTimeout(clearXpPopup, 1600);
       return () => clearTimeout(timer);
     }
-  }, [xpPopup]);
+  }, [xpPopup, clearXpPopup]);
 
-  if (loading && !dashboard) return <DashboardSkeleton />;
-
-  const activeTasks = tasks.filter((t) => !t.completed);
-  const completedTasks = tasks.filter((t) => t.completed);
-  const xpPct = dashboard && dashboard.totalXPForLevel > 0
-    ? Math.min(Math.round((dashboard.currentXP / dashboard.totalXPForLevel) * 100), 100)
-    : 0;
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = newTitle.trim();
-    if (!trimmed) return;
-    setNewTitle("");
-    await createTask(trimmed, newDiff);
-  }
-
-  function startEdit(task: Task) {
-    setEditingId(task.id);
-    setEditTitle(task.title);
-    setEditDiff(task.difficulty);
-  }
-
-  async function handleEditSave(id: string) {
-    const trimmed = editTitle.trim();
-    if (!trimmed) return;
-    setEditingId(null);
-    await updateTask(id, { title: trimmed, difficulty: editDiff });
-  }
-
-  const card = { background: t.card, border: `1px solid ${t.border}` };
-  const { user } = useAuth();
+  const activeTasks = useMemo(() => tasks.filter((t) => !t.completed), [tasks]);
+  const completedTasks = useMemo(() => tasks.filter((t) => t.completed), [tasks]);
 
   const displayName = user?.username ?? "User";
   const displayInitial = displayName[0]?.toUpperCase() ?? "K";
 
+  const handleCreate = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const trimmed = newTitle.trim();
+      if (!trimmed) return;
+      setNewTitle("");
+      await createTask(trimmed, newDiff);
+    },
+    [newTitle, newDiff, createTask],
+  );
+
+  const startEdit = useCallback((task: Task) => {
+    setEditingId(task.id);
+    setEditTitle(task.title);
+    setEditDiff(task.difficulty);
+  }, []);
+
+  const handleEditSave = useCallback(
+    async (id: string) => {
+      const trimmed = editTitle.trim();
+      if (!trimmed) return;
+      setEditingId(null);
+      await updateTask(id, { title: trimmed, difficulty: editDiff });
+    },
+    [editTitle, editDiff, updateTask],
+  );
+
+  const dismissToast = useCallback(() => setToastMsg(null), []);
+  const closeHistory = useCallback(() => setShowHistory(false), []);
+
+  if (loading && !dashboard) return <DashboardSkeleton />;
+
   return (
-    <div
-      className="min-h-screen p-4 md:p-6 lg:p-8 transition-colors duration-300"
-      style={{ background: t.page, fontFamily: "'DM Sans', sans-serif" }}
-    >
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }`}</style>
-
+    <div className="min-h-screen bg-dash-page p-4 font-dash-sans transition-colors duration-300 md:p-6 lg:p-8">
       <AnimatePresence>
-        {xpPopup && <XpPopup xp={xpPopup} onDone={clearXpPopup} />}
+        {xpPopup != null && <XpPopup xp={xpPopup} onDone={clearXpPopup} />}
       </AnimatePresence>
       <AnimatePresence>
-        {showHistory && <HistoryModal tasks={tasks} onClose={() => setShowHistory(false)} />}
+        {showHistory && <HistoryModal tasks={tasks} onClose={closeHistory} />}
       </AnimatePresence>
       <AnimatePresence>
-        {toastMsg && <ErrorToast message={toastMsg} onDismiss={() => setToastMsg(null)} />}
+        {toastMsg && <ErrorToast message={toastMsg} onDismiss={dismissToast} />}
       </AnimatePresence>
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <motion.header
-        className="flex items-center gap-4 mb-8"
+        className="mb-8 flex items-center gap-4"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white font-bold text-sm"
-          style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-        >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-dash-accent to-dash-violet text-sm font-bold text-white">
           {displayInitial}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[15px] font-semibold truncate" style={{ color: t.textPrimary, letterSpacing: "-0.01em" }}>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="truncate text-[15px] font-semibold tracking-tight text-dash-primary">
               {displayName}
             </span>
-            <span
-              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-              style={{ background: t.accentSoft, border: `1px solid ${t.accentBorder}`, color: "#818cf8", fontFamily: "'DM Mono', monospace" }}
-            >
-              LVL {dashboard?.level ?? "─"}
-            </span>
-            <span className="hidden sm:flex items-center gap-1 text-[11px]" style={{ color: t.orange, fontFamily: "'DM Mono', monospace" }}>
-              <Flame size={12} style={{ color: t.orange }} />
+            <DashboardBadge variant="violet">LVL {dashboard?.level ?? "─"}</DashboardBadge>
+            <span className="hidden items-center gap-1 font-dash-mono text-[11px] text-dash-orange sm:flex">
+              <Flame size={12} />
               {dashboard?.streak ?? 0}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: t.inputBg }}>
-              <motion.div
-                className="h-full rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${xpPct}%` }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                style={{ background: "linear-gradient(90deg, #6366f1, #a78bfa)" }}
-              />
-            </div>
-            <span className="text-[10px] shrink-0" style={{ color: t.textMuted, fontFamily: "'DM Mono', monospace" }}>
+            <DashboardProgress
+              value={dashboard?.currentXP ?? 0}
+              max={dashboard?.totalXPForLevel || 1}
+              className="flex-1"
+            />
+            <span className="shrink-0 font-dash-mono text-[10px] text-dash-muted">
               {dashboard ? `${dashboard.xpToNextLevel} XP left` : "─"}
             </span>
           </div>
         </div>
       </motion.header>
 
-      {/* ── Main Grid ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-
-        {/* LEFT ─────────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-8 flex flex-col gap-4">
-
-          {/* Active Quests */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="flex flex-col gap-4 lg:col-span-8">
           <motion.section
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-2xl p-5"
-            style={card}
           >
-            <p className="text-[11px] uppercase tracking-[0.07em] mb-4" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-              Active Quests
-            </p>
+            <DashboardCard className="rounded-2xl p-5">
+              <SectionLabel>Active Quests</SectionLabel>
 
-            <form onSubmit={handleCreate} className="flex items-center gap-2 mb-4">
-              <input
-                ref={inputRef}
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Add a new task…"
-                className="flex-1 text-[13px] outline-none rounded-lg px-3 py-2 transition-colors"
-                style={{
-                  background: t.inputBg,
-                  border: `1px solid ${t.inputBorder}`,
-                  color: t.textPrimary,
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-              />
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setDiffOpen((v) => !v)}
-                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[12px] transition-colors"
-                  style={{
-                    background: t.inputBg,
-                    border: `1px solid ${t.inputBorder}`,
-                    color: DIFF_META[newDiff]?.color ?? "#facc15",
-                    fontFamily: "'DM Mono', monospace",
-                  }}
+              <form onSubmit={handleCreate} className="mb-4 flex items-center gap-2">
+                <DashboardInput
+                  ref={inputRef}
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Add a new task…"
+                  inputSize="sm"
+                  className="flex-1 text-[13px]"
+                />
+                <DifficultyPicker
+                  value={newDiff}
+                  onChange={setNewDiff}
+                  open={diffOpen}
+                  onOpenChange={setDiffOpen}
+                />
+                <DashboardButton
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  disabled={!newTitle.trim()}
+                  className="h-9 w-9 p-0"
                 >
-                  {DIFF_META[newDiff]?.label ?? "Medium"}
-                  <ChevronDown size={11} />
-                </button>
-                <AnimatePresence>
-                  {diffOpen && (
-                    <motion.div
-                      className="absolute right-0 top-full mt-1 rounded-xl z-20 overflow-hidden"
-                      style={{ background: t.card, border: `1px solid ${t.borderMed}`, minWidth: 100 }}
-                      initial={{ opacity: 0, y: -4, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -4, scale: 0.96 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      {(["EASY", "MEDIUM", "HARD"] as Difficulty[]).map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => { setNewDiff(d); setDiffOpen(false); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors"
-                          style={{ color: DIFF_META[d].color, fontFamily: "'DM Mono', monospace" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = t.mutedBtn)}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                        >
-                          {DIFF_META[d].label}
-                          <span className="ml-auto text-[10px]" style={{ color: t.textFaint }}>+{DIFF_META[d].xp}</span>
-                        </button>
+                  <Plus size={14} />
+                </DashboardButton>
+              </form>
+
+              <div className="flex flex-col gap-2">
+                <AnimatePresence initial={false}>
+                  {tasksLoading && activeTasks.length === 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="h-10 animate-pulse rounded-xl bg-dash-input"
+                        />
                       ))}
-                    </motion.div>
+                    </div>
+                  ) : activeTasks.length === 0 ? (
+                    <p className="py-6 text-center font-dash-mono text-[13px] text-dash-faint">
+                      All caught up ✦
+                    </p>
+                  ) : (
+                    activeTasks.map((task) => (
+                      <motion.div
+                        key={task.id}
+                        layout
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
+                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      >
+                        {editingId === task.id ? (
+                          <div className="flex items-center gap-2 rounded-xl border border-dash-accent-border bg-dash-accent-soft p-3">
+                            <DashboardInput
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              onKeyDown={(e) => e.key === "Enter" && handleEditSave(task.id)}
+                              inputSize="sm"
+                              className="flex-1 border-transparent bg-transparent text-[13px] focus:ring-0"
+                              autoFocus
+                            />
+                            {(["EASY", "MEDIUM", "HARD"] as Difficulty[]).map((d) => (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() => setEditDiff(d)}
+                                className={cn(
+                                  "rounded-md px-1.5 py-0.5 font-dash-mono text-[10px] transition-all",
+                                  DIFF_TEXT_CLASS[d],
+                                  editDiff === d
+                                    ? "bg-dash-accent-soft opacity-100"
+                                    : "opacity-40",
+                                )}
+                              >
+                                {DIFF_META[d].label}
+                              </button>
+                            ))}
+                            <DashboardButton
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handleEditSave(task.id)}
+                            >
+                              Save
+                            </DashboardButton>
+                            <button
+                              type="button"
+                              onClick={() => setEditingId(null)}
+                              className="text-dash-muted hover:text-dash-secondary"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="group flex items-center gap-3 rounded-xl border border-dash-border bg-dash-card-alt px-3 py-2.5 transition-colors">
+                            <button
+                              type="button"
+                              onClick={() => completeTask(task.id)}
+                              className="group/cb flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[1.5px] border-dash-accent-border"
+                            >
+                              <CheckCircle2
+                                size={13}
+                                className="text-dash-accent opacity-0 transition-opacity group-hover/cb:opacity-100"
+                              />
+                            </button>
+                            <span className="flex-1 truncate text-[13px] text-dash-secondary">
+                              {task.title}
+                            </span>
+                            <DiffBadge diff={task.difficulty} />
+                            <span className="hidden font-dash-mono text-[10px] text-dash-faint sm:block">
+                              +{task.xpReward}
+                            </span>
+                            <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                              <DashboardButton
+                                variant="muted"
+                                size="sm"
+                                onClick={() => startEdit(task)}
+                                className="h-6 w-6 p-0"
+                              >
+                                <Pencil size={10} />
+                              </DashboardButton>
+                              <DashboardButton
+                                variant="danger"
+                                size="sm"
+                                onClick={() => deleteTask(task.id)}
+                                className="h-6 w-6 p-0"
+                              >
+                                <Trash2 size={10} />
+                              </DashboardButton>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    ))
                   )}
                 </AnimatePresence>
               </div>
-              <button
-                type="submit"
-                disabled={!newTitle.trim()}
-                className="w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-30 transition-opacity"
-                style={{ background: "#6366f1" }}
-              >
-                <Plus size={14} className="text-white" />
-              </button>
-            </form>
-
-            <div className="flex flex-col gap-2">
-              <AnimatePresence initial={false}>
-                {tasksLoading && activeTasks.length === 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="h-10 rounded-xl"
-                        style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite", animationDelay: `${i * 0.1}s` }}
-                      />
-                    ))}
-                  </div>
-                ) : activeTasks.length === 0 ? (
-                  <p className="text-[13px] text-center py-6" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                    All caught up ✦
-                  </p>
-                ) : (
-                  activeTasks.map((task) => (
-                    <motion.div
-                      key={task.id}
-                      layout
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20, transition: { duration: 0.2 } }}
-                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                    >
-                      {editingId === task.id ? (
-                        <div
-                          className="flex items-center gap-2 p-3 rounded-xl"
-                          style={{ background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)" }}
-                        >
-                          <input
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleEditSave(task.id)}
-                            autoFocus
-                            className="flex-1 bg-transparent text-[13px] outline-none"
-                            style={{ color: t.textPrimary }}
-                          />
-                          {(["EASY", "MEDIUM", "HARD"] as Difficulty[]).map((d) => (
-                            <button
-                              key={d}
-                              onClick={() => setEditDiff(d)}
-                              className="text-[10px] px-1.5 py-0.5 rounded-md transition-all"
-                              style={{
-                                color: DIFF_META[d].color,
-                                background: editDiff === d ? DIFF_META[d].bg : "transparent",
-                                opacity: editDiff === d ? 1 : 0.4,
-                                fontFamily: "'DM Mono', monospace",
-                              }}
-                            >
-                              {DIFF_META[d].label}
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => handleEditSave(task.id)}
-                            className="text-[11px] px-2.5 py-1 rounded-lg text-white"
-                            style={{ background: "#6366f1" }}
-                          >
-                            Save
-                          </button>
-                          <button onClick={() => setEditingId(null)}>
-                            <X size={13} style={{ color: t.textMuted }} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl group transition-colors"
-                          style={{ background: t.cardAlt, border: `1px solid ${t.border}` }}
-                        >
-                          <button
-                            onClick={() => completeTask(task.id)}
-                            className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 group/cb"
-                            style={{ border: `1.5px solid ${t.accentBorder}` }}
-                          >
-                            <CheckCircle2 size={13} className="text-[#6366f1] opacity-0 group-hover/cb:opacity-100 transition-opacity" />
-                          </button>
-                          <span className="flex-1 text-[13px] truncate" style={{ color: t.textSecondary }}>{task.title}</span>
-                          <DiffBadge diff={task.difficulty} />
-                          <span className="text-[10px] hidden sm:block" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                            +{task.xpReward}
-                          </span>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => startEdit(task)}
-                              className="w-6 h-6 rounded-md flex items-center justify-center"
-                              style={{ background: t.mutedBtn }}
-                            >
-                              <Pencil size={10} style={{ color: t.textMuted }} />
-                            </button>
-                            <button
-                              onClick={() => deleteTask(task.id)}
-                              className="w-6 h-6 rounded-md flex items-center justify-center"
-                              style={{ background: "rgba(248,113,113,0.08)" }}
-                            >
-                              <Trash2 size={10} className="text-[#f87171]" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </motion.div>
-                  ))
-                )}
-              </AnimatePresence>
-            </div>
+            </DashboardCard>
           </motion.section>
 
-          {/* History row */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.16, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-center justify-between px-5 py-3 rounded-2xl cursor-pointer group transition-colors"
-            style={card}
-            onClick={() => setShowHistory(true)}
           >
-            <div className="flex items-center gap-2.5">
-              <History size={14} style={{ color: t.textMuted }} className="group-hover:text-[#818cf8] transition-colors" />
-              <span className="text-[13px] transition-colors" style={{ color: t.textMuted }}>View History</span>
-              {completedTasks.length > 0 && (
-                <span
-                  className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{ background: t.accentSoft, color: "#818cf8", fontFamily: "'DM Mono', monospace" }}
-                >
-                  {completedTasks.length} completed
-                </span>
-              )}
-            </div>
-            <ChevronDown size={13} style={{ color: t.textFaint }} className="-rotate-90" />
+            <DashboardCard
+              hover
+              className="flex cursor-pointer items-center justify-between rounded-2xl px-5 py-3"
+              onClick={() => setShowHistory(true)}
+            >
+              <div className="flex items-center gap-2.5">
+                <History
+                  size={14}
+                  className="text-dash-muted transition-colors group-hover:text-dash-violet"
+                />
+                <span className="text-[13px] text-dash-muted transition-colors">View History</span>
+                {completedTasks.length > 0 && (
+                  <DashboardBadge variant="violet">{completedTasks.length} completed</DashboardBadge>
+                )}
+              </div>
+              <ChevronDown size={13} className="-rotate-90 text-dash-faint" />
+            </DashboardCard>
           </motion.div>
 
-          {/* Contribution graph */}
           <motion.section
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.22, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-2xl p-5 transition-colors"
-            style={card}
           >
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                Activity
-              </p>
-              <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>Last 53 weeks</span>
-            </div>
-            {loading ? (
-              <div className="h-32.5 rounded-lg" style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite" }} />
-            ) : (
-              <ContributionGraph data={dashboard?.contributionGraph ?? []} />
-            )}
+            <DashboardCard className="rounded-2xl p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="font-dash-mono text-[11px] uppercase tracking-[0.07em] text-dash-faint">Activity</p>
+                <span className="font-dash-mono text-[10px] text-dash-faint">Last 53 weeks</span>
+              </div>
+              {loading ? (
+                <div className="h-32.5 animate-pulse rounded-lg bg-dash-input" />
+              ) : (
+                <ContributionGraph data={dashboard?.contributionGraph ?? []} />
+              )}
+            </DashboardCard>
           </motion.section>
         </div>
 
-        {/* RIGHT ────────────────────────────────────────────────────────────── */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
-
-          {/* Character */}
+        <div className="flex flex-col gap-4 lg:col-span-4">
           <motion.section
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-2xl overflow-hidden transition-colors relative"
-            style={card}
           >
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 relative z-10">
-              <p className="text-[11px] uppercase tracking-[0.07em]"
-                style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                Character
-              </p>
-              <div className="flex items-center gap-2">
-                {dashboard && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg"
-                    style={{ background: "rgba(251,146,60,0.10)", border: "1px solid rgba(251,146,60,0.18)" }}>
-                    <Flame size={10} style={{ color: t.orange }} />
-                    <span className="text-[10px] font-semibold"
-                      style={{ color: t.orange, fontFamily: "'DM Mono', monospace" }}>
-                      {dashboard.streak}
-                    </span>
-                  </div>
-                )}
-                <span className="text-[10px] px-2.5 py-0.5 rounded-lg font-semibold"
-                  style={{ background: t.accentSoft, color: "#818cf8", border: `1px solid ${t.accentBorder}`, fontFamily: "'DM Mono', monospace" }}>
-                  LVL {dashboard?.level ?? "─"}
-                </span>
-              </div>
-            </div>
-
-            {/* Mascot + info */}
-            <div className="flex items-stretch gap-0 pt-4 pb-5 px-5 relative z-10">
-
-              {/* Mascot box - fix needed */}
-              <div className="shrink-0 mr-5">
-                <div
-                  className="w-25 h-25 rounded-3xl overflow-hidden flex items-center justify-center"
-                  style={{
-                    background:
-                      "radial-gradient(ellipse at 50% 120%, rgba(99,102,241,0.35) 0%, rgba(6,6,16,0.98) 60%)",
-                    border: "1px solid rgba(99,102,241,0.28)",
-                  }}
-                >
-                  <img
-                    src={character_mascot}
-                    alt="character"
-                    className="w-full h-[200%] object-contain"
-                    draggable={false}
-                  />
+            <DashboardCard className="relative overflow-hidden rounded-2xl">
+              <div className="relative z-10 flex items-center justify-between px-5 pt-5">
+                <SectionLabel>Character</SectionLabel>
+                <div className="flex items-center gap-2">
+                  {dashboard && (
+                    <div className="flex items-center gap-1 rounded-lg border border-dash-orange/20 bg-dash-orange/10 px-2 py-0.5">
+                      <Flame size={10} className="text-dash-orange" />
+                      <span className="font-dash-mono text-[10px] font-semibold text-dash-orange">
+                        {dashboard.streak}
+                      </span>
+                    </div>
+                  )}
+                  <DashboardBadge variant="violet">LVL {dashboard?.level ?? "─"}</DashboardBadge>
                 </div>
               </div>
 
-              {/* Text + XP */}
-              <div className="flex-1 min-w-0 flex flex-col justify-between">
-                <div>
-                  <p className="text-[24px] font-semibold leading-none mb-1"
-                    style={{ color: t.textPrimary, letterSpacing: "-0.03em", fontFamily: "'DM Sans', sans-serif" }}>
-                    {getCharacter(dashboard?.level ?? 1).title}
-                  </p>
-                  <p className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                    Level {dashboard?.level ?? "─"} · {dashboard?.currentXP ?? 0} XP earned
-                  </p>
-                </div>
-
-                {/* XP bar block */}
-                <div className="mt-3">
-                  <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                      {dashboard?.currentXP ?? 0} / {dashboard?.totalXPForLevel ?? "─"} XP
-                    </span>
-                    <span className="text-[10px] font-semibold" style={{ color: "#818cf8", fontFamily: "'DM Mono', monospace" }}>
-                      {xpPct}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: t.inputBg }}>
-                    <motion.div
-                      className="h-full rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${xpPct}%` }}
-                      transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-                      style={{ background: "linear-gradient(90deg, #6366f1, #a78bfa)" }}
+              <div className="relative z-10 flex items-stretch gap-0 px-5 pb-5 pt-4">
+                <div className="mr-5 shrink-0">
+                  <div className="flex h-25 w-25 items-center justify-center overflow-hidden rounded-3xl border border-dash-accent-border bg-[radial-gradient(ellipse_at_50%_120%,color-mix(in_srgb,var(--dash-accent)_35%,transparent)_0%,var(--dash-page)_60%)]">
+                    <img
+                      src={character_mascot}
+                      alt="character"
+                      className="h-[200%] w-full object-contain"
+                      draggable={false}
                     />
                   </div>
-                  <p className="text-[10px] mt-1.5" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                    {dashboard?.xpToNextLevel ?? "─"} XP to next level
-                  </p>
+                </div>
+
+                <div className="flex min-w-0 flex-1 flex-col justify-between">
+                  <div>
+                    <p className="mb-1 text-[24px] font-semibold leading-none tracking-tight text-dash-primary">
+                      {getCharacter(dashboard?.level ?? 1).title}
+                    </p>
+                    <p className="font-dash-mono text-[11px] text-dash-faint">
+                      Level {dashboard?.level ?? "─"} · {dashboard?.currentXP ?? 0} XP earned
+                    </p>
+                  </div>
+
+                  <div className="mt-3">
+                    <DashboardProgress
+                      value={dashboard?.currentXP ?? 0}
+                      max={dashboard?.totalXPForLevel || 1}
+                      showValue
+                      label={`${dashboard?.currentXP ?? 0} / ${dashboard?.totalXPForLevel ?? "─"} XP`}
+                    />
+                    <p className="mt-1.5 font-dash-mono text-[10px] text-dash-faint">
+                      {dashboard?.xpToNextLevel ?? "─"} XP to next level
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </DashboardCard>
           </motion.section>
 
-          {/* Today Summary */}
           <motion.section
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-2xl p-5 transition-colors"
-            style={card}
           >
-            <p className="text-[11px] uppercase tracking-[0.07em] mb-4" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-              Today
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              {([
-                { label: "Tasks", value: dashboard?.todayStats.totalTasks ?? activeTasks.length },
-                { label: "Done", value: dashboard?.todayStats.completedTasks ?? completedTasks.length },
-                { label: "XP", value: dashboard?.todayStats.xpEarned ?? 0 },
-              ] as const).map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="rounded-xl p-3 text-center transition-colors"
-                  style={{ background: t.cardAlt, border: `1px solid ${t.border}` }}
-                >
-                  {loading ? (
-                    <div className="h-5 w-8 mx-auto rounded" style={{ background: t.inputBg, animation: "pulse 1.5s ease-in-out infinite" }} />
-                  ) : (
-                    <p className="text-[18px] font-semibold" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>{value}</p>
-                  )}
-                  <p className="text-[10px] mt-0.5" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>{label}</p>
-                </div>
-              ))}
-            </div>
+            <DashboardCard className="rounded-2xl p-5">
+              <SectionLabel>Today</SectionLabel>
+              <div className="grid grid-cols-3 gap-3">
+                {(
+                  [
+                    { label: "Tasks", value: dashboard?.todayStats.totalTasks ?? activeTasks.length },
+                    { label: "Done", value: dashboard?.todayStats.completedTasks ?? completedTasks.length },
+                    { label: "XP", value: dashboard?.todayStats.xpEarned ?? 0 },
+                  ] as const
+                ).map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className="rounded-xl border border-dash-border bg-dash-card-alt p-3 text-center"
+                  >
+                    {loading ? (
+                      <div className="mx-auto h-5 w-8 animate-pulse rounded bg-dash-input" />
+                    ) : (
+                      <p className="text-[18px] font-semibold tracking-tight text-dash-primary">{value}</p>
+                    )}
+                    <p className="mt-0.5 font-dash-mono text-[10px] text-dash-faint">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </DashboardCard>
           </motion.section>
 
-          {/* XP to next level pill */}
           <motion.section
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-2xl px-5 py-4 flex items-center gap-3 transition-colors"
-            style={card}
           >
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "rgba(167,139,250,0.10)" }}>
-              {loading
-                ? <Loader2 size={15} className="text-[#a78bfa] animate-spin" />
-                : <Zap size={15} className="text-[#a78bfa]" />
-              }
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>
-                {dashboard?.xpToNextLevel ?? "─"} XP to Level {dashboard ? dashboard.level + 1 : "─"}
-              </p>
-              <p className="text-[10px] mt-0.5" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                keep completing quests to rank up
-              </p>
-            </div>
+            <DashboardCard className="flex items-center gap-3 rounded-2xl px-5 py-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-dash-accent-soft">
+                {loading ? (
+                  <Loader2 size={15} className="animate-spin text-dash-violet" />
+                ) : (
+                  <Zap size={15} className="text-dash-violet" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold tracking-tight text-dash-primary">
+                  {dashboard?.xpToNextLevel ?? "─"} XP to Level {dashboard ? dashboard.level + 1 : "─"}
+                </p>
+                <p className="mt-0.5 font-dash-mono text-[10px] text-dash-faint">
+                  keep completing quests to rank up
+                </p>
+              </div>
+            </DashboardCard>
           </motion.section>
-
         </div>
       </div>
     </div>

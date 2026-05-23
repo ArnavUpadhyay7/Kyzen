@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Terminal, Flame, Code2, Activity, GitCommit,
@@ -6,15 +6,17 @@ import {
   AlertCircle, Users, Zap, TrendingUp, CalendarDays,
   Trophy, Loader2,
 } from "lucide-react";
-import { useTokens } from "../../state/theme/ThemeContext";
 import api from "../../lib/axios";
 import ContributionGraph, { type GraphEntry } from "../../components/dashboard/DevContributionGraph";
-
-// ─── localStorage key ─────────────────────────────────────────────────────────
+import {
+  DashboardBadge,
+  DashboardButton,
+  DashboardCard,
+  DashboardInput,
+} from "../../components/dashboard/ui";
+import { cn } from "../../lib/utils";
 
 const GH_USERNAME_KEY = "kyzen-gh-username";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ContribDay {
   date: string;
@@ -62,20 +64,33 @@ interface RankScore {
   pctToNext: number;
 }
 
-// ─── Rank config ──────────────────────────────────────────────────────────────
+const RANK_TIERS: Record<RankTier, { min: number; label: string; desc: string }> = {
+  S: { min: 75, label: "S", desc: "Elite" },
+  A: { min: 60, label: "A", desc: "Expert" },
+  B: { min: 45, label: "B", desc: "Advanced" },
+  C: { min: 30, label: "C", desc: "Intermediate" },
+  D: { min: 15, label: "D", desc: "Developing" },
+  E: { min: 0, label: "E", desc: "Beginner" },
+};
 
-const RANK_TIERS: Record<RankTier, { min: number; color: string; glow: string; label: string; desc: string }> = {
-  S: { min: 75, color: "#FCD34D", glow: "rgba(252,211,77,0.25)",   label: "S", desc: "Elite"        },
-  A: { min: 60, color: "#A78BFA", glow: "rgba(167,139,250,0.22)",  label: "A", desc: "Expert"       },
-  B: { min: 45, color: "#60A5FA", glow: "rgba(96,165,250,0.20)",   label: "B", desc: "Advanced"     },
-  C: { min: 30, color: "#34D399", glow: "rgba(52,211,153,0.18)",   label: "C", desc: "Intermediate" },
-  D: { min: 15, color: "#94A3B8", glow: "rgba(148,163,184,0.15)",  label: "D", desc: "Developing"   },
-  E: { min: 0,  color: "#64748B", glow: "rgba(100,116,139,0.12)",  label: "E", desc: "Beginner"     },
+const RANK_CLASS: Record<RankTier, { text: string; border: string; bg: string; stroke: string; glow: string }> = {
+  S: { text: "text-amber-300", border: "border-amber-300/30", bg: "bg-amber-300/12", stroke: "stroke-amber-300", glow: "shadow-[0_0_60px_rgba(252,211,77,0.25)]" },
+  A: { text: "text-violet-400", border: "border-violet-400/30", bg: "bg-violet-400/12", stroke: "stroke-violet-400", glow: "shadow-[0_0_60px_rgba(167,139,250,0.22)]" },
+  B: { text: "text-blue-400", border: "border-blue-400/30", bg: "bg-blue-400/12", stroke: "stroke-blue-400", glow: "shadow-[0_0_60px_rgba(96,165,250,0.2)]" },
+  C: { text: "text-emerald-400", border: "border-emerald-400/30", bg: "bg-emerald-400/12", stroke: "stroke-emerald-400", glow: "shadow-[0_0_60px_rgba(52,211,153,0.18)]" },
+  D: { text: "text-slate-400", border: "border-slate-400/30", bg: "bg-slate-400/12", stroke: "stroke-slate-400", glow: "shadow-[0_0_40px_rgba(148,163,184,0.15)]" },
+  E: { text: "text-slate-500", border: "border-slate-500/30", bg: "bg-slate-500/12", stroke: "stroke-slate-500", glow: "shadow-[0_0_32px_rgba(100,116,139,0.12)]" },
 };
 
 const TIER_ORDER: RankTier[] = ["S", "A", "B", "C", "D", "E"];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const SCORE_METRICS: { key: keyof Pick<RankScore, "volume" | "consistency" | "activity" | "stars" | "community">; label: string; weight: string; bar: string; text: string }[] = [
+  { key: "volume", label: "Volume", weight: "30%", bar: "bg-blue-400", text: "text-blue-400" },
+  { key: "consistency", label: "Consistency", weight: "25%", bar: "bg-violet-400", text: "text-violet-400" },
+  { key: "activity", label: "Recent Activity", weight: "20%", bar: "bg-emerald-400", text: "text-emerald-400" },
+  { key: "stars", label: "Stars", weight: "15%", bar: "bg-amber-300", text: "text-amber-300" },
+  { key: "community", label: "Community", weight: "10%", bar: "bg-pink-400", text: "text-pink-400" },
+];
 
 function getTier(score: number): RankTier {
   for (const tier of TIER_ORDER) {
@@ -96,7 +111,7 @@ function flattenContribWeeks(weeks: ContribWeek[]): GraphEntry[] {
     if (!Array.isArray(week?.contributionDays)) continue;
     for (const day of week.contributionDays) {
       if (!day?.date || typeof day.date !== "string" || !day.date.trim()) continue;
-      const raw = day.contributionCount ?? (day as any).count ?? 0;
+      const raw = day.contributionCount ?? (day as { count?: number }).count ?? 0;
       const count = Math.max(0, Number(raw) || 0);
       entries.push({ date: day.date.trim(), count });
     }
@@ -104,105 +119,65 @@ function flattenContribWeeks(weeks: ContribWeek[]): GraphEntry[] {
   return entries;
 }
 
-// ─── Scoring engine ───────────────────────────────────────────────────────────
-//
-// FIX 1 — consistency: was dividing by 18 (wrong max). A year has 52 weeks,
-//          so the correct denominator is 52. With /18 a user active 10 weeks
-//          would score 55 instead of 19, and the bar rendered wrong values
-//          even when data was present.
-//
-// FIX 2 — activity: the prev30===0 branch returned 0 whenever last30 was also
-//          0, which is always the case when contribWeeks arrives empty (both
-//          fields default to 0 from the backend). Changed to use totalContribs
-//          as a secondary signal so a user with yearly contributions but no
-//          recent 30-day window still gets a non-zero activity score.
-//
-// FIX 3 — all sub-scores: guard against NaN by coercing every field through
-//          Number() with a || 0 fallback before any arithmetic.
-
 function computeScore(d: GithubData): RankScore {
-  // Coerce everything — avoids NaN propagation if backend sends nulls
-  const totalContribs  = Number(d.totalContribs)  || 0;
-  const activeWeeks    = Number(d.activeWeeks)    || 0;
-  const last30         = Number(d.last30)         || 0;
-  const prev30         = Number(d.prev30)         || 0;
-  const totalStars     = Number(d.totalStars)     || 0;
-  const pullRequests   = Number(d.pullRequests)   || 0;
-  const issues         = Number(d.issues)         || 0;
+  const totalContribs = Number(d.totalContribs) || 0;
+  const activeWeeks = Number(d.activeWeeks) || 0;
+  const last30 = Number(d.last30) || 0;
+  const prev30 = Number(d.prev30) || 0;
+  const totalStars = Number(d.totalStars) || 0;
+  const pullRequests = Number(d.pullRequests) || 0;
+  const issues = Number(d.issues) || 0;
 
-  // ── Volume (30%) — yearly contribution count, cap at 500 ─────────────────
   const volume = Math.min(100, (totalContribs / 500) * 100);
-
-  // ── Consistency (25%) — active weeks out of 52 (full year) ───────────────
-  // FIX 1: was /18, must be /52
   const consistency = Math.min(100, (activeWeeks / 52) * 100);
 
-  // ── Recent Activity (20%) ─────────────────────────────────────────────────
-  // FIX 2: when both last30 and prev30 are 0 (no contribWeeks data),
-  // fall back to a volume-derived proxy so the bar is never stuck at 0
-  // purely due to a missing contributions API response.
   let activity: number;
   if (last30 > 0 && prev30 > 0) {
-    // Normal path: momentum ratio + absolute recency bonus
     activity = Math.min(100, (last30 / prev30) * 80 + (last30 / 25) * 20);
   } else if (last30 > 0) {
-    // Active recently but no prior-30 data to compare against
     activity = Math.min(100, 50 + (last30 / 25) * 50);
   } else {
-    // FIX 2: no 30-day window data at all — proxy from total contribs
-    // (~1 contrib/day average over 365 days ≈ score of 50)
     activity = Math.min(100, (totalContribs / 365) * 50);
   }
 
-  // ── Stars (15%) ───────────────────────────────────────────────────────────
-  const stars = Math.min(
-    100,
-    (Math.log10(totalStars + 1) / Math.log10(50)) * 100
-  );
-
-  // ── Community (10%) ───────────────────────────────────────────────────────
+  const stars = Math.min(100, (Math.log10(totalStars + 1) / Math.log10(50)) * 100);
   const community = Math.min(
     100,
-    (Math.log10(pullRequests + issues + 1) / Math.log10(40)) * 100
+    (Math.log10(pullRequests + issues + 1) / Math.log10(40)) * 100,
   );
 
-  // ── Weighted final ────────────────────────────────────────────────────────
   const final =
-    volume      * 0.30 +
+    volume * 0.30 +
     consistency * 0.25 +
-    activity    * 0.20 +
-    stars       * 0.15 +
-    community   * 0.10;
+    activity * 0.20 +
+    stars * 0.15 +
+    community * 0.10;
 
-  const tier     = getTier(final);
+  const tier = getTier(final);
   const nextTier = getNextTier(tier);
-  const curMin   = RANK_TIERS[tier].min;
-  const nextMin  = nextTier ? RANK_TIERS[nextTier].min : curMin;
+  const curMin = RANK_TIERS[tier].min;
+  const nextMin = nextTier ? RANK_TIERS[nextTier].min : curMin;
   const pctToNext = nextTier
     ? Math.min(100, ((final - curMin) / (nextMin - curMin)) * 100)
     : 100;
 
   return {
-    final:       Math.round(final * 10) / 10,
-    volume:      Math.round(volume),
+    final: Math.round(final * 10) / 10,
+    volume: Math.round(volume),
     consistency: Math.round(consistency),
-    activity:    Math.round(activity),
-    stars:       Math.round(stars),
-    community:   Math.round(community),
+    activity: Math.round(activity),
+    stars: Math.round(stars),
+    community: Math.round(community),
     tier,
     nextTier,
     pctToNext: Math.round(pctToNext),
   };
 }
 
-// ─── Backend fetch ────────────────────────────────────────────────────────────
-
 async function fetchGithubData(username: string): Promise<GithubData> {
   const { data } = await api.get<GithubData>(`/github/${encodeURIComponent(username)}`);
   return data;
 }
-
-// ─── Mini animated counter ────────────────────────────────────────────────────
 
 function Counter({ to, duration = 1.2 }: { to: number; duration?: number }) {
   const [val, setVal] = useState(0);
@@ -211,7 +186,7 @@ function Counter({ to, duration = 1.2 }: { to: number; duration?: number }) {
     const step = (ts: number) => {
       if (!start) start = ts;
       const progress = Math.min((ts - start) / (duration * 1000), 1);
-      const ease = 1 - Math.pow(1 - progress, 3);
+      const ease = 1 - (1 - progress) ** 3;
       setVal(Math.round(ease * to));
       if (progress < 1) requestAnimationFrame(step);
     };
@@ -220,10 +195,8 @@ function Counter({ to, duration = 1.2 }: { to: number; duration?: number }) {
   return <>{val}</>;
 }
 
-// ─── Radial score ring ────────────────────────────────────────────────────────
-
 function ScoreRing({ score, tier }: { score: number; tier: RankTier }) {
-  const meta = RANK_TIERS[tier];
+  const rank = RANK_CLASS[tier];
   const size = 180;
   const cx = size / 2;
   const cy = size / 2;
@@ -232,134 +205,144 @@ function ScoreRing({ score, tier }: { score: number; tier: RankTier }) {
   const dash = (score / 100) * circ;
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
-        <circle cx={cx} cy={cy} r={rad} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={6} />
+    <div className="relative flex h-[180px] w-[180px] items-center justify-center">
+      <svg
+        width={size}
+        height={size}
+        className="absolute inset-0 -rotate-90"
+      >
+        <circle
+          cx={cx}
+          cy={cy}
+          r={rad}
+          fill="none"
+          className="stroke-dash-muted-btn"
+          strokeWidth={6}
+        />
         <motion.circle
-          cx={cx} cy={cy} r={rad} fill="none"
-          stroke={meta.color} strokeWidth={6} strokeLinecap="round"
+          cx={cx}
+          cy={cy}
+          r={rad}
+          fill="none"
+          className={cn(rank.stroke, "drop-shadow-[0_0_8px_currentColor]")}
+          strokeWidth={6}
+          strokeLinecap="round"
           strokeDasharray={circ}
           initial={{ strokeDashoffset: circ }}
           animate={{ strokeDashoffset: circ - dash }}
           transition={{ duration: 1.4, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          style={{ filter: `drop-shadow(0 0 8px ${meta.color})` }}
         />
         {[25, 50, 75].map((pct) => {
           const angle = (pct / 100) * 2 * Math.PI - Math.PI / 2;
           const ox = cx + (rad + 10) * Math.cos(angle);
           const oy = cy + (rad + 10) * Math.sin(angle);
-          return <circle key={pct} cx={ox} cy={oy} r={1.5} fill="rgba(255,255,255,0.2)" />;
+          return (
+            <circle
+              key={pct}
+              cx={ox}
+              cy={oy}
+              r={1.5}
+              className="fill-dash-faint"
+            />
+          );
         })}
       </svg>
-      <div className="flex flex-col items-center gap-0.5 relative z-10">
+      <div className="relative z-10 flex flex-col items-center gap-0.5">
         <span
-          className="font-black leading-none"
-          style={{
-            fontSize: 52,
-            letterSpacing: "-0.05em",
-            color: meta.color,
-            fontFamily: "'DM Mono', monospace",
-            textShadow: `0 0 32px ${meta.glow}`,
-          }}
+          className={cn(
+            "font-dash-mono text-[52px] leading-none font-black tracking-[-0.05em]",
+            rank.text,
+          )}
         >
           {tier}
         </span>
-        <span
-          className="text-[10px] uppercase tracking-[0.15em]"
-          style={{ color: "rgba(255,255,255,0.35)", fontFamily: "'DM Mono', monospace" }}
-        >
-          {meta.desc}
+        <span className="font-dash-mono text-[10px] uppercase tracking-[0.15em] text-dash-faint">
+          {RANK_TIERS[tier].desc}
         </span>
       </div>
     </div>
   );
 }
 
-// ─── Score bar ────────────────────────────────────────────────────────────────
-
-function ScoreBar({ label, value, weight, color }: {
-  label: string; value: number; weight: string; color: string;
+function ScoreBar({
+  label,
+  value,
+  weight,
+  barClass,
+  textClass,
+}: {
+  label: string;
+  value: number;
+  weight: string;
+  barClass: string;
+  textClass: string;
 }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="mb-1.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span
-            className="text-[11px] font-medium"
-            style={{ color: "rgba(255,255,255,0.7)", fontFamily: "'DM Mono', monospace" }}
-          >
-            {label}
-          </span>
-          <span
-            className="text-[9px] px-1.5 py-0.5 rounded"
-            style={{ color, background: `${color}15`, fontFamily: "'DM Mono', monospace" }}
-          >
+          <span className="font-dash-mono text-[11px] font-medium text-dash-secondary">{label}</span>
+          <span className={cn("rounded px-1.5 py-0.5 font-dash-mono text-[9px]", textClass, "bg-current/10")}>
             {weight}
           </span>
         </div>
-        <span
-          className="text-[11px] font-bold tabular-nums"
-          style={{ color, fontFamily: "'DM Mono', monospace" }}
-        >
+        <span className={cn("font-dash-mono text-[11px] font-bold tabular-nums", textClass)}>
           {value}
         </span>
       </div>
-      <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+      <div className="h-1 w-full overflow-hidden rounded-full bg-dash-muted-btn">
         <motion.div
-          className="h-full rounded-full"
+          className={cn("h-full rounded-full shadow-[0_0_8px_color-mix(in_srgb,currentColor_40%,transparent)]", barClass)}
           initial={{ width: 0 }}
           animate={{ width: `${value}%` }}
           transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          style={{ background: color, boxShadow: `0 0 8px ${color}60` }}
         />
       </div>
     </div>
   );
 }
 
-// ─── Micro stat tile ──────────────────────────────────────────────────────────
-
-function MicroStat({ icon, label, value, sub, color = "#818cf8" }: {
-  icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: string;
+function MicroStat({
+  icon,
+  label,
+  value,
+  sub,
+  iconWrapClass = "bg-dash-accent-soft text-dash-violet",
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string | number;
+  sub?: string;
+  iconWrapClass?: string;
 }) {
-  const t = useTokens();
   return (
-    <div
-      className="rounded-2xl p-4 flex flex-col gap-2"
-      style={{ background: t.isDark ? "rgba(255,255,255,0.03)" : t.card, border: `1px solid ${t.border}` }}
-    >
+    <DashboardCard alt className="flex flex-col gap-2 rounded-2xl p-4">
       <div className="flex items-center justify-between">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${color}15`, color }}>
+        <div
+          className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-lg",
+            iconWrapClass,
+          )}
+        >
           {icon}
         </div>
-        <span
-          className="text-[9px] uppercase tracking-[0.1em]"
-          style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}
-        >
+        <span className="font-dash-mono text-[9px] uppercase tracking-[0.1em] text-dash-faint">
           {label}
         </span>
       </div>
       <div>
-        <p
-          className="text-[20px] font-bold tabular-nums leading-none"
-          style={{ color: "rgba(255,255,255,0.88)", letterSpacing: "-0.03em", fontFamily: "'DM Mono', monospace" }}
-        >
+        <p className="font-dash-mono text-[20px] leading-none font-bold tracking-[-0.03em] text-dash-primary tabular-nums">
           {value}
         </p>
         {sub && (
-          <p className="text-[9px] mt-1" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-            {sub}
-          </p>
+          <p className="mt-1 font-dash-mono text-[9px] text-dash-faint">{sub}</p>
         )}
       </div>
-    </div>
+    </DashboardCard>
   );
 }
 
-// ─── Connect form ─────────────────────────────────────────────────────────────
-
 function ConnectForm({ onSubmit }: { onSubmit: (u: string) => void }) {
-  const t = useTokens();
   const [value, setValue] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
@@ -373,77 +356,57 @@ function ConnectForm({ onSubmit }: { onSubmit: (u: string) => void }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="max-w-md mx-auto"
+      className="mx-auto max-w-md"
     >
-      <div
-        className="rounded-2xl p-8 flex flex-col items-center text-center gap-6 relative overflow-hidden"
-        style={{ background: t.isDark ? "rgba(255,255,255,0.03)" : t.card, border: `1px solid ${t.border}` }}
+      <DashboardCard
+        alt
+        className="relative flex flex-col items-center gap-6 overflow-hidden rounded-2xl p-8 text-center"
       >
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse 60% 50% at 50% -10%, rgba(99,102,241,0.12), transparent)" }}
-        />
-        <div
-          className="relative w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-          style={{
-            background: "rgba(99,102,241,0.1)",
-            border: "1px solid rgba(99,102,241,0.25)",
-            boxShadow: "0 0 32px rgba(99,102,241,0.15)",
-          }}
-        >
-          <Terminal size={28} style={{ color: "#818cf8" }} />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,color-mix(in_srgb,var(--dash-accent)_12%,transparent),transparent)]" />
+        <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-dash-accent-border bg-dash-accent-soft shadow-[0_0_32px_color-mix(in_srgb,var(--dash-accent)_15%,transparent)]">
+          <Terminal size={28} className="text-dash-violet" />
         </div>
         <div className="relative">
-          <h2 className="text-[18px] font-bold mb-2" style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}>
+          <h2 className="mb-2 font-dash-sans text-[18px] font-bold tracking-[-0.02em] text-dash-primary">
             Analyse Developer Profile
           </h2>
-          <p
-            className="text-[12px] leading-relaxed"
-            style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace", maxWidth: 300 }}
-          >
+          <p className="mx-auto max-w-[300px] font-dash-mono text-[12px] leading-relaxed text-dash-faint">
             Enter a GitHub username to compute your developer rank, score breakdown, and intelligence report.
           </p>
         </div>
-        <form onSubmit={handleSubmit} className="w-full relative flex flex-col gap-3">
-          <div
-            className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
-            style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}` }}
-          >
-            <span style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace", fontSize: 13 }}>@</span>
-            <input
+        <form onSubmit={handleSubmit} className="relative flex w-full flex-col gap-3">
+          <div className="flex items-center gap-2.5 rounded-xl border border-dash-input-border bg-dash-input px-4 py-3">
+            <span className="font-dash-mono text-[13px] text-dash-faint">@</span>
+            <DashboardInput
               type="text"
               placeholder="github-username"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-[13px] placeholder:opacity-30"
-              style={{ color: t.textPrimary, fontFamily: "'DM Mono', monospace" }}
+              className="border-0 bg-transparent p-0 font-dash-mono text-[13px] focus:ring-0"
               autoFocus
             />
           </div>
-          <button
+          <DashboardButton
             type="submit"
+            variant="primary"
             disabled={!value.trim()}
-            className="flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold transition-all disabled:opacity-30"
-            style={{
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              color: "#fff",
-              fontFamily: "'DM Mono', monospace",
-              boxShadow: "0 4px 24px rgba(99,102,241,0.3)",
-            }}
+            className="rounded-xl py-3 font-dash-mono text-[13px] font-semibold"
           >
             Compute Rank <ArrowRight size={14} />
-          </button>
+          </DashboardButton>
         </form>
-      </div>
+      </DashboardCard>
     </motion.div>
   );
 }
 
-// ─── Loading state ────────────────────────────────────────────────────────────
-
 function LoadingState({ username }: { username: string }) {
-  const t = useTokens();
-  const steps = ["Fetching profile data", "Analysing contributions", "Computing consistency", "Calculating rank score"];
+  const steps = [
+    "Fetching profile data",
+    "Analysing contributions",
+    "Computing consistency",
+    "Calculating rank score",
+  ];
   const [step, setStep] = useState(0);
 
   useEffect(() => {
@@ -455,72 +418,59 @@ function LoadingState({ username }: { username: string }) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-md mx-auto rounded-2xl p-8 flex flex-col items-center gap-5"
-      style={{ background: t.isDark ? "rgba(255,255,255,0.03)" : t.card, border: `1px solid ${t.border}` }}
+      className="mx-auto max-w-md"
     >
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "rgba(99,102,241,0.1)" }}>
-        <Loader2 size={22} className="animate-spin" style={{ color: "#818cf8" }} />
-      </div>
-      <div className="text-center">
-        <p className="text-[13px] font-semibold mb-1" style={{ color: t.textPrimary }}>
-          Analysing @{username}
-        </p>
-        <p className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-          {steps[step]}…
-        </p>
-      </div>
-      <div className="flex gap-1">
-        {steps.map((_, i) => (
-          <div
-            key={i}
-            className="h-1 rounded-full transition-all duration-300"
-            style={{ width: i <= step ? 24 : 8, background: i <= step ? "#6366f1" : "rgba(255,255,255,0.08)" }}
-          />
-        ))}
-      </div>
+      <DashboardCard alt className="flex flex-col items-center gap-5 rounded-2xl p-8">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-dash-accent-soft">
+          <Loader2 size={22} className="animate-spin text-dash-violet" />
+        </div>
+        <div className="text-center">
+          <p className="mb-1 font-dash-sans text-[13px] font-semibold text-dash-primary">
+            Analysing @{username}
+          </p>
+          <p className="font-dash-mono text-[11px] text-dash-faint">{steps[step]}…</p>
+        </div>
+        <div className="flex gap-1">
+          {steps.map((_, i) => (
+            <div
+              key={i}
+              className={cn(
+                "h-1 rounded-full transition-all duration-300",
+                i <= step ? "w-6 bg-dash-accent" : "w-2 bg-dash-muted-btn",
+              )}
+            />
+          ))}
+        </div>
+      </DashboardCard>
     </motion.div>
   );
 }
 
-// ─── Error state ──────────────────────────────────────────────────────────────
-
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  const t = useTokens();
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-md mx-auto rounded-2xl p-8 flex flex-col items-center gap-4 text-center"
-      style={{ background: "rgba(248,113,113,0.05)", border: "1px solid rgba(248,113,113,0.15)" }}
+      className="mx-auto max-w-md"
     >
-      <AlertCircle size={24} className="text-[#f87171]" />
-      <div>
-        <p className="text-[13px] font-semibold mb-1" style={{ color: t.textPrimary }}>Analysis Failed</p>
-        <p className="text-[11px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>{message}</p>
-      </div>
-      <button
-        onClick={onRetry}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px]"
-        style={{
-          background: "rgba(248,113,113,0.1)",
-          color: "#f87171",
-          border: "1px solid rgba(248,113,113,0.2)",
-          fontFamily: "'DM Mono', monospace",
-        }}
-      >
-        <RefreshCw size={11} /> Try again
-      </button>
+      <DashboardCard className="flex flex-col items-center gap-4 rounded-2xl border-dash-danger/30 bg-dash-danger/5 p-8 text-center">
+        <AlertCircle size={24} className="text-dash-danger" />
+        <div>
+          <p className="mb-1 font-dash-sans text-[13px] font-semibold text-dash-primary">Analysis Failed</p>
+          <p className="font-dash-mono text-[11px] text-dash-faint">{message}</p>
+        </div>
+        <DashboardButton variant="danger" size="sm" className="rounded-xl font-dash-mono" onClick={onRetry}>
+          <RefreshCw size={11} /> Try again
+        </DashboardButton>
+      </DashboardCard>
     </motion.div>
   );
 }
 
-// ─── Main intel panel ─────────────────────────────────────────────────────────
-
 function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }) {
-  const t = useTokens();
   const score = computeScore(data);
-  const meta = RANK_TIERS[score.tier];
-  const nextM = score.nextTier ? RANK_TIERS[score.nextTier] : null;
+  const rank = RANK_CLASS[score.tier];
+  const nextRank = score.nextTier ? RANK_CLASS[score.nextTier] : null;
 
   const graphEntries: GraphEntry[] = flattenContribWeeks(data.contribWeeks);
 
@@ -531,380 +481,258 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
   });
 
   const accountYears = (data.accountAgeDays / 365).toFixed(1);
-  const trendPct = data.prev30 === 0
-    ? 0
-    : Math.round(((data.last30 - data.prev30) / Math.max(data.prev30, 1)) * 100);
+  const trendPct =
+    data.prev30 === 0
+      ? 0
+      : Math.round(((data.last30 - data.prev30) / Math.max(data.prev30, 1)) * 100);
   const trendUp = trendPct >= 0;
 
   return (
     <div className="space-y-5">
-
-      {/* Header strip */}
       <motion.div {...stagger(0)} className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img
             src={data.avatarUrl}
             alt={data.username}
-            className="w-9 h-9 rounded-xl object-cover"
-            style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+            className="h-9 w-9 rounded-xl border border-dash-border object-cover"
           />
           <div>
-            <p
-              className="text-[14px] font-semibold leading-tight"
-              style={{ color: t.textPrimary, letterSpacing: "-0.01em" }}
-            >
+            <p className="font-dash-sans text-[14px] leading-tight font-semibold tracking-[-0.01em] text-dash-primary">
               {data.name ?? data.username}
             </p>
-            <p className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-              @{data.username}
-            </p>
+            <p className="font-dash-mono text-[10px] text-dash-faint">@{data.username}</p>
           </div>
-          <div
-            className="ml-1 flex items-center gap-1 px-2.5 py-1 rounded-full"
-            style={{ background: `${meta.color}12`, border: `1px solid ${meta.color}30` }}
-          >
-            <span className="text-[10px] font-bold" style={{ color: meta.color, fontFamily: "'DM Mono', monospace" }}>
-              RANK {score.tier}
-            </span>
-          </div>
+          <DashboardBadge className={cn("ml-1 gap-1 px-2.5 py-1", rank.bg, rank.border, rank.text)}>
+            RANK {score.tier}
+          </DashboardBadge>
         </div>
-        <button
-          onClick={onReset}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] transition-colors"
-          style={{
-            color: t.textMuted,
-            background: "rgba(255,255,255,0.04)",
-            border: `1px solid ${t.border}`,
-            fontFamily: "'DM Mono', monospace",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = t.mutedBtnHov)}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
-        >
+        <DashboardButton variant="ghost" size="sm" className="font-dash-mono text-[11px]" onClick={onReset}>
           <RefreshCw size={10} /> Change
-        </button>
+        </DashboardButton>
       </motion.div>
 
-      {/* Rank card */}
-      <motion.div
-        {...stagger(1)}
-        className="relative rounded-2xl overflow-hidden"
-        style={{
-          background: t.isDark
-            ? "linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))"
-            : t.card,
-          border: `1px solid ${meta.color}20`,
-          boxShadow: `0 0 60px ${meta.glow}`,
-        }}
-      >
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(ellipse 50% 70% at 10% 50%, ${meta.color}0a, transparent 60%),
-                         radial-gradient(ellipse 30% 50% at 90% 20%, rgba(99,102,241,0.06), transparent 60%)`,
-          }}
-        />
-        <div
-          className="absolute top-0 left-0 right-0 h-px"
-          style={{ background: `linear-gradient(90deg, transparent, ${meta.color}60, transparent)` }}
-        />
-        <div className="relative p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
-
-            {/* Ring */}
-            <div className="flex flex-col items-center gap-3 shrink-0">
-              <ScoreRing score={score.final} tier={score.tier} />
-              <div className="text-center">
-                <p
-                  className="text-[10px] uppercase tracking-[0.12em] mb-0.5"
-                  style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}
-                >
-                  Final Score
-                </p>
-                <p
-                  className="text-[28px] font-black tabular-nums"
-                  style={{ color: meta.color, fontFamily: "'DM Mono', monospace", letterSpacing: "-0.04em" }}
-                >
-                  <Counter to={score.final} duration={1.2} />
-                  <span className="text-[14px] opacity-50">/100</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Breakdown */}
-            <div className="flex-1 w-full min-w-0">
-              <p
-                className="text-[10px] uppercase tracking-[0.1em] mb-4"
-                style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}
-              >
-                Score Breakdown
-              </p>
-              <div className="space-y-3">
-                <ScoreBar label="Volume"          value={score.volume}      weight="30%" color="#60A5FA" />
-                <ScoreBar label="Consistency"     value={score.consistency} weight="25%" color="#A78BFA" />
-                <ScoreBar label="Recent Activity" value={score.activity}    weight="20%" color="#34D399" />
-                <ScoreBar label="Stars"           value={score.stars}       weight="15%" color="#FCD34D" />
-                <ScoreBar label="Community"       value={score.community}   weight="10%" color="#F472B6" />
+      <motion.div {...stagger(1)}>
+        <DashboardCard
+          className={cn(
+            "relative overflow-hidden rounded-2xl border bg-gradient-to-br from-dash-card-alt to-dash-card",
+            rank.border,
+            rank.glow,
+          )}
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_70%_at_10%_50%,color-mix(in_srgb,var(--dash-accent)_4%,transparent),transparent_60%),radial-gradient(ellipse_30%_50%_at_90%_20%,color-mix(in_srgb,var(--dash-accent)_6%,transparent),transparent_60%)]" />
+          <div className="absolute top-0 right-0 left-0 h-px bg-gradient-to-r from-transparent via-dash-accent/60 to-transparent" />
+          <div className="relative p-6 sm:p-8">
+            <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-start">
+              <div className="flex shrink-0 flex-col items-center gap-3">
+                <ScoreRing score={score.final} tier={score.tier} />
+                <div className="text-center">
+                  <p className="mb-0.5 font-dash-mono text-[10px] uppercase tracking-[0.12em] text-dash-faint">
+                    Final Score
+                  </p>
+                  <p className={cn("font-dash-mono text-[28px] font-black tracking-[-0.04em] tabular-nums", rank.text)}>
+                    <Counter to={score.final} duration={1.2} />
+                    <span className="text-[14px] opacity-50">/100</span>
+                  </p>
+                </div>
               </div>
 
-              {score.nextTier && nextM ? (
-                <div className="mt-5 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className="text-[10px]"
-                      style={{ color: "rgba(255,255,255,0.35)", fontFamily: "'DM Mono', monospace" }}
-                    >
-                      Progress to Rank {score.nextTier}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                        style={{ color: nextM.color, background: `${nextM.color}15`, fontFamily: "'DM Mono', monospace" }}
-                      >
-                        {score.nextTier} — {nextM.desc}
+              <div className="min-w-0 w-full flex-1">
+                <p className="mb-4 font-dash-mono text-[10px] uppercase tracking-[0.1em] text-dash-faint">
+                  Score Breakdown
+                </p>
+                <div className="space-y-3">
+                  {SCORE_METRICS.map((m) => (
+                    <ScoreBar
+                      key={m.key}
+                      label={m.label}
+                      value={score[m.key]}
+                      weight={m.weight}
+                      barClass={m.bar}
+                      textClass={m.text}
+                    />
+                  ))}
+                </div>
+
+                {score.nextTier && nextRank ? (
+                  <div className="mt-5 border-t border-dash-border pt-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-dash-mono text-[10px] text-dash-faint">
+                        Progress to Rank {score.nextTier}
                       </span>
-                      <span
-                        className="text-[10px] font-bold tabular-nums"
-                        style={{ color: nextM.color, fontFamily: "'DM Mono', monospace" }}
-                      >
-                        {score.pctToNext}%
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <DashboardBadge className={cn(nextRank.bg, nextRank.border, nextRank.text)}>
+                          {score.nextTier} — {RANK_TIERS[score.nextTier].desc}
+                        </DashboardBadge>
+                        <span className={cn("font-dash-mono text-[10px] font-bold tabular-nums", nextRank.text)}>
+                          {score.pctToNext}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-dash-muted-btn">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-dash-accent to-dash-violet"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${score.pctToNext}%` }}
+                        transition={{ duration: 1.2, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      />
                     </div>
                   </div>
-                  <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                    <motion.div
-                      className="h-full rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${score.pctToNext}%` }}
-                      transition={{ duration: 1.2, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                      style={{
-                        background: `linear-gradient(90deg, ${meta.color}, ${nextM.color})`,
-                        boxShadow: `0 0 8px ${nextM.color}60`,
-                      }}
-                    />
+                ) : (
+                  <div className="mt-5 flex items-center gap-2 border-t border-dash-border pt-4">
+                    <Trophy size={13} className="text-amber-300" />
+                    <span className="font-dash-mono text-[11px] text-dash-muted">
+                      Maximum rank achieved
+                    </span>
                   </div>
-                </div>
-              ) : (
-                <div
-                  className="mt-5 pt-4 flex items-center gap-2"
-                  style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-                >
-                  <Trophy size={13} style={{ color: "#FCD34D" }} />
-                  <span
-                    className="text-[11px]"
-                    style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'DM Mono', monospace" }}
-                  >
-                    Maximum rank achieved
-                  </span>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </DashboardCard>
       </motion.div>
 
-      {/* Rank ladder */}
-      <motion.div {...stagger(2)} className="flex items-center justify-center gap-1 flex-wrap">
-        {TIER_ORDER.slice().reverse().map((tier) => {
-          const m = RANK_TIERS[tier];
-          const active = tier === score.tier;
-          return (
-            <div
-              key={tier}
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all"
-              style={{
-                background: active ? `${m.color}12` : "rgba(255,255,255,0.02)",
-                border: `1px solid ${active ? `${m.color}30` : "rgba(255,255,255,0.05)"}`,
-                opacity: active ? 1 : 0.4,
-              }}
-            >
-              <span className="text-[14px] font-black" style={{ color: m.color, fontFamily: "'DM Mono', monospace" }}>
-                {tier}
-              </span>
-              <span
-                className="text-[8px] uppercase tracking-wider"
-                style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'DM Mono', monospace" }}
+      <motion.div {...stagger(2)} className="flex flex-wrap items-center justify-center gap-1">
+        {TIER_ORDER.slice()
+          .reverse()
+          .map((tier) => {
+            const tierRank = RANK_CLASS[tier];
+            const active = tier === score.tier;
+            return (
+              <div
+                key={tier}
+                className={cn(
+                  "flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-all",
+                  active ? tierRank.bg : "bg-dash-card-alt",
+                  active ? tierRank.border : "border border-dash-border",
+                  active ? "opacity-100" : "opacity-40",
+                )}
               >
-                {m.desc}
-              </span>
-              <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "'DM Mono', monospace" }}>
-                {m.min}+
-              </span>
-            </div>
-          );
-        })}
+                <span className={cn("font-dash-mono text-[14px] font-black", tierRank.text)}>{tier}</span>
+                <span className="font-dash-mono text-[8px] uppercase tracking-wider text-dash-faint">
+                  {RANK_TIERS[tier].desc}
+                </span>
+                <span className="font-dash-mono text-[8px] text-dash-faint">{RANK_TIERS[tier].min}+</span>
+              </div>
+            );
+          })}
       </motion.div>
 
-      {/* Contribution graph */}
       {graphEntries.length > 0 && (
-        <motion.div
-          {...stagger(3)}
-          className="rounded-2xl overflow-hidden"
-          style={{ background: t.isDark ? "rgba(255,255,255,0.025)" : t.card, border: `1px solid ${t.border}` }}
-        >
-          <div
-            className="px-5 py-4 flex items-center justify-between"
-            style={{ borderBottom: `1px solid ${t.border}` }}
-          >
-            <div className="flex items-center gap-2">
-              <Activity size={13} style={{ color: "#6366f1" }} />
-              <span className="log text-[12px] font-medium" style={{ color: t.textPrimary }}>
-                Contribution Graph
-              </span>
-              <span
-                className="text-[9px] px-1.5 py-0.5 rounded"
-                style={{
-                  background: "rgba(99,102,241,0.1)",
-                  color: "#818cf8",
-                  fontFamily: "'DM Mono', monospace",
-                  border: "1px solid rgba(99,102,241,0.2)",
-                }}
-              >
-                Last 52 weeks
+        <motion.div {...stagger(3)}>
+          <DashboardCard alt className="overflow-hidden rounded-2xl">
+            <div className="flex items-center justify-between border-b border-dash-border px-5 py-4">
+              <div className="flex items-center gap-2">
+                <Activity size={13} className="text-dash-accent" />
+                <span className="font-dash-sans text-[12px] font-medium text-dash-primary">
+                  Contribution Graph
+                </span>
+                <DashboardBadge variant="violet">Last 52 weeks</DashboardBadge>
+              </div>
+              <span className="font-dash-mono text-[11px] font-semibold text-dash-accent tabular-nums">
+                {data.totalContribs.toLocaleString()} contributions
               </span>
             </div>
-            <span
-              className="text-[11px] font-semibold tabular-nums"
-              style={{ color: "#6366f1", fontFamily: "'DM Mono', monospace" }}
-            >
-              {data.totalContribs.toLocaleString()} contributions
-            </span>
-          </div>
-          <div className="px-5 py-4">
-            <ContributionGraph
-              data={graphEntries}
-              activityLabel="contributions"
-            />
-          </div>
+            <div className="px-5 py-4">
+              <ContributionGraph data={graphEntries} activityLabel="contributions" />
+            </div>
+          </DashboardCard>
         </motion.div>
       )}
 
-      {/* Intelligence report */}
       <motion.div {...stagger(4)}>
-        <p
-          className="text-[10px] uppercase tracking-[0.1em] mb-3"
-          style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}
-        >
+        <p className="mb-3 font-dash-mono text-[10px] uppercase tracking-[0.1em] text-dash-faint">
           Intelligence Report
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          <MicroStat icon={<Flame size={13} />}         label="Current Streak"  value={`${data.currentStreak}d`}                sub="active days"        color="#f97316" />
-          <MicroStat icon={<Trophy size={13} />}        label="Longest Streak"  value={`${data.longestStreak}d`}                sub="personal best"      color="#FCD34D" />
-          <MicroStat icon={<Star size={13} />}          label="Total Stars"     value={data.totalStars.toLocaleString()}        sub="across repos"       color="#FCD34D" />
-          <MicroStat icon={<GitPullRequest size={13} />} label="Pull Requests"  value={data.pullRequests}                       sub="last 100 events"    color="#A78BFA" />
-          <MicroStat icon={<AlertCircle size={13} />}   label="Issues"          value={data.issues}                             sub="last 100 events"    color="#60A5FA" />
-          <MicroStat icon={<Users size={13} />}         label="Followers"       value={data.followers.toLocaleString()}         sub={`following ${data.following}`} color="#34D399" />
-          <MicroStat icon={<Activity size={13} />}      label="Active Weeks"    value={`${data.activeWeeks}/52`}                sub="this year"          color="#818cf8" />
-          <MicroStat icon={<TrendingUp size={13} />}    label="30d Trend"       value={`${trendUp ? "+" : ""}${trendPct}%`}    sub="vs prev 30 days"    color={trendUp ? "#34D399" : "#f87171"} />
-          <MicroStat icon={<GitCommit size={13} />}     label="Yearly Contribs" value={data.totalContribs.toLocaleString()}    sub="last 365 days"      color="#6366f1" />
-          <MicroStat icon={<CalendarDays size={13} />}  label="Peak Day"        value={(data.peakDay ?? "—").slice(0, 3)}      sub="most active"        color="#f97316" />
-          <MicroStat icon={<Code2 size={13} />}         label="Public Repos"    value={data.publicRepos}                        sub="own repos"          color="#818cf8" />
-          <MicroStat icon={<Zap size={13} />}           label="Account Age"     value={`${accountYears}y`}                      sub="on GitHub"          color="#94a3b8" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <MicroStat icon={<Flame size={13} />} label="Current Streak" value={`${data.currentStreak}d`} sub="active days" iconWrapClass="bg-dash-orange/15 text-dash-orange" />
+          <MicroStat icon={<Trophy size={13} />} label="Longest Streak" value={`${data.longestStreak}d`} sub="personal best" iconWrapClass="bg-amber-300/15 text-amber-300" />
+          <MicroStat icon={<Star size={13} />} label="Total Stars" value={data.totalStars.toLocaleString()} sub="across repos" iconWrapClass="bg-amber-300/15 text-amber-300" />
+          <MicroStat icon={<GitPullRequest size={13} />} label="Pull Requests" value={data.pullRequests} sub="last 100 events" iconWrapClass="bg-violet-400/15 text-violet-400" />
+          <MicroStat icon={<AlertCircle size={13} />} label="Issues" value={data.issues} sub="last 100 events" iconWrapClass="bg-blue-400/15 text-blue-400" />
+          <MicroStat icon={<Users size={13} />} label="Followers" value={data.followers.toLocaleString()} sub={`following ${data.following}`} iconWrapClass="bg-emerald-400/15 text-emerald-400" />
+          <MicroStat icon={<Activity size={13} />} label="Active Weeks" value={`${data.activeWeeks}/52`} sub="this year" iconWrapClass="bg-dash-accent-soft text-dash-violet" />
+          <MicroStat icon={<TrendingUp size={13} />} label="30d Trend" value={`${trendUp ? "+" : ""}${trendPct}%`} sub="vs prev 30 days" iconWrapClass={trendUp ? "bg-emerald-400/15 text-emerald-400" : "bg-dash-danger/15 text-dash-danger"} />
+          <MicroStat icon={<GitCommit size={13} />} label="Yearly Contribs" value={data.totalContribs.toLocaleString()} sub="last 365 days" iconWrapClass="bg-dash-accent-soft text-dash-accent" />
+          <MicroStat icon={<CalendarDays size={13} />} label="Peak Day" value={(data.peakDay ?? "—").slice(0, 3)} sub="most active" iconWrapClass="bg-dash-orange/15 text-dash-orange" />
+          <MicroStat icon={<Code2 size={13} />} label="Public Repos" value={data.publicRepos} sub="own repos" iconWrapClass="bg-dash-accent-soft text-dash-violet" />
+          <MicroStat icon={<Zap size={13} />} label="Account Age" value={`${accountYears}y`} sub="on GitHub" iconWrapClass="bg-slate-400/15 text-slate-400" />
         </div>
       </motion.div>
 
-      {/* Language profile */}
       {data.topLanguages.length > 0 && (
         <motion.div {...stagger(5)}>
-          <p
-            className="text-[10px] uppercase tracking-[0.1em] mb-3"
-            style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}
-          >
+          <p className="mb-3 font-dash-mono text-[10px] uppercase tracking-[0.1em] text-dash-faint">
             Language Profile
           </p>
-          <div
-            className="rounded-2xl p-5"
-            style={{ background: t.isDark ? "rgba(255,255,255,0.025)" : t.card, border: `1px solid ${t.border}` }}
-          >
-            <div className="flex rounded-lg overflow-hidden h-2.5 mb-4" style={{ gap: 2 }}>
+          <DashboardCard alt className="rounded-2xl p-5">
+            <div className="mb-4 flex h-2.5 gap-0.5 overflow-hidden rounded-lg">
               {data.topLanguages.map((lang) => (
                 <motion.div
                   key={lang.name}
                   initial={{ width: 0 }}
                   animate={{ width: `${lang.percent}%` }}
                   transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ background: lang.color, height: "100%", borderRadius: 2 }}
+                  className="h-full rounded-sm"
+                  style={{ backgroundColor: lang.color }}
                 />
               ))}
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-2">
               {data.topLanguages.map((lang) => (
                 <div key={lang.name} className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: lang.color }} />
-                  <span className="text-[11px] font-medium" style={{ color: t.textSecondary }}>{lang.name}</span>
-                  <span className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                    {lang.percent}%
-                  </span>
+                  <div
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: lang.color }}
+                  />
+                  <span className="font-dash-sans text-[11px] font-medium text-dash-secondary">{lang.name}</span>
+                  <span className="font-dash-mono text-[10px] text-dash-faint">{lang.percent}%</span>
                 </div>
               ))}
             </div>
-          </div>
+          </DashboardCard>
         </motion.div>
       )}
 
-      {/* Top repos */}
       {data.pinnedRepos.length > 0 && (
         <motion.div {...stagger(6)}>
-          <p
-            className="text-[10px] uppercase tracking-widest mb-3"
-            style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}
-          >
+          <p className="mb-3 font-dash-mono text-[10px] tracking-widest text-dash-faint uppercase">
             Top Repositories
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-4">
+          <div className="grid grid-cols-1 gap-3 pb-4 sm:grid-cols-3">
             {data.pinnedRepos.map((repo) => (
-              <div
-                key={repo.name}
-                className="rounded-2xl p-4 flex flex-col gap-2"
-                style={{ background: t.isDark ? "rgba(255,255,255,0.025)" : t.card, border: `1px solid ${t.border}` }}
-              >
+              <DashboardCard key={repo.name} alt className="flex flex-col gap-2 rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <p
-                    className="text-[12px] font-semibold truncate"
-                    style={{ color: t.textPrimary, letterSpacing: "-0.01em" }}
-                  >
+                  <p className="truncate font-dash-sans text-[12px] font-semibold tracking-[-0.01em] text-dash-primary">
                     {repo.name}
                   </p>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Star size={10} style={{ color: "#FCD34D" }} />
-                    <span
-                      className="text-[10px] font-bold tabular-nums"
-                      style={{ color: "#FCD34D", fontFamily: "'DM Mono', monospace" }}
-                    >
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Star size={10} className="text-amber-300" />
+                    <span className="font-dash-mono text-[10px] font-bold text-amber-300 tabular-nums">
                       {repo.stars}
                     </span>
                   </div>
                 </div>
                 {repo.desc && (
-                  <p className="text-[10px] leading-relaxed line-clamp-2" style={{ color: t.textFaint }}>
+                  <p className="line-clamp-2 font-dash-sans text-[10px] leading-relaxed text-dash-faint">
                     {repo.desc}
                   </p>
                 )}
-                <div className="flex items-center gap-3 mt-auto pt-1">
-                  <span className="text-[9px] font-medium" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-                    {repo.lang}
-                  </span>
-                  <span
-                    className="flex items-center gap-1 text-[9px]"
-                    style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}
-                  >
+                <div className="mt-auto flex items-center gap-3 pt-1">
+                  <span className="font-dash-mono text-[9px] font-medium text-dash-faint">{repo.lang}</span>
+                  <span className="flex items-center gap-1 font-dash-mono text-[9px] text-dash-faint">
                     <GitCommit size={9} /> {repo.forks} forks
                   </span>
                 </div>
-              </div>
+              </DashboardCard>
             ))}
           </div>
         </motion.div>
       )}
-
     </div>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function DevDashboard() {
-  const t = useTokens();
-
   const [username, setUsername] = useState<string>(() => localStorage.getItem(GH_USERNAME_KEY) ?? "");
   const [data, setData] = useState<GithubData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -917,9 +745,12 @@ export default function DevDashboard() {
     try {
       const result = await fetchGithubData(u);
       setData(result);
-    } catch (err: any) {
-      const message: string =
-        err?.response?.data?.message ?? err?.message ?? "Unknown error";
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data
+          ?.message ??
+        (err as Error)?.message ??
+        "Unknown error";
       setError(message);
     } finally {
       setLoading(false);
@@ -944,44 +775,25 @@ export default function DevDashboard() {
   }
 
   return (
-    <div
-      className="min-h-screen p-4 md:p-6 lg:p-8 transition-colors duration-300"
-      style={{ background: t.page, fontFamily: "'DM Sans', sans-serif" }}
-    >
+    <div className="min-h-screen bg-dash-page p-4 font-dash-sans transition-colors duration-300 md:p-6 lg:p-8">
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="flex items-center gap-3 mb-8"
+        className="mb-8 flex items-center gap-3"
       >
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
-          style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}
-        >
-          <Terminal size={15} style={{ color: "#818cf8" }} />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-dash-accent-border bg-dash-accent-soft">
+          <Terminal size={15} className="text-dash-violet" />
         </div>
         <div>
-          <h1
-            className="text-[18px] font-bold leading-tight"
-            style={{ color: t.textPrimary, letterSpacing: "-0.02em" }}
-          >
+          <h1 className="font-dash-sans text-[18px] leading-tight font-bold tracking-[-0.02em] text-dash-primary">
             Dev Intelligence
           </h1>
-          <p className="text-[10px]" style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}>
-            GitHub rank · scoring · analytics
-          </p>
+          <p className="font-dash-mono text-[10px] text-dash-faint">GitHub rank · scoring · analytics</p>
         </div>
-        <div
-          className="ml-auto text-[9px] px-2.5 py-1 rounded-full uppercase tracking-widest"
-          style={{
-            background: "rgba(99,102,241,0.08)",
-            color: "#818cf8",
-            border: "1px solid rgba(99,102,241,0.15)",
-            fontFamily: "'DM Mono', monospace",
-          }}
-        >
+        <DashboardBadge variant="violet" className="ml-auto uppercase tracking-widest">
           Beta
-        </div>
+        </DashboardBadge>
       </motion.div>
 
       <AnimatePresence mode="wait">
@@ -994,9 +806,9 @@ export default function DevDashboard() {
             <ErrorState message={error} onRetry={() => load(username)} />
             <div className="mt-4 flex justify-center">
               <button
+                type="button"
                 onClick={handleReset}
-                className="text-[11px]"
-                style={{ color: t.textFaint, fontFamily: "'DM Mono', monospace" }}
+                className="font-dash-mono text-[11px] text-dash-faint transition-colors hover:text-dash-muted"
               >
                 ← Use different username
               </button>

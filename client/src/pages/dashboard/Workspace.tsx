@@ -18,21 +18,21 @@ export default function KyzenWorkspace() {
       <div className="mx-auto max-w-7xl">
         <header className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-500/15 text-base">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-dash-accent-border bg-dash-accent-soft text-base">
               🧠
             </div>
             <div>
-              <h1 className="bg-gradient-to-br from-white to-violet-400 bg-clip-text text-base font-bold text-transparent">
+              <h1 className="bg-gradient-to-br from-dash-primary to-dash-violet bg-clip-text text-base font-bold text-transparent font-dash-sans">
                 Workspace
               </h1>
-              <p className="font-mono text-[11px] tracking-wide text-white/20">
+              <p className="font-dash-mono text-[11px] tracking-wide text-dash-faint">
                 Think · Plan · Remember
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#4ade80]" />
-            <span className="font-mono text-[11px] text-white/20">
+            <span className="h-1.5 w-1.5 rounded-full bg-dash-success shadow-[0_0_8px_var(--dash-success)]" />
+            <span className="font-dash-mono text-[11px] text-dash-faint">
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long",
                 month: "short",
@@ -42,17 +42,17 @@ export default function KyzenWorkspace() {
           </div>
         </header>
 
-        <nav className="mb-7 inline-flex flex-wrap gap-0.5 rounded-xl border border-indigo-500/15 bg-white/[0.025] p-1">
+        <nav className="mb-7 inline-flex flex-wrap gap-0.5 rounded-xl border border-dash-border bg-dash-card-alt p-1">
           {WORKSPACE_TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-mono text-xs font-semibold tracking-wide transition-all",
+                "flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-dash-mono text-xs font-semibold tracking-wide transition-all",
                 activeTab === tab.id
-                  ? "border border-indigo-500/30 bg-indigo-500/10 text-violet-400 shadow-md shadow-indigo-500/10"
-                  : "border border-transparent text-white/40 hover:text-white/60"
+                  ? "border border-dash-accent-border bg-dash-accent-soft text-dash-violet shadow-md shadow-dash-accent/10"
+                  : "border border-transparent text-dash-muted hover:text-dash-secondary",
               )}
             >
               <span className="text-[13px]">{tab.icon}</span>

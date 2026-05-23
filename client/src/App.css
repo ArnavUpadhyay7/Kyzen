@@ -3,8 +3,336 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+/* ── Dashboard theme tokens (set per [data-theme]) ─────────────────────────── */
+
+[data-theme="dark"] {
+  --dash-page: #080c1a;
+  --dash-card: rgba(10, 16, 35, 0.9);
+  --dash-card-hover: rgba(14, 22, 50, 0.95);
+  --dash-card-alt: rgba(255, 255, 255, 0.03);
+  --dash-modal: rgba(8, 12, 28, 0.98);
+  --dash-sidebar: #070b1c;
+  --dash-sidebar-border: rgba(99, 102, 241, 0.15);
+  --dash-topbar: rgba(7, 11, 28, 0.96);
+
+  --dash-border: rgba(99, 102, 241, 0.15);
+  --dash-border-med: rgba(99, 102, 241, 0.25);
+
+  --dash-text-primary: #ffffff;
+  --dash-text-secondary: rgba(255, 255, 255, 0.8);
+  --dash-text-muted: rgba(255, 255, 255, 0.4);
+  --dash-text-faint: rgba(255, 255, 255, 0.22);
+
+  --dash-muted-btn: rgba(255, 255, 255, 0.06);
+  --dash-muted-btn-hover: rgba(255, 255, 255, 0.1);
+  --dash-input-bg: rgba(255, 255, 255, 0.04);
+  --dash-input-border: rgba(255, 255, 255, 0.08);
+
+  --dash-accent: #6366f1;
+  --dash-accent-soft: rgba(99, 102, 241, 0.15);
+  --dash-accent-border: rgba(129, 140, 248, 0.3);
+  --dash-violet: #818cf8;
+
+  --dash-success: #4ade80;
+  --dash-warning: #facc15;
+  --dash-danger: #f87171;
+  --dash-orange: #f97316;
+
+  --dash-nav-active-bg: rgba(99, 102, 241, 0.18);
+  --dash-nav-active-text: #ffffff;
+  --dash-nav-active-icon: #818cf8;
+  --dash-nav-active-border: rgba(99, 102, 241, 0.25);
+  --dash-nav-badge-bg: rgba(129, 140, 248, 0.25);
+
+  --dash-graph-empty: rgba(255, 255, 255, 0.05);
+  --dash-graph-l1: rgba(59, 130, 246, 0.3);
+  --dash-graph-l2: rgba(99, 102, 241, 0.55);
+  --dash-graph-l3: rgba(99, 102, 241, 0.78);
+  --dash-graph-l4: #818cf8;
+  --dash-graph-label: rgba(255, 255, 255, 0.28);
+  --dash-graph-day-label: rgba(255, 255, 255, 0.22);
+  --dash-contrib-text: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="light"] {
+  --dash-page: #f0f0f5;
+  --dash-card: #ffffff;
+  --dash-card-hover: #f8f8fc;
+  --dash-card-alt: rgba(0, 0, 0, 0.03);
+  --dash-modal: #ffffff;
+  --dash-sidebar: #fafafa;
+  --dash-sidebar-border: rgba(0, 0, 0, 0.08);
+  --dash-topbar: rgba(250, 250, 250, 0.96);
+
+  --dash-border: rgba(0, 0, 0, 0.08);
+  --dash-border-med: rgba(0, 0, 0, 0.13);
+
+  --dash-text-primary: #0d0d10;
+  --dash-text-secondary: #444450;
+  --dash-text-muted: #88889a;
+  --dash-text-faint: #bbbbcc;
+
+  --dash-muted-btn: rgba(0, 0, 0, 0.06);
+  --dash-muted-btn-hover: rgba(0, 0, 0, 0.1);
+  --dash-input-bg: rgba(0, 0, 0, 0.04);
+  --dash-input-border: rgba(0, 0, 0, 0.1);
+
+  --dash-accent: #6366f1;
+  --dash-accent-soft: rgba(99, 102, 241, 0.12);
+  --dash-accent-border: rgba(99, 102, 241, 0.3);
+  --dash-violet: #818cf8;
+
+  --dash-success: #16a34a;
+  --dash-warning: #ca8a04;
+  --dash-danger: #dc2626;
+  --dash-orange: #ea580c;
+
+  --dash-nav-active-bg: rgba(99, 102, 241, 0.12);
+  --dash-nav-active-text: #0d0d10;
+  --dash-nav-active-icon: #6366f1;
+  --dash-nav-active-border: rgba(99, 102, 241, 0.25);
+  --dash-nav-badge-bg: rgba(99, 102, 241, 0.2);
+
+  --dash-graph-empty: rgba(0, 0, 0, 0.07);
+  --dash-graph-l1: rgba(99, 102, 241, 0.2);
+  --dash-graph-l2: rgba(99, 102, 241, 0.4);
+  --dash-graph-l3: rgba(99, 102, 241, 0.62);
+  --dash-graph-l4: #6366f1;
+  --dash-graph-label: #aaaaaa;
+  --dash-graph-day-label: #bbbbbb;
+  --dash-contrib-text: #666666;
+}
+
+/* ── Landing theme tokens (always dark) ───────────────────────────────────── */
+
+:root {
+  --landing-canvas: #02040a;
+  --landing-surface: #07090d;
+  --landing-surface-raised: #070a14;
+  --landing-canvas-mid: #050816;
+  --landing-canvas-high: #0a0f1e;
+  --landing-grid: #141823;
+  --landing-chrome: rgba(4, 6, 18, 0.99);
+
+  --landing-white: #ffffff;
+  --landing-text-90: rgba(245, 247, 255, 0.9);
+  --landing-text-70: rgba(245, 247, 255, 0.7);
+  --landing-text-62: rgba(255, 255, 255, 0.62);
+  --landing-text-35: rgba(255, 255, 255, 0.35);
+  --landing-text-20: rgba(255, 255, 255, 0.2);
+  --landing-text-08: rgba(255, 255, 255, 0.08);
+
+  --landing-text-sub: rgba(180, 195, 235, 0.58);
+  --landing-text-sub-alt: rgba(180, 200, 240, 0.58);
+  --landing-text-muted: rgba(140, 158, 210, 0.4);
+  --landing-text-muted-alt: rgba(130, 155, 210, 0.42);
+  --landing-text-faint: rgba(130, 155, 210, 0.38);
+  --landing-secondary: #d0d6e2;
+  --landing-cta-ink: #0a0d12;
+
+  --landing-blue: #4d7cff;
+  --landing-blue-mid: #6ea8ff;
+  --landing-blue-deep: #5b7fff;
+  --landing-blue-light: #93c5fd;
+  --landing-blue-deep-cta: #3b5bdb;
+  --landing-purple: #7c4dff;
+
+  --landing-border: rgba(77, 124, 255, 0.16);
+  --landing-border-soft: rgba(77, 124, 255, 0.14);
+  --landing-border-hover: rgba(77, 124, 255, 0.38);
+  --landing-border-accent: rgba(110, 168, 255, 0.32);
+  --landing-border-subtle: rgba(255, 255, 255, 0.06);
+  --landing-border-medium: rgba(255, 255, 255, 0.11);
+  --landing-border-featured: rgba(255, 255, 255, 0.22);
+  --landing-border-purple: rgba(109, 40, 217, 0.35);
+  --landing-border-blue: rgba(77, 124, 255, 0.28);
+  --landing-border-blue-mid: rgba(110, 168, 255, 0.42);
+  --landing-border-dash: rgba(122, 162, 255, 0.42);
+
+  --landing-card-bg: rgba(10, 13, 28, 0.85);
+  --landing-card-bg-accent: rgba(8, 12, 32, 0.92);
+  --landing-card-bg-alt: rgba(8, 12, 32, 0.88);
+  --landing-card-inner: rgba(255, 255, 255, 0.025);
+  --landing-card-featured: rgba(14, 6, 38, 0.85);
+  --landing-card-default: rgba(10, 5, 28, 0.65);
+  --landing-badge-purple-bg: rgba(109, 40, 217, 0.12);
+  --landing-badge-blue-bg: rgba(77, 124, 255, 0.1);
+  --landing-tab-active-bg: rgba(77, 124, 255, 0.16);
+  --landing-stat-bg: rgba(77, 124, 255, 0.1);
+  --landing-nav-bg-top: rgba(8, 8, 8, 0.45);
+  --landing-nav-bg-scrolled: rgba(8, 8, 8, 0.82);
+  --landing-nav-border-top: rgba(255, 255, 255, 0.08);
+  --landing-nav-border-scrolled: rgba(255, 255, 255, 0.14);
+  --landing-ghost-btn-bg: rgba(255, 255, 255, 0.04);
+  --landing-ghost-border: rgba(255, 255, 255, 0.13);
+  --landing-code-bg: rgba(4, 6, 18, 0.96);
+  --landing-xp-track: rgba(77, 124, 255, 0.12);
+  --landing-xp-empty: rgba(77, 124, 255, 0.06);
+  --landing-heat-0: rgba(10, 14, 30, 0.7);
+  --landing-heat-1: rgba(40, 70, 180, 0.3);
+  --landing-heat-2: rgba(55, 95, 210, 0.48);
+  --landing-heat-3: rgba(70, 115, 235, 0.68);
+
+  --landing-shadow-card: 0 4px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --landing-shadow-card-featured: 0 0 40px rgba(77, 124, 255, 0.08), 0 4px 24px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --landing-shadow-button: 0 6px 28px rgba(110, 168, 255, 0.4), 0 0 44px rgba(110, 168, 255, 0.22);
+  --landing-shadow-glow: 0 0 60px rgba(77, 124, 255, 0.1);
+  --landing-shadow-dash: 0 0 0 1px rgba(122, 162, 255, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 80px rgba(76, 110, 245, 0.35), 0 0 160px rgba(76, 110, 245, 0.1), 0 60px 180px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  --landing-shadow-nav-top: 0 1px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --landing-shadow-nav-scrolled: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --landing-shadow-cta-white: 0 0 28px rgba(110, 168, 255, 0.32), 0 0 55px rgba(77, 124, 255, 0.14), 0 4px 18px rgba(0, 0, 0, 0.4);
+  --landing-shadow-cta-blue: 0 0 28px rgba(77, 124, 255, 0.38), 0 2px 12px rgba(0, 0, 0, 0.35);
+  --landing-shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(77, 124, 255, 0.14);
+  --landing-shadow-card-accent: 0 6px 36px rgba(77, 124, 255, 0.1), 0 2px 12px rgba(0, 0, 0, 0.55);
+  --landing-shadow-card-accent-hover: 0 12px 56px rgba(77, 124, 255, 0.18), 0 2px 20px rgba(0, 0, 0, 0.65);
+  --landing-shadow-visual-card: 0 24px 64px rgba(0, 0, 0, 0.55), 0 0 40px rgba(77, 124, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --landing-shadow-streak: 0 8px 24px rgba(77, 124, 255, 0.35);
+  --landing-shadow-testimonial: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --landing-shadow-main-panel: 0 -1px 0 rgba(77, 124, 255, 0.22), 0 -56px 90px rgba(0, 0, 0, 0.9);
+}
+
+/* ── Tailwind theme mappings (bg-dash-*, text-dash-*, etc.) ───────────────── */
+
 @theme inline {
   --animate-spotlight: spotlight 2s ease 0.75s 1 forwards;
+
+  --color-dash-page: var(--dash-page);
+  --color-dash-card: var(--dash-card);
+  --color-dash-card-hover: var(--dash-card-hover);
+  --color-dash-card-alt: var(--dash-card-alt);
+  --color-dash-modal: var(--dash-modal);
+  --color-dash-sidebar: var(--dash-sidebar);
+  --color-dash-sidebar-border: var(--dash-sidebar-border);
+  --color-dash-topbar: var(--dash-topbar);
+
+  --color-dash-border: var(--dash-border);
+  --color-dash-border-med: var(--dash-border-med);
+
+  --color-dash-primary: var(--dash-text-primary);
+  --color-dash-secondary: var(--dash-text-secondary);
+  --color-dash-muted: var(--dash-text-muted);
+  --color-dash-faint: var(--dash-text-faint);
+
+  --color-dash-muted-btn: var(--dash-muted-btn);
+  --color-dash-muted-btn-hover: var(--dash-muted-btn-hover);
+  --color-dash-input: var(--dash-input-bg);
+  --color-dash-input-border: var(--dash-input-border);
+
+  --color-dash-accent: var(--dash-accent);
+  --color-dash-accent-soft: var(--dash-accent-soft);
+  --color-dash-accent-border: var(--dash-accent-border);
+  --color-dash-violet: var(--dash-violet);
+
+  --color-dash-success: var(--dash-success);
+  --color-dash-warning: var(--dash-warning);
+  --color-dash-danger: var(--dash-danger);
+  --color-dash-orange: var(--dash-orange);
+
+  --color-dash-nav-active: var(--dash-nav-active-bg);
+  --color-dash-nav-active-text: var(--dash-nav-active-text);
+  --color-dash-nav-active-icon: var(--dash-nav-active-icon);
+  --color-dash-nav-active-border: var(--dash-nav-active-border);
+  --color-dash-nav-badge: var(--dash-nav-badge-bg);
+
+  --color-dash-graph-empty: var(--dash-graph-empty);
+  --color-dash-graph-l1: var(--dash-graph-l1);
+  --color-dash-graph-l2: var(--dash-graph-l2);
+  --color-dash-graph-l3: var(--dash-graph-l3);
+  --color-dash-graph-l4: var(--dash-graph-l4);
+  --color-dash-graph-label: var(--dash-graph-label);
+  --color-dash-graph-day-label: var(--dash-graph-day-label);
+  --color-dash-contrib-text: var(--dash-contrib-text);
+
+  --font-dash-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-dash-mono: "DM Mono", ui-monospace, monospace;
+
+  --color-landing-canvas: var(--landing-canvas);
+  --color-landing-surface: var(--landing-surface);
+  --color-landing-surface-raised: var(--landing-surface-raised);
+  --color-landing-canvas-mid: var(--landing-canvas-mid);
+  --color-landing-canvas-high: var(--landing-canvas-high);
+  --color-landing-grid: var(--landing-grid);
+  --color-landing-chrome: var(--landing-chrome);
+
+  --color-landing-white: var(--landing-white);
+  --color-landing-text-90: var(--landing-text-90);
+  --color-landing-text-70: var(--landing-text-70);
+  --color-landing-text-62: var(--landing-text-62);
+  --color-landing-text-35: var(--landing-text-35);
+  --color-landing-text-20: var(--landing-text-20);
+  --color-landing-text-08: var(--landing-text-08);
+  --color-landing-text-sub: var(--landing-text-sub);
+  --color-landing-text-sub-alt: var(--landing-text-sub-alt);
+  --color-landing-text-muted: var(--landing-text-muted);
+  --color-landing-text-muted-alt: var(--landing-text-muted-alt);
+  --color-landing-text-faint: var(--landing-text-faint);
+  --color-landing-secondary: var(--landing-secondary);
+  --color-landing-cta-ink: var(--landing-cta-ink);
+
+  --color-landing-blue: var(--landing-blue);
+  --color-landing-blue-mid: var(--landing-blue-mid);
+  --color-landing-blue-deep: var(--landing-blue-deep);
+  --color-landing-blue-light: var(--landing-blue-light);
+  --color-landing-blue-deep-cta: var(--landing-blue-deep-cta);
+  --color-landing-purple: var(--landing-purple);
+
+  --color-landing-border: var(--landing-border);
+  --color-landing-border-soft: var(--landing-border-soft);
+  --color-landing-border-hover: var(--landing-border-hover);
+  --color-landing-border-accent: var(--landing-border-accent);
+  --color-landing-border-subtle: var(--landing-border-subtle);
+  --color-landing-border-medium: var(--landing-border-medium);
+  --color-landing-border-featured: var(--landing-border-featured);
+  --color-landing-border-purple: var(--landing-border-purple);
+  --color-landing-border-blue: var(--landing-border-blue);
+  --color-landing-border-blue-mid: var(--landing-border-blue-mid);
+  --color-landing-border-dash: var(--landing-border-dash);
+
+  --color-landing-card-bg: var(--landing-card-bg);
+  --color-landing-card-bg-accent: var(--landing-card-bg-accent);
+  --color-landing-card-bg-alt: var(--landing-card-bg-alt);
+  --color-landing-card-inner: var(--landing-card-inner);
+  --color-landing-card-featured: var(--landing-card-featured);
+  --color-landing-card-default: var(--landing-card-default);
+  --color-landing-badge-purple-bg: var(--landing-badge-purple-bg);
+  --color-landing-badge-blue-bg: var(--landing-badge-blue-bg);
+  --color-landing-tab-active-bg: var(--landing-tab-active-bg);
+  --color-landing-stat-bg: var(--landing-stat-bg);
+  --color-landing-nav-bg-top: var(--landing-nav-bg-top);
+  --color-landing-nav-bg-scrolled: var(--landing-nav-bg-scrolled);
+  --color-landing-nav-border-top: var(--landing-nav-border-top);
+  --color-landing-nav-border-scrolled: var(--landing-nav-border-scrolled);
+  --color-landing-ghost-btn-bg: var(--landing-ghost-btn-bg);
+  --color-landing-ghost-border: var(--landing-ghost-border);
+  --color-landing-code-bg: var(--landing-code-bg);
+  --color-landing-xp-track: var(--landing-xp-track);
+  --color-landing-xp-empty: var(--landing-xp-empty);
+  --color-landing-heat-0: var(--landing-heat-0);
+  --color-landing-heat-1: var(--landing-heat-1);
+  --color-landing-heat-2: var(--landing-heat-2);
+  --color-landing-heat-3: var(--landing-heat-3);
+
+  --font-landing-display: "Barlow Condensed", "Barlow", sans-serif;
+  --font-landing-body: "DM Sans", "Inter", sans-serif;
+  --font-landing-mono: ui-monospace, "JetBrains Mono", monospace;
+  --font-landing-logo: "Barlow", sans-serif;
+
+  --shadow-landing-card: var(--landing-shadow-card);
+  --shadow-landing-card-featured: var(--landing-shadow-card-featured);
+  --shadow-landing-button: var(--landing-shadow-button);
+  --shadow-landing-glow: var(--landing-shadow-glow);
+  --shadow-landing-dash: var(--landing-shadow-dash);
+  --shadow-landing-nav-top: var(--landing-shadow-nav-top);
+  --shadow-landing-nav-scrolled: var(--landing-shadow-nav-scrolled);
+  --shadow-landing-cta-white: var(--landing-shadow-cta-white);
+  --shadow-landing-cta-blue: var(--landing-shadow-cta-blue);
+  --shadow-landing-card-hover: var(--landing-shadow-card-hover);
+  --shadow-landing-card-accent: var(--landing-shadow-card-accent);
+  --shadow-landing-card-accent-hover: var(--landing-shadow-card-accent-hover);
+  --shadow-landing-visual-card: var(--landing-shadow-visual-card);
+  --shadow-landing-streak: var(--landing-shadow-streak);
+  --shadow-landing-testimonial: var(--landing-shadow-testimonial);
+  --shadow-landing-main-panel: var(--landing-shadow-main-panel);
 }
 
 @keyframes spotlight {
@@ -16,6 +344,11 @@
     opacity: 1;
     transform: translate(-50%, -40%) scale(1);
   }
+}
+
+.auth-noise-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
 }
 
 /*
@@ -89,3 +422,386 @@ html { scroll-behavior: auto; }
   50%      { opacity: 0.80; }
 }
 .grid-breathe { animation: grid-breathe 14s ease-in-out infinite; }
+
+@keyframes landing-hero-grid-breathe {
+  0%, 100% { opacity: 0.18; }
+  50% { opacity: 0.24; }
+}
+
+.landing-hero-grid-breathe {
+  animation: landing-hero-grid-breathe 14s ease-in-out infinite;
+}
+
+/* ── Landing text gradients ──────────────────────────────────────────────── */
+
+.text-gradient-landing-heading-white {
+  background: linear-gradient(180deg, #f5f7ff 0%, #c8cfee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-landing-heading-grey {
+  background: linear-gradient(180deg, #e0e8ff 0%, #a8b8ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-landing-progress {
+  background: linear-gradient(135deg, #b7ccff 0%, #7aa2ff 45%, #5b7fff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-landing-accent {
+  background: linear-gradient(135deg, #b7ccff 0%, #6ea8ff 40%, #4d7cff 75%, #7aa2ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-landing-purple {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c4dff 55%, #6d28d9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-landing-stat {
+  background: linear-gradient(135deg, #ffffff 0%, var(--landing-blue-light) 50%, var(--landing-blue-mid) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-landing-step-title {
+  background: linear-gradient(135deg, #ffffff 0%, #e0eeff 50%, rgba(110, 168, 255, 0.9) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-landing-xp {
+  background: linear-gradient(135deg, var(--landing-blue-light), var(--landing-blue));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-landing-streak {
+  background: linear-gradient(135deg, #ffffff, var(--landing-blue-light));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-glow-landing-progress {
+  filter: drop-shadow(0 0 28px rgba(77, 124, 255, 0.35)) drop-shadow(0 0 60px rgba(77, 124, 255, 0.15));
+}
+
+.text-glow-landing-stat {
+  filter: drop-shadow(0 0 16px rgba(77, 124, 255, 0.35));
+}
+
+/* ── Landing backgrounds & edges ─────────────────────────────────────────── */
+
+.bg-landing-hero-grid {
+  background-image:
+    linear-gradient(var(--landing-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--landing-grid) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.bg-landing-grid-accent {
+  background-image:
+    linear-gradient(rgba(77, 124, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(77, 124, 255, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.bg-landing-dot-grid {
+  background-image: radial-gradient(circle, rgba(77, 124, 255, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, transparent 85%);
+}
+
+.bg-landing-spotlight-outer {
+  background: radial-gradient(
+    ellipse at 0% 0%,
+    rgba(50, 90, 255, 0.45) 0%,
+    rgba(40, 80, 230, 0.2) 30%,
+    rgba(30, 60, 200, 0.06) 58%,
+    transparent 75%
+  );
+}
+
+.bg-landing-spotlight-mid {
+  background: radial-gradient(
+    ellipse at 0% 0%,
+    rgba(80, 120, 255, 0.55) 0%,
+    rgba(60, 100, 255, 0.22) 28%,
+    rgba(40, 80, 230, 0.07) 55%,
+    transparent 72%
+  );
+}
+
+.bg-landing-spotlight-core {
+  background: radial-gradient(
+    ellipse at 20% 20%,
+    rgba(160, 190, 255, 0.6) 0%,
+    rgba(100, 150, 255, 0.28) 30%,
+    rgba(70, 110, 255, 0.08) 58%,
+    transparent 75%
+  );
+}
+
+.bg-landing-vignette-bottom {
+  background: linear-gradient(to top, var(--landing-surface) 0%, rgba(7, 9, 13, 0.94) 18%, transparent 100%);
+}
+
+.bg-landing-ambient-features {
+  background:
+    radial-gradient(ellipse 70% 35% at 50% 0%, rgba(77, 124, 255, 0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 25% at 15% 10%, rgba(77, 124, 255, 0.05) 0%, transparent 60%);
+}
+
+.bg-landing-ambient-howitworks {
+  background:
+    radial-gradient(ellipse 65% 45% at 50% 50%, rgba(77, 124, 255, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 15% 10%, rgba(77, 124, 255, 0.04) 0%, transparent 60%);
+}
+
+.bg-landing-ambient-footer {
+  background:
+    radial-gradient(ellipse 85% 60% at 50% 55%, rgba(77, 124, 255, 0.08) 0%, rgba(50, 90, 200, 0.03) 45%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 15% 20%, rgba(77, 124, 255, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 35% 28% at 85% 15%, rgba(77, 124, 255, 0.035) 0%, transparent 60%);
+}
+
+.bg-landing-ambient-glow-right {
+  background: radial-gradient(circle, rgba(77, 124, 255, 0.07) 0%, transparent 68%);
+}
+
+.bg-landing-ambient-glow-left {
+  background: radial-gradient(circle, rgba(50, 100, 230, 0.05) 0%, transparent 68%);
+}
+
+.bg-landing-dash-bloom {
+  background:
+    radial-gradient(ellipse 85% 55% at 50% 22%, rgba(76, 110, 245, 0.22) 0%, rgba(77, 124, 255, 0.08) 50%, transparent 75%),
+    radial-gradient(ellipse 55% 40% at 14% 50%, rgba(77, 124, 255, 0.1) 0%, transparent 65%),
+    radial-gradient(ellipse 55% 40% at 86% 50%, rgba(124, 77, 255, 0.08) 0%, transparent 65%);
+}
+
+.bg-landing-dash-corner-blue {
+  background: radial-gradient(ellipse 100% 100% at 0% 0%, rgba(77, 124, 255, 0.12) 0%, transparent 70%);
+}
+
+.bg-landing-dash-corner-purple {
+  background: radial-gradient(ellipse 100% 100% at 100% 0%, rgba(124, 77, 255, 0.09) 0%, transparent 70%);
+}
+
+.bg-landing-card-glow {
+  background: radial-gradient(ellipse 60% 55% at 80% 0%, rgba(77, 124, 255, 0.05), transparent 70%);
+}
+
+.bg-landing-card-glow-hover {
+  background: radial-gradient(ellipse 60% 55% at 80% 0%, rgba(77, 124, 255, 0.1), transparent 70%);
+}
+
+.bg-landing-visual-inner-glow {
+  background: radial-gradient(ellipse 55% 50% at 50% 0%, rgba(77, 124, 255, 0.08) 0%, transparent 65%);
+}
+
+.bg-landing-stat-card-glow {
+  background: radial-gradient(ellipse 70% 55% at 50% 0%, rgba(77, 124, 255, 0.07) 0%, transparent 70%);
+}
+
+.bg-landing-testimonial-glow {
+  background: radial-gradient(ellipse 60% 40% at 80% 0%, rgba(77, 124, 255, 0.05) 0%, transparent 65%);
+}
+
+.bg-landing-xp-bar-on {
+  background: linear-gradient(180deg, var(--landing-blue-mid) 0%, var(--landing-blue) 100%);
+}
+
+.bg-landing-xp-bar-off {
+  background: var(--landing-xp-empty);
+}
+
+.bg-landing-streak-on {
+  background: linear-gradient(135deg, var(--landing-blue-mid), var(--landing-blue));
+}
+
+.bg-landing-streak-mid {
+  background: rgba(77, 124, 255, 0.42);
+}
+
+.bg-landing-cta-blue {
+  background: linear-gradient(135deg, var(--landing-blue-deep-cta) 0%, var(--landing-blue) 50%, var(--landing-blue-mid) 100%);
+}
+
+.bg-landing-avatar {
+  background: linear-gradient(135deg, rgba(30, 55, 180, 0.55), rgba(77, 124, 255, 0.7));
+}
+
+.bg-landing-logo-mark {
+  background: linear-gradient(135deg, var(--landing-blue-deep-cta), var(--landing-blue));
+}
+
+.bg-landing-streak-badge {
+  background: linear-gradient(135deg, rgba(40, 70, 200, 0.6), var(--landing-blue));
+}
+
+.bg-landing-progress-bar {
+  background: linear-gradient(90deg, rgba(77, 124, 255, 0.55), var(--landing-blue-mid));
+}
+
+.bg-landing-nav-shimmer {
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.18) 50%, transparent 65%);
+  background-size: 300% 100%;
+}
+
+.bg-landing-btn-shimmer {
+  background: linear-gradient(110deg, transparent 28%, rgba(255, 255, 255, 0.55) 50%, transparent 72%);
+}
+
+.bg-landing-eyebrow-line-left {
+  background: linear-gradient(90deg, transparent, rgba(77, 124, 255, 0.45));
+}
+
+.bg-landing-eyebrow-line-right {
+  background: linear-gradient(90deg, rgba(77, 124, 255, 0.45), transparent);
+}
+
+.bg-landing-divider {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(77, 124, 255, 0.2) 15%,
+    rgba(110, 168, 255, 0.55) 50%,
+    rgba(77, 124, 255, 0.2) 85%,
+    transparent 100%
+  );
+}
+
+.bg-landing-divider-main {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(59, 111, 255, 0.42) 15%,
+    rgba(122, 162, 255, 0.88) 50%,
+    rgba(59, 111, 255, 0.42) 85%,
+    transparent 100%
+  );
+}
+
+.bg-landing-edge-blue {
+  background: linear-gradient(90deg, transparent 15%, rgba(77, 124, 255, 0.28) 50%, transparent 85%);
+}
+
+.bg-landing-edge-blue-bright {
+  background: linear-gradient(90deg, transparent 5%, rgba(77, 124, 255, 0.55) 30%, rgba(110, 168, 255, 0.9) 50%, rgba(77, 124, 255, 0.55) 70%, transparent 95%);
+}
+
+.bg-landing-edge-dash {
+  background: linear-gradient(90deg, transparent 5%, rgba(122, 162, 255, 0.22) 25%, rgba(180, 220, 255, 0.9) 50%, rgba(122, 162, 255, 0.22) 75%, transparent 95%);
+}
+
+.bg-landing-rim-left {
+  background: linear-gradient(to bottom, rgba(122, 162, 255, 0.55) 0%, rgba(122, 162, 255, 0.12) 60%, transparent 100%);
+}
+
+.bg-landing-rim-right {
+  background: linear-gradient(to bottom, rgba(124, 77, 255, 0.45) 0%, rgba(124, 77, 255, 0.1) 60%, transparent 100%);
+}
+
+.mask-landing-dashboard {
+  mask-image: linear-gradient(to bottom, black 60%, rgba(0, 0, 0, 0.2) 84%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, rgba(0, 0, 0, 0.2) 84%, transparent 100%);
+}
+
+/* ── Landing animations ────────────────────────────────────────────────────── */
+
+@keyframes progress-bloom {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 20px rgba(91, 127, 255, 0.45))
+      drop-shadow(0 0 55px rgba(91, 127, 255, 0.18));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 32px rgba(91, 127, 255, 0.65))
+      drop-shadow(0 0 80px rgba(91, 127, 255, 0.28));
+  }
+}
+
+.progress-word-bloom {
+  display: inline-block;
+  animation: progress-bloom 4s ease-in-out infinite;
+}
+
+@keyframes spotlight-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.88; }
+}
+
+.spotlight-breathe {
+  animation: spotlight-breathe 9s ease-in-out infinite;
+}
+
+.spotlight-breathe-delay-1 {
+  animation: spotlight-breathe 9s ease-in-out infinite 1s;
+}
+
+.spotlight-breathe-delay-05 {
+  animation: spotlight-breathe 9s ease-in-out infinite 0.5s;
+}
+
+@keyframes nav-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.nav-shimmer {
+  animation: nav-shimmer 3s ease-in-out infinite 2s;
+}
+
+.btn-primary-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 28%, rgba(255, 255, 255, 0.55) 50%, transparent 72%);
+  transform: translateX(-130%);
+  animation: btn-shine-sweep 2.8s ease-in-out infinite;
+}
+
+@keyframes btn-shine-sweep {
+  0%, 45% { transform: translateX(-130%); }
+  55%, 100% { transform: translateX(160%); }
+}
+
+.btn-primary-glow {
+  box-shadow: var(--landing-shadow-cta-white);
+}
+
+.btn-primary-glow:hover {
+  box-shadow:
+    0 0 40px rgba(110, 168, 255, 0.48),
+    0 0 80px rgba(77, 124, 255, 0.22),
+    0 6px 24px rgba(0, 0, 0, 0.5);
+}
