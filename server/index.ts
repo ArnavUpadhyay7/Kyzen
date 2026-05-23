@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 
 import authRoutes    from "./routes/auth.route";
 import taskRoutes    from "./routes/task.route";
-import journalRoutes from "./routes/journal.route";      
+import workspaceRoutes from "./routes/workspace.route";
 import { getDashboard } from "./controllers/dashboard.controller";
 import { requireAuth }  from "./middleware/auth.middleware";
 import githubRoutes from "./routes/github.route";
@@ -34,7 +34,7 @@ app.get("/", (_req, res) => {
 // Routes
 app.use("/api/auth",      authRoutes);
 app.use("/api/tasks",     requireAuth, taskRoutes);
-app.use("/api/journal",   requireAuth, journalRoutes);
+app.use("/api/workspace", requireAuth, workspaceRoutes);
 app.get("/api/dashboard", requireAuth, getDashboard);
 app.use("/api/github", requireAuth, githubRoutes);
 app.use("/api/user", userRouter);

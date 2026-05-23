@@ -32,6 +32,34 @@ enum Mood {
   DISTRACTED
 }
 
+enum IdeaCategory {
+  PROJECT
+  STARTUP
+  TOOL
+  EXPERIMENT
+}
+
+enum ProjectStatus {
+  PLANNING
+  BUILDING
+  SHIPPING
+  PAUSED
+}
+
+enum InspirationType {
+  UI
+  REPO
+  DESIGN
+  CONCEPT
+}
+
+enum NoteCategory {
+  DSA
+  COMMAND
+  INTERVIEW
+  LEARNING
+}
+
 model User {
   id       String  @id @default(cuid())
   username String  @unique
@@ -54,8 +82,12 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  tasks    Task[]
-  journals Journal[]
+  tasks         Task[]
+  battleLogs    BattleLog[]
+  ideas         WorkspaceIdea[]
+  projects      WorkspaceProject[]
+  inspirations  WorkspaceInspiration[]
+  notes         WorkspaceNote[]
 
   @@map("users")
 }
@@ -82,30 +114,103 @@ model Task {
   @@map("tasks")
 }
 
-model Journal {
+model BattleLog {
   id String @id @default(cuid())
 
   // Normalized to midnight UTC — one row per user per calendar day
   date DateTime
 
-  // Entry fields (all optional so partial saves are allowed)
-  completed     String?
-  distractedBy  String?
-  biggestWin    String?
-  tomorrowFocus String?
-  mood          Mood    @default(GOOD)
+  mood      Mood @default(GOOD)
+  completed String?
+  win       String?
+  learned   String?
+  bug       String?
+  tomorrow  String?
 
-  // Timestamps
+  xpEarned  Int @default(0)
+  userLevel Int @default(1)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Foreign key
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // One entry per user per day
   @@unique([userId, date])
   @@index([userId])
   @@index([userId, date])
-  @@map("journals")
+  @@map("battle_logs")
+}
+
+model WorkspaceIdea {
+  id       String       @id @default(cuid())
+  title    String
+  category IdeaCategory @default(PROJECT)
+  problem  String?
+  tags     String[]     @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("workspace_ideas")
+}
+
+model WorkspaceProject {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  why         String?
+  mvp         String[]      @default([])
+  stretch     String[]      @default([])
+  tech        String[]      @default([])
+  status      ProjectStatus @default(PLANNING)
+  progress    Int           @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("workspace_projects")
+}
+
+model WorkspaceInspiration {
+  id    String          @id @default(cuid())
+  type  InspirationType
+  title String
+  url   String
+  tag   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("workspace_inspirations")
+}
+
+model WorkspaceNote {
+  id       String       @id @default(cuid())
+  category NoteCategory
+  title    String
+  content  String
+  tags     String[]     @default([])
+  isCode   Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("workspace_notes")
 }
