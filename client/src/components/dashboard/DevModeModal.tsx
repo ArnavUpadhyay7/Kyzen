@@ -41,7 +41,7 @@ export default function DevModeModal({ open, onClose, onUnlocked }: DevModeModal
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-dash-overlay p-4 backdrop-blur-sm"
           onClick={onClose}
         >
           <motion.div
@@ -53,7 +53,7 @@ export default function DevModeModal({ open, onClose, onUnlocked }: DevModeModal
             className="relative w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <DashboardCard className="overflow-hidden rounded-2xl border-dash-accent-border bg-dash-modal shadow-[0_24px_64px_rgba(0,0,0,0.45),0_0_40px_color-mix(in_srgb,var(--dash-accent)_8%,transparent)]">
+            <DashboardCard className="overflow-hidden rounded-2xl border-dash-accent-border bg-dash-modal shadow-dash-modal shadow-[0_0_40px_color-mix(in_srgb,var(--dash-accent)_8%,transparent)]">
               <div className="absolute top-0 right-0 left-0 h-px bg-gradient-to-r from-transparent via-dash-accent to-transparent opacity-60" />
 
               <button

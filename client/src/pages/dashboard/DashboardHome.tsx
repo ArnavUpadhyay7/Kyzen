@@ -13,6 +13,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { XP_MAP } from "../../api/tasks.api";
 import { useDashboardStore, type Difficulty, type Task } from "../../state/dashboard/usedashboardstore";
 import ContributionGraph from "../../components/dashboard/ContributionGraph";
 import { useAuth } from "../../state/auth/AuthContext";
@@ -32,9 +33,9 @@ const DIFF_META: Record<
   Difficulty,
   { label: string; xp: number; badgeVariant: "success" | "warning" | "danger" }
 > = {
-  EASY: { label: "Easy", xp: 30, badgeVariant: "success" },
-  MEDIUM: { label: "Medium", xp: 60, badgeVariant: "warning" },
-  HARD: { label: "Hard", xp: 100, badgeVariant: "danger" },
+  EASY: { label: "Easy", xp: XP_MAP.EASY, badgeVariant: "success" },
+  MEDIUM: { label: "Medium", xp: XP_MAP.MEDIUM, badgeVariant: "warning" },
+  HARD: { label: "Hard", xp: XP_MAP.HARD, badgeVariant: "danger" },
 };
 
 const DIFF_TEXT_CLASS: Record<Difficulty, string> = {
@@ -88,29 +89,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function XpPopup({ xp, onDone }: { xp: number; onDone: () => void }) {
-  return (
-    <motion.div
-      className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.div
-        className="flex items-center gap-2 rounded-2xl border border-dash-accent-border bg-dash-accent-soft px-6 py-3 font-dash-sans text-2xl font-bold tracking-tight text-dash-primary backdrop-blur-md"
-        initial={{ scale: 0.6, y: 30, opacity: 0 }}
-        animate={{ scale: 1, y: -20, opacity: 1 }}
-        exit={{ scale: 0.8, y: -60, opacity: 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        onAnimationComplete={onDone}
-      >
-        <Zap size={20} className="text-dash-violet" />
-        +{xp} XP
-      </motion.div>
-    </motion.div>
-  );
-}
-
 function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   useEffect(() => {
     const timer = setTimeout(onDismiss, 4000);
@@ -139,7 +117,7 @@ function HistoryModal({ tasks, onClose }: { tasks: Task[]; onClose: () => void }
 
   return (
     <motion.div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-dash-overlay p-4 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -289,14 +267,12 @@ export default function DashboardHome() {
     loading,
     tasksLoading,
     error,
-    xpPopup,
     fetchDashboard,
     fetchTasks,
     createTask,
     updateTask,
     deleteTask,
     completeTask,
-    clearXpPopup,
   } = useDashboardStore();
 
   const [newTitle, setNewTitle] = useState("");
@@ -319,13 +295,6 @@ export default function DashboardHome() {
   useEffect(() => {
     if (error) setToastMsg(error);
   }, [error]);
-
-  useEffect(() => {
-    if (xpPopup) {
-      const timer = setTimeout(clearXpPopup, 1600);
-      return () => clearTimeout(timer);
-    }
-  }, [xpPopup, clearXpPopup]);
 
   const activeTasks = useMemo(() => tasks.filter((t) => !t.completed), [tasks]);
   const completedTasks = useMemo(() => tasks.filter((t) => t.completed), [tasks]);
@@ -367,9 +336,6 @@ export default function DashboardHome() {
 
   return (
     <div className="min-h-screen bg-dash-page p-4 font-dash-sans transition-colors duration-300 md:p-6 lg:p-8">
-      <AnimatePresence>
-        {xpPopup != null && <XpPopup xp={xpPopup} onDone={clearXpPopup} />}
-      </AnimatePresence>
       <AnimatePresence>
         {showHistory && <HistoryModal tasks={tasks} onClose={closeHistory} />}
       </AnimatePresence>

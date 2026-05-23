@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { IdeaCategory, WorkspaceIdea } from "../../../api/workspace.api";
-import { workspaceApi } from "../../../api/workspace.api";
-import { toast } from "../../ui/Toast";
+import { useWorkspaceIdeas } from "../../../hooks/workspace";
 import {
   IDEA_CATEGORIES,
   IDEA_CATEGORY_COLORS,
@@ -38,28 +37,11 @@ const EMPTY_FORM: IdeaForm = {
 };
 
 export default function IdeaVaultTab() {
-  const [ideas, setIdeas] = useState<WorkspaceIdea[]>([]);
+  const { items: ideas, loading, saving, create, update, remove } = useWorkspaceIdeas();
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<IdeaForm>(EMPTY_FORM);
   const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setIdeas(await workspaceApi.ideas.getAll());
-    } catch {
-      toast("Failed to load ideas", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -90,41 +72,22 @@ export default function IdeaVaultTab() {
 
   async function handleSave() {
     if (!form.title.trim()) return;
-    setSaving(true);
-    try {
-      const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
-      const payload = {
-        title: form.title.trim(),
-        category: form.category,
-        problem: form.problem.trim() || undefined,
-        tags,
-      };
-      if (editingId) {
-        const updated = await workspaceApi.ideas.update(editingId, payload);
-        setIdeas((prev) => prev.map((i) => (i.id === editingId ? updated : i)));
-        toast("Idea updated");
-      } else {
-        const created = await workspaceApi.ideas.create(payload);
-        setIdeas((prev) => [created, ...prev]);
-        toast("Idea saved");
-      }
-      resetForm();
-    } catch {
-      toast("Failed to save idea", "error");
-    } finally {
-      setSaving(false);
-    }
+    const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    const payload = {
+      title: form.title.trim(),
+      category: form.category,
+      problem: form.problem.trim() || undefined,
+      tags,
+    };
+    const result = editingId
+      ? await update(editingId, payload)
+      : await create(payload);
+    if (result) resetForm();
   }
 
   async function handleDelete(id: string) {
-    try {
-      await workspaceApi.ideas.delete(id);
-      setIdeas((prev) => prev.filter((i) => i.id !== id));
-      if (editingId === id) resetForm();
-      toast("Idea deleted");
-    } catch {
-      toast("Failed to delete idea", "error");
-    }
+    const ok = await remove(id);
+    if (ok && editingId === id) resetForm();
   }
 
   if (loading) return <LoadingState message="Loading ideas…" />;
@@ -146,7 +109,7 @@ export default function IdeaVaultTab() {
 
       {showForm && (
         <WorkspaceCard topGlow className="mb-5 p-5">
-          <h3 className="mb-3.5 text-[13px] font-semibold text-white">
+          <h3 className="mb-3.5 text-[13px] font-semibold text-dash-primary">
             {editingId ? "Edit Idea" : "New Idea"}
           </h3>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -218,14 +181,14 @@ export default function IdeaVaultTab() {
                     <button
                       type="button"
                       onClick={() => startEdit(idea)}
-                      className="rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 font-mono text-[10px] text-violet-400"
+                      className="rounded-md border border-dash-accent-border bg-dash-accent-soft px-2 py-0.5 font-dash-mono text-[10px] text-dash-violet"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(idea.id)}
-                      className="rounded-md border border-red-500/20 bg-red-500/10 px-2 py-0.5 font-mono text-[10px] text-red-400"
+                      className="rounded-md border border-dash-danger/20 bg-dash-danger/10 px-2 py-0.5 font-dash-mono text-[10px] text-dash-danger"
                     >
                       Del
                     </button>
@@ -233,14 +196,14 @@ export default function IdeaVaultTab() {
                 </div>
                 <h3 className={`mb-1.5 text-sm font-semibold ${colorClass}`}>{idea.title}</h3>
                 {idea.problem && (
-                  <p className="mb-2.5 text-[12.5px] leading-relaxed text-white/40">{idea.problem}</p>
+                  <p className="mb-2.5 text-[12.5px] leading-relaxed text-dash-muted">{idea.problem}</p>
                 )}
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {idea.tags.map((tag) => (
                     <Pill key={tag} label={tag} className={`${colorClass} bg-current/10 border-current/30`} small />
                   ))}
                 </div>
-                <p className="font-mono text-[10px] text-white/20">
+                <p className="font-dash-mono text-[10px] text-dash-faint">
                   🕐 {formatRelativeTime(idea.createdAt)}
                 </p>
               </WorkspaceCard>

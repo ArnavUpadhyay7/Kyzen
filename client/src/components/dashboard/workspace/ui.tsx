@@ -74,7 +74,7 @@ export function SectionHeader({
   return (
     <div className="mb-5 flex items-center justify-between">
       <div className="flex items-center gap-2.5">
-        <h2 className="text-sm font-semibold tracking-wide text-dash-primary">{title}</h2>
+        <h2 className="text-sm font-semibold tracking-wide text-dash-primary font-dash-sans">{title}</h2>
         {count != null && (
           <span className="rounded-full border border-dash-accent-border bg-dash-accent-soft px-2.5 py-0.5 font-dash-mono text-[11px] text-dash-violet">
             {count}
@@ -137,7 +137,11 @@ export function ProgressBar({
 }
 
 export function EmptyState({ message }: { message: string }) {
-  return <p className="py-12 text-center text-[13px] text-dash-muted font-dash-sans">{message}</p>;
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <p className="text-[13px] text-dash-muted font-dash-sans">{message}</p>
+    </div>
+  );
 }
 
 export function LoadingState({ message = "Loading…" }: { message?: string }) {

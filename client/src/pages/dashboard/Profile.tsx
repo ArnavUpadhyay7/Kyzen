@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Flame,
@@ -17,8 +17,9 @@ import {
   Users,
   ChevronRight,
 } from "lucide-react";
+import type { ActivityItem } from "../../api/dashboard.api";
+import type { Difficulty } from "../../api/tasks.api";
 import { useDashboardStore } from "../../state/dashboard/usedashboardstore";
-import { useTheme } from "../../state/theme/ThemeContext";
 import character_mascot from "../../assets/character_mascot.png";
 import { useAuth } from "../../state/auth/AuthContext";
 import {
@@ -125,25 +126,6 @@ const LEVEL_RANK: Record<
   },
 };
 
-const BADGES: BadgeItem[] = [
-  { id: 1, icon: <Flame size={15} />, label: "Streak Master", desc: "Maintained a 30-day streak without breaking.", earned: true, rarity: "epic" },
-  { id: 2, icon: <Trophy size={15} />, label: "Top 1%", desc: "Ranked in the global top 1% this season.", earned: true, rarity: "legendary" },
-  { id: 3, icon: <Shield size={15} />, label: "Iron Guard", desc: "Protected your streak for 7 consecutive days.", earned: true, rarity: "rare" },
-  { id: 4, icon: <Star size={15} />, label: "Legend", desc: "Completed over 1000 lifetime tasks.", earned: true, rarity: "legendary" },
-  { id: 5, icon: <Zap size={15} />, label: "Speed Run", desc: "Complete 5 hard tasks in a single day.", earned: false, rarity: "epic" },
-  { id: 6, icon: <Target size={15} />, label: "Precision", desc: "Complete 100 tasks with no deletions.", earned: false, rarity: "rare" },
-  { id: 7, icon: <Swords size={15} />, label: "Gladiator", desc: "Win 10 consecutive hard difficulty tasks.", earned: false, rarity: "epic" },
-  { id: 8, icon: <TrendingUp size={15} />, label: "Momentum", desc: "Earn 500 XP in a single day.", earned: false, rarity: "common" },
-];
-
-const ACTIVITY = [
-  { id: 1, icon: <CheckCircle2 size={11} />, text: "Completed DSA Practice", sub: "2 min ago", xp: 50, tone: "accent" as const },
-  { id: 2, icon: <TrendingUp size={11} />, text: "Reached Level 5", sub: "1 hr ago", tone: "violet" as const },
-  { id: 3, icon: <CheckCircle2 size={11} />, text: "Finished System Design Doc", sub: "3 hr ago", xp: 100, tone: "accent" as const },
-  { id: 4, icon: <Flame size={11} />, text: "7-day streak achieved", sub: "Yesterday", tone: "orange" as const },
-  { id: 5, icon: <Award size={11} />, text: "Earned 'Iron Guard' badge", sub: "2 days ago", tone: "accent" as const },
-];
-
 const ACTIVITY_TONE: Record<string, string> = {
   accent: "bg-dash-accent-soft text-dash-accent border-dash-accent-border",
   violet: "bg-dash-accent-soft text-dash-violet border-dash-accent-border",
@@ -161,11 +143,100 @@ function cardRarityForLevel(level: number): Rarity {
   return "common";
 }
 
+function buildBadges(
+  streak: number,
+  totalCompleted: number,
+  hardCompleted: number,
+  xpEarnedToday: number,
+): BadgeItem[] {
+  return [
+    {
+      id: 1,
+      icon: <Shield size={15} />,
+      label: "Iron Guard",
+      desc: "Reach a 7-day streak.",
+      earned: streak >= 7,
+      rarity: "rare",
+    },
+    {
+      id: 2,
+      icon: <Flame size={15} />,
+      label: "Streak Master",
+      desc: "Reach a 30-day streak.",
+      earned: streak >= 30,
+      rarity: "epic",
+    },
+    {
+      id: 3,
+      icon: <Target size={15} />,
+      label: "First Quest",
+      desc: "Complete your first task.",
+      earned: totalCompleted >= 1,
+      rarity: "common",
+    },
+    {
+      id: 4,
+      icon: <Star size={15} />,
+      label: "Centurion",
+      desc: "Complete 100 tasks.",
+      earned: totalCompleted >= 100,
+      rarity: "legendary",
+    },
+    {
+      id: 5,
+      icon: <Swords size={15} />,
+      label: "Gladiator",
+      desc: "Complete 10 hard tasks.",
+      earned: hardCompleted >= 10,
+      rarity: "epic",
+    },
+    {
+      id: 6,
+      icon: <Zap size={15} />,
+      label: "Speed Run",
+      desc: "Complete 5 hard tasks in one day.",
+      earned: false,
+      rarity: "epic",
+    },
+    {
+      id: 7,
+      icon: <TrendingUp size={15} />,
+      label: "Momentum",
+      desc: "Earn 500 XP in a single day.",
+      earned: xpEarnedToday >= 500,
+      rarity: "common",
+    },
+    {
+      id: 8,
+      icon: <Trophy size={15} />,
+      label: "Grinder",
+      desc: "Complete 25 tasks total.",
+      earned: totalCompleted >= 25,
+      rarity: "rare",
+    },
+  ];
+}
+
+function activityIcon(tone: ActivityItem["tone"]) {
+  if (tone === "orange") return <Flame size={11} />;
+  if (tone === "violet") return <Award size={11} />;
+  return <CheckCircle2 size={11} />;
+}
+
+const DIFFICULTY_ROWS: {
+  key: Difficulty;
+  label: string;
+  tone: "success" | "warning" | "danger";
+}[] = [
+  { key: "EASY", label: "Easy", tone: "success" },
+  { key: "MEDIUM", label: "Medium", tone: "warning" },
+  { key: "HARD", label: "Hard", tone: "danger" },
+];
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function BadgeCard({ badge, index }: { badge: BadgeItem; index: number }) {
   const [hovered, setHovered] = useState(false);
-  const { isDark } = useTheme();
   const r = RARITY_CLASSES[badge.rarity];
 
   return (
@@ -184,7 +255,7 @@ function BadgeCard({ badge, index }: { badge: BadgeItem; index: number }) {
           badge.earned ? r.cardEarned : r.cardLocked,
           badge.earned && hovered && r.hoverShadow,
           !badge.earned && "opacity-40",
-          !isDark && badge.earned && "shadow-sm",
+          badge.earned && "shadow-dash-card",
         )}
       >
         {badge.earned && (
@@ -268,7 +339,7 @@ function StatChip({
   }[tone];
 
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-dash-border bg-dash-card px-4 py-3 shadow-sm">
+    <div className="flex items-center gap-2.5 rounded-xl border border-dash-border bg-dash-card px-4 py-3 shadow-dash-card">
       <span className={cn(toneClass, "opacity-80")}>{icon}</span>
       <div>
         <p className="mb-1 font-dash-mono text-[8px] uppercase leading-none tracking-widest text-dash-faint">
@@ -293,33 +364,59 @@ function SectionEyebrow({ children }: { children: React.ReactNode }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Profile() {
-  const { isDark } = useTheme();
-  const { dashboard } = useDashboardStore();
+  const { dashboard, loading, fetchDashboard } = useDashboardStore();
   const { user } = useAuth();
 
-  const level = dashboard?.level ?? 4;
-  const currentXP = dashboard?.currentXP ?? 325;
-  const totalXP = dashboard?.totalXPForLevel ?? 900;
-  const streak = dashboard?.streak ?? 1;
-  const username = user?.username ?? "heya";
+  useEffect(() => {
+    if (!dashboard) void fetchDashboard();
+  }, [dashboard, fetchDashboard]);
+
+  const level = dashboard?.level ?? 1;
+  const currentXP = dashboard?.currentXP ?? 0;
+  const totalXP = dashboard?.totalXPForLevel ?? 250;
+  const streak = dashboard?.streak ?? 0;
+  const profileStats = dashboard?.profileStats;
+  const username = user?.username ?? dashboard?.username ?? "Player";
   const xpPct = useMemo(
-    () => Math.min(Math.round((currentXP / totalXP) * 100), 100),
+    () => (totalXP > 0 ? Math.min(Math.round((currentXP / totalXP) * 100), 100) : 0),
     [currentXP, totalXP],
   );
   const rank = getRank(level);
-  const earnedCount = useMemo(() => BADGES.filter((b) => b.earned).length, []);
+
+  const badges = useMemo(
+    () =>
+      buildBadges(
+        streak,
+        profileStats?.totalCompleted ?? 0,
+        dashboard?.difficultyStats.HARD.completed ?? 0,
+        dashboard?.todayStats.xpEarned ?? 0,
+      ),
+    [streak, profileStats, dashboard],
+  );
+
+  const earnedCount = useMemo(() => badges.filter((b) => b.earned).length, [badges]);
+  const activity = dashboard?.recentActivity ?? [];
   const cardRarity = cardRarityForLevel(level);
   const cr = RARITY_CLASSES[cardRarity];
+
+  if (loading && !dashboard) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-dash-page font-dash-sans">
+        <p className="font-dash-mono text-sm text-dash-muted">Loading profile…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-dash-page font-dash-sans transition-colors duration-300">
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
         <div
-          className={cn(
-            "absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_25%_0%,color-mix(in_srgb,var(--dash-accent)_12%,transparent)_0%,transparent_55%)]",
-            isDark &&
-              "bg-[radial-gradient(ellipse_35%_35%_at_78%_8%,color-mix(in_srgb,var(--dash-violet)_8%,transparent)_0%,transparent_50%)]",
-          )}
+          className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_25%_0%,color-mix(in_srgb,var(--dash-accent)_var(--dash-hero-accent-mix),transparent)_0%,transparent_55%)]"
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 bg-[radial-gradient(ellipse_35%_35%_at_78%_8%,color-mix(in_srgb,var(--dash-violet)_var(--dash-hero-violet-mix),transparent)_0%,transparent_50%)]"
+          aria-hidden
         />
       </div>
 
@@ -333,10 +430,8 @@ export default function Profile() {
             )}
           />
           <div
-            className={cn(
-              "pointer-events-none absolute inset-0 bg-[radial-gradient(circle,var(--dash-border)_1px,transparent_1px)] bg-[length:30px_30px] mask-[linear-gradient(to_bottom,transparent_0%,black_12%,black_72%,transparent_100%)]",
-              isDark ? "opacity-30" : "opacity-50",
-            )}
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,var(--dash-border)_1px,transparent_1px)] bg-[length:30px_30px] opacity-[var(--dash-hero-grid-opacity)] mask-[linear-gradient(to_bottom,transparent_0%,black_12%,black_72%,transparent_100%)]"
+            aria-hidden
           />
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-b from-transparent to-dash-page" />
 
@@ -439,7 +534,7 @@ export default function Profile() {
                     {[
                       { label: "Streak", value: `${streak}d`, tone: "text-dash-orange" as const, icon: <Flame size={9} /> },
                       { label: "XP Left", value: (totalXP - currentXP).toLocaleString(), tone: cr.text, icon: <Zap size={9} /> },
-                      { label: "Badges", value: `${earnedCount}/${BADGES.length}`, tone: "text-dash-violet" as const, icon: <Award size={9} /> },
+                      { label: "Badges", value: `${earnedCount}/${badges.length}`, tone: "text-dash-violet" as const, icon: <Award size={9} /> },
                     ].map((s) => (
                       <div
                         key={s.label}
@@ -482,7 +577,7 @@ export default function Profile() {
                       <Flame size={10} /> {streak}-day streak
                     </span>
                     <span className="flex items-center gap-1.5 font-dash-mono text-[11px] text-dash-faint">
-                      <Award size={10} className="opacity-50" /> {earnedCount} badges · Since Jan 2025
+                      <Award size={10} className="opacity-50" /> {earnedCount} badges unlocked
                     </span>
                     <span className="flex items-center gap-1 rounded-full border border-dashed border-dash-border px-2.5 py-1 font-dash-mono text-[10px] text-dash-faint">
                       <Users size={8} /> No Clan
@@ -517,10 +612,30 @@ export default function Profile() {
                   transition={{ delay: 0.24, duration: 0.4 }}
                   className="grid grid-cols-2 gap-3 sm:grid-cols-4"
                 >
-                  <StatChip icon={<Zap size={13} />} label="Total XP" value="12,847" tone="accent" />
-                  <StatChip icon={<CheckCircle2 size={13} />} label="Completed" value="97" tone="success" />
-                  <StatChip icon={<Trophy size={13} />} label="Best Streak" value="21d" tone="warning" />
-                  <StatChip icon={<TrendingUp size={13} />} label="Consistency" value="78%" tone="success" />
+                  <StatChip
+                    icon={<Zap size={13} />}
+                    label="Total XP"
+                    value={(profileStats?.totalXP ?? 0).toLocaleString()}
+                    tone="accent"
+                  />
+                  <StatChip
+                    icon={<CheckCircle2 size={13} />}
+                    label="Completed"
+                    value={String(profileStats?.totalCompleted ?? 0)}
+                    tone="success"
+                  />
+                  <StatChip
+                    icon={<Trophy size={13} />}
+                    label="Streak"
+                    value={`${streak}d`}
+                    tone="warning"
+                  />
+                  <StatChip
+                    icon={<TrendingUp size={13} />}
+                    label="Consistency"
+                    value={`${profileStats?.consistency ?? 0}%`}
+                    tone="success"
+                  />
                 </motion.div>
 
                 <motion.div
@@ -533,30 +648,44 @@ export default function Profile() {
                       <SectionEyebrow>Difficulty Breakdown</SectionEyebrow>
                     </div>
                     <div className="grid grid-cols-3 divide-x divide-dash-border">
-                      {[
-                        { label: "Easy", count: 41, total: 60, tone: "success" as const },
-                        { label: "Medium", count: 33, total: 50, tone: "warning" as const },
-                        { label: "Hard", count: 23, total: 40, tone: "danger" as const },
-                      ].map((d) => {
-                        const pct = Math.round((d.count / d.total) * 100);
+                      {DIFFICULTY_ROWS.map((d) => {
+                        const stat = dashboard?.difficultyStats[d.key] ?? {
+                          created: 0,
+                          completed: 0,
+                        };
+                        const total = Math.max(stat.created, 1);
+                        const pct = Math.round((stat.completed / total) * 100);
                         const toneClass = {
                           success: "text-dash-success",
                           warning: "text-dash-warning",
                           danger: "text-dash-danger",
                         }[d.tone];
                         return (
-                          <div key={d.label} className="px-5 py-4">
-                            <span className={cn("mb-2 block font-dash-mono text-[8px] font-bold uppercase tracking-widest", toneClass)}>
+                          <div key={d.key} className="px-5 py-4">
+                            <span
+                              className={cn(
+                                "mb-2 block font-dash-mono text-[8px] font-bold uppercase tracking-widest",
+                                toneClass,
+                              )}
+                            >
                               {d.label}
                             </span>
                             <div className="mb-2 flex items-end gap-1.5">
                               <span className="text-[24px] font-black leading-none tracking-tight text-dash-primary">
-                                {d.count}
+                                {stat.completed}
                               </span>
-                              <span className="pb-0.5 font-dash-mono text-[11px] text-dash-faint">/{d.total}</span>
+                              <span className="pb-0.5 font-dash-mono text-[11px] text-dash-faint">
+                                /{stat.created}
+                              </span>
                             </div>
-                            <DashboardProgress value={d.count} max={d.total} className="[&>div]:h-1" />
-                            <p className="mt-1.5 font-dash-mono text-[8px] text-dash-faint">{pct}%</p>
+                            <DashboardProgress
+                              value={stat.completed}
+                              max={total}
+                              className="[&>div]:h-1"
+                            />
+                            <p className="mt-1.5 font-dash-mono text-[8px] text-dash-faint">
+                              {stat.created === 0 ? "No tasks yet" : `${pct}% done`}
+                            </p>
                           </div>
                         );
                       })}
@@ -579,7 +708,7 @@ export default function Profile() {
                 <div>
                   <SectionEyebrow>Achievements</SectionEyebrow>
                   <h2 className="text-[20px] font-black tracking-tight text-dash-primary">
-                    {earnedCount} / {BADGES.length} Unlocked
+                    {earnedCount} / {badges.length} Unlocked
                   </h2>
                 </div>
                 <span className="rounded-full border border-dashed border-dash-border px-3 py-1.5 font-dash-mono text-[9px] uppercase tracking-widest text-dash-faint">
@@ -587,7 +716,7 @@ export default function Profile() {
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {BADGES.map((badge, i) => (
+                {badges.map((badge, i) => (
                   <BadgeCard key={badge.id} badge={badge} index={i} />
                 ))}
               </div>
@@ -607,36 +736,46 @@ export default function Profile() {
                 <div className="relative px-5 py-3">
                   <div className="pointer-events-none absolute bottom-5 left-7.5 top-5 w-px bg-gradient-to-b from-dash-border via-dash-border to-transparent" />
 
-                  {ACTIVITY.map((item, i) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.52 + i * 0.06, duration: 0.3 }}
-                      className={cn(
-                        "relative flex items-start gap-3.5 py-3",
-                        i < ACTIVITY.length - 1 && "border-b border-dash-border",
-                      )}
-                    >
-                      <div
+                  {activity.length === 0 ? (
+                    <p className="py-6 text-center font-dash-mono text-[11px] text-dash-muted">
+                      Complete tasks or add workspace items to see activity.
+                    </p>
+                  ) : (
+                    activity.map((item, i) => (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.52 + i * 0.06, duration: 0.3 }}
                         className={cn(
-                          "z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border",
-                          ACTIVITY_TONE[item.tone],
+                          "relative flex items-start gap-3.5 py-3",
+                          i < activity.length - 1 && "border-b border-dash-border",
                         )}
                       >
-                        {item.icon}
-                      </div>
-                      <div className="min-w-0 flex-1 pt-0.5">
-                        <p className="text-[12px] font-medium leading-tight text-dash-secondary">{item.text}</p>
-                        <p className="mt-0.5 font-dash-mono text-[9px] text-dash-faint">{item.sub}</p>
-                      </div>
-                      {item.xp != null && (
-                        <DashboardBadge variant="accent" className="mt-0.5 shrink-0">
-                          +{item.xp}
-                        </DashboardBadge>
-                      )}
-                    </motion.div>
-                  ))}
+                        <div
+                          className={cn(
+                            "z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border",
+                            ACTIVITY_TONE[item.tone],
+                          )}
+                        >
+                          {activityIcon(item.tone)}
+                        </div>
+                        <div className="min-w-0 flex-1 pt-0.5">
+                          <p className="text-[12px] font-semibold leading-tight text-dash-primary">
+                            {item.text}
+                          </p>
+                          <p className="mt-0.5 font-dash-mono text-[9px] text-dash-muted">
+                            {item.sub}
+                          </p>
+                        </div>
+                        {item.xp != null && item.xp > 0 && (
+                          <DashboardBadge variant="accent" className="mt-0.5 shrink-0">
+                            +{item.xp}
+                          </DashboardBadge>
+                        )}
+                      </motion.div>
+                    ))
+                  )}
                 </div>
 
                 <div className="px-5 pb-4">

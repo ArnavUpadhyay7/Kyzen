@@ -2,55 +2,42 @@ import { create } from "zustand";
 import { dashboardApi, localIsoDate, type DashboardData } from "../../api/dashboard.api";
 import { tasksApi, XP_MAP, type Task, type Difficulty } from "../../api/tasks.api";
 
-// Re-export shared types so existing component imports don't break
 export type { DashboardData, Task, Difficulty };
 
-// ─── Store Interface ──────────────────────────────────────────────────────────
-
 interface DashboardStore {
-  dashboard:    DashboardData | null;
-  tasks:        Task[];
-  loading:      boolean;
+  dashboard: DashboardData | null;
+  tasks: Task[];
+  loading: boolean;
   tasksLoading: boolean;
-  error:        string | null;
-  xpPopup:      number | null;
+  error: string | null;
+  xpPopup: number | null;
 
   fetchDashboard: () => Promise<void>;
-  fetchTasks:     () => Promise<void>;
-  createTask:     (title: string, difficulty: Difficulty) => Promise<void>;
-  updateTask:     (id: string, data: Partial<Pick<Task, "title" | "difficulty">>) => Promise<void>;
-  deleteTask:     (id: string) => Promise<void>;
-  completeTask:   (id: string) => Promise<void>;
-  clearXpPopup:   () => void;
+  fetchTasks: () => Promise<void>;
+  createTask: (title: string, difficulty: Difficulty) => Promise<void>;
+  updateTask: (id: string, data: Partial<Pick<Task, "title" | "difficulty">>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  completeTask: (id: string) => Promise<void>;
+  grantXp: (xpGained: number, dashboard?: DashboardData) => void;
+  clearXpPopup: () => void;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/**
- * Apply earned XP optimistically to the current dashboard snapshot.
- * Handles level-up by carrying over excess XP.
- */
-function applyXpToDashboard(
-  prev: DashboardData,
-  xpGained: number,
-): Partial<DashboardData> {
-  const newXP      = prev.currentXP + xpGained;
-  const levelCap   = prev.totalXPForLevel;
+function applyXpToDashboard(prev: DashboardData, xpGained: number): Partial<DashboardData> {
+  const newXP = prev.currentXP + xpGained;
+  const levelCap = prev.totalXPForLevel;
   const didLevelUp = newXP >= levelCap;
 
-  const currentXP     = didLevelUp ? newXP - levelCap : newXP;
-  const level         = didLevelUp ? prev.level + 1   : prev.level;
-  // Keep totalXPForLevel as-is; server will correct on next fetch
-  const xpToNextLevel = Math.max(0, (didLevelUp ? levelCap : prev.xpToNextLevel) - xpGained);
-
-  // Bump today's contribution graph entry using LOCAL date
-  const today = localIsoDate();
-  const graph  = prev.contributionGraph.map((entry) =>
-    entry.date === today
-      ? { ...entry, count: entry.count + 1 }
-      : entry,
+  const currentXP = didLevelUp ? newXP - levelCap : newXP;
+  const level = didLevelUp ? prev.level + 1 : prev.level;
+  const xpToNextLevel = Math.max(
+    0,
+    (didLevelUp ? levelCap : prev.xpToNextLevel) - xpGained,
   );
-  // If today has no existing entry yet, add it
+
+  const today = localIsoDate();
+  const graph = prev.contributionGraph.map((entry) =>
+    entry.date === today ? { ...entry, count: entry.count + 1 } : entry,
+  );
   if (!prev.contributionGraph.some((e) => e.date === today)) {
     graph.push({ date: today, count: 1 });
   }
@@ -60,25 +47,25 @@ function applyXpToDashboard(
     level,
     xpToNextLevel,
     contributionGraph: graph,
+    profileStats: {
+      ...prev.profileStats,
+      totalXP: prev.profileStats.totalXP + xpGained,
+    },
     todayStats: {
       ...prev.todayStats,
       completedTasks: prev.todayStats.completedTasks + 1,
-      xpEarned:       prev.todayStats.xpEarned + xpGained,
+      xpEarned: prev.todayStats.xpEarned + xpGained,
     },
   };
 }
 
-// ─── Store ────────────────────────────────────────────────────────────────────
-
 export const useDashboardStore = create<DashboardStore>((set, get) => ({
-  dashboard:    null,
-  tasks:        [],
-  loading:      false,
+  dashboard: null,
+  tasks: [],
+  loading: false,
   tasksLoading: false,
-  error:        null,
-  xpPopup:      null,
-
-  // ── Dashboard ──────────────────────────────────────────────────────────────
+  error: null,
+  xpPopup: null,
 
   fetchDashboard: async () => {
     set({ loading: true, error: null });
@@ -92,8 +79,6 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     }
   },
 
-  // ── Tasks ──────────────────────────────────────────────────────────────────
-
   fetchTasks: async () => {
     set({ tasksLoading: true, error: null });
     try {
@@ -106,19 +91,28 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     }
   },
 
-  // ── Create ─────────────────────────────────────────────────────────────────
+  grantXp: (xpGained, dashboard) => {
+    set((s) => ({
+      xpPopup: xpGained,
+      dashboard: dashboard ?? s.dashboard,
+    }));
+    if (!dashboard) {
+      void get().fetchDashboard();
+    }
+  },
+
+  clearXpPopup: () => set({ xpPopup: null }),
 
   createTask: async (title, difficulty) => {
     const tempId = `optimistic-${Date.now()}`;
     const optimistic: Task = {
-      id:        tempId,
+      id: tempId,
       title,
       difficulty,
       completed: false,
-      xpReward:  XP_MAP[difficulty],
+      xpReward: XP_MAP[difficulty],
     };
 
-    // Optimistically bump today's totalTasks
     set((s) => ({
       tasks: [optimistic, ...s.tasks],
       dashboard: s.dashboard
@@ -127,6 +121,17 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
             todayStats: {
               ...s.dashboard.todayStats,
               totalTasks: s.dashboard.todayStats.totalTasks + 1,
+            },
+            difficultyStats: {
+              ...s.dashboard.difficultyStats,
+              [difficulty]: {
+                ...s.dashboard.difficultyStats[difficulty],
+                created: s.dashboard.difficultyStats[difficulty].created + 1,
+              },
+            },
+            profileStats: {
+              ...s.dashboard.profileStats,
+              totalCreated: s.dashboard.profileStats.totalCreated + 1,
             },
           }
         : null,
@@ -137,8 +142,8 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
       set((s) => ({
         tasks: s.tasks.map((t) => (t.id === tempId ? created : t)),
       }));
+      void get().fetchDashboard();
     } catch {
-      // Roll back task + today counter
       set((s) => ({
         tasks: s.tasks.filter((t) => t.id !== tempId),
         error: "Failed to create task.",
@@ -155,11 +160,8 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     }
   },
 
-  // ── Update ─────────────────────────────────────────────────────────────────
-
   updateTask: async (id, updates) => {
     const previous = get().tasks;
-
     set((s) => ({
       tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     }));
@@ -176,55 +178,63 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     }
   },
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
-
   deleteTask: async (id) => {
-    const previous  = get().tasks;
-    const wasActive = previous.find((t) => t.id === id && !t.completed);
+    const previous = get().tasks;
+    const task = previous.find((t) => t.id === id);
+    const wasActive = task && !task.completed;
 
     set((s) => ({
       tasks: s.tasks.filter((t) => t.id !== id),
-      dashboard: s.dashboard && wasActive
-        ? {
-            ...s.dashboard,
-            todayStats: {
-              ...s.dashboard.todayStats,
-              totalTasks: Math.max(0, s.dashboard.todayStats.totalTasks - 1),
-            },
-          }
-        : s.dashboard,
+      dashboard:
+        s.dashboard && task
+          ? {
+              ...s.dashboard,
+              todayStats: wasActive
+                ? {
+                    ...s.dashboard.todayStats,
+                    totalTasks: Math.max(0, s.dashboard.todayStats.totalTasks - 1),
+                  }
+                : s.dashboard.todayStats,
+              difficultyStats: {
+                ...s.dashboard.difficultyStats,
+                [task.difficulty]: {
+                  created: Math.max(
+                    0,
+                    s.dashboard.difficultyStats[task.difficulty].created - 1,
+                  ),
+                  completed: task.completed
+                    ? Math.max(
+                        0,
+                        s.dashboard.difficultyStats[task.difficulty].completed - 1,
+                      )
+                    : s.dashboard.difficultyStats[task.difficulty].completed,
+                },
+              },
+              profileStats: {
+                ...s.dashboard.profileStats,
+                totalCreated: Math.max(0, s.dashboard.profileStats.totalCreated - 1),
+                totalCompleted: task.completed
+                  ? Math.max(0, s.dashboard.profileStats.totalCompleted - 1)
+                  : s.dashboard.profileStats.totalCompleted,
+              },
+            }
+          : s.dashboard,
     }));
 
     try {
       await tasksApi.delete(id);
     } catch {
       set({ tasks: previous, error: "Failed to delete task." });
-      // Restore today counter if we rolled back
-      if (wasActive) {
-        set((s) => ({
-          dashboard: s.dashboard
-            ? {
-                ...s.dashboard,
-                todayStats: {
-                  ...s.dashboard.todayStats,
-                  totalTasks: s.dashboard.todayStats.totalTasks + 1,
-                },
-              }
-            : null,
-        }));
-      }
+      void get().fetchDashboard();
     }
   },
 
-  // ── Complete ───────────────────────────────────────────────────────────────
-
   completeTask: async (id) => {
-    const task      = get().tasks.find((t) => t.id === id);
-    const previous  = get().tasks;
-    const prevDash  = get().dashboard;
-    const xpReward  = task?.xpReward ?? 0;
+    const task = get().tasks.find((t) => t.id === id);
+    const previous = get().tasks;
+    const prevDash = get().dashboard;
+    const xpReward = task?.xpReward ?? 0;
 
-    // 1. Optimistic: mark task done immediately
     set((s) => ({
       tasks: s.tasks.map((t) =>
         t.id === id
@@ -233,11 +243,25 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
       ),
     }));
 
-    // 2. Optimistic: update dashboard — XP, level, today stats, graph
     if (prevDash) {
+      const diff = task?.difficulty ?? "MEDIUM";
       set((s) => ({
         dashboard: s.dashboard
-          ? { ...s.dashboard, ...applyXpToDashboard(s.dashboard, xpReward) }
+          ? {
+              ...s.dashboard,
+              ...applyXpToDashboard(s.dashboard, xpReward),
+              difficultyStats: {
+                ...s.dashboard.difficultyStats,
+                [diff]: {
+                  ...s.dashboard.difficultyStats[diff],
+                  completed: s.dashboard.difficultyStats[diff].completed + 1,
+                },
+              },
+              profileStats: {
+                ...s.dashboard.profileStats,
+                totalCompleted: s.dashboard.profileStats.totalCompleted + 1,
+              },
+            }
           : null,
         xpPopup: xpReward,
       }));
@@ -253,26 +277,18 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
 
       set((s) => ({
         tasks: s.tasks.map((t) =>
-          t.id === id
-            ? confirmed ?? { ...t, completed: true }
-            : t,
+          t.id === id ? (confirmed ?? { ...t, completed: true }) : t,
         ),
-        // Prefer authoritative server dashboard; keep optimistic if not returned
         ...(dashboard ? { dashboard } : {}),
-        // Show real xpGained from server (overrides optimistic popup if it
-        // already cleared; if not yet cleared it stays)
-        xpPopup: s.xpPopup !== null ? xpGained : null,
+        xpPopup: xpGained,
       }));
     } catch {
-      // Full rollback
       set({
-        tasks:     previous,
+        tasks: previous,
         dashboard: prevDash,
-        xpPopup:   xpReward,
-        error:     "Failed to complete task.",
+        xpPopup: null,
+        error: "Failed to complete task.",
       });
     }
   },
-
-  clearXpPopup: () => set({ xpPopup: null }),
 }));

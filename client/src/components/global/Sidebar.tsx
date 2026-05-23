@@ -161,27 +161,6 @@ function SidebarBody({ onLockedDevClick }: { onLockedDevClick: () => void }) {
         ))}
       </nav>
 
-      <div className="relative z-10 mx-4 my-3 h-px bg-dash-border" />
-
-      <div className="relative z-10 px-4 pb-4">
-        <div className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2.5 transition-all duration-150 hover:bg-dash-muted-btn">
-          <div className="relative shrink-0">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full border-[1.5px] border-dash-border-med bg-gradient-to-br from-indigo-500 to-violet-500 text-xs font-bold text-white">
-              ER
-            </div>
-            <span className="absolute right-0 bottom-0 h-2 w-2 rounded-full border-[1.5px] border-dash-sidebar bg-dash-success" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[12px] font-medium text-dash-secondary font-dash-sans">
-              Ethan Reynolds
-            </p>
-            <p className="truncate text-[10px] text-dash-muted font-dash-sans">
-              ethan@kyzen.gg
-            </p>
-          </div>
-          <LogOut size={13} className="shrink-0 text-dash-faint" />
-        </div>
-      </div>
     </div>
   );
 }

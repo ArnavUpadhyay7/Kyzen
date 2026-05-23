@@ -7,13 +7,14 @@ import {
   Trophy, Loader2,
 } from "lucide-react";
 import api from "../../lib/axios";
-import ContributionGraph, { type GraphEntry } from "../../components/dashboard/DevContributionGraph";
+import ContributionGraph, { type GraphEntry } from "../../components/dashboard/ContributionGraph";
 import {
   DashboardBadge,
   DashboardButton,
   DashboardCard,
   DashboardInput,
 } from "../../components/dashboard/ui";
+import { ColorDot } from "../../components/ui/ColorDot";
 import { cn } from "../../lib/utils";
 
 const GH_USERNAME_KEY = "kyzen-gh-username";
@@ -633,7 +634,13 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
               </span>
             </div>
             <div className="px-5 py-4">
-              <ContributionGraph data={graphEntries} activityLabel="contributions" />
+              <ContributionGraph
+                data={graphEntries}
+                activityLabel="contributions"
+                levelMode="scaled"
+                totalMode="window"
+                aggregateDuplicates
+              />
             </div>
           </DashboardCard>
         </motion.div>
@@ -672,18 +679,15 @@ function IntelPanel({ data, onReset }: { data: GithubData; onReset: () => void }
                   initial={{ width: 0 }}
                   animate={{ width: `${lang.percent}%` }}
                   transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  className="h-full rounded-sm"
-                  style={{ backgroundColor: lang.color }}
+                  className="h-full rounded-sm bg-[var(--lang-color)]"
+                  style={{ "--lang-color": lang.color } as React.CSSProperties}
                 />
               ))}
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-2">
               {data.topLanguages.map((lang) => (
                 <div key={lang.name} className="flex items-center gap-1.5">
-                  <div
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: lang.color }}
-                  />
+                  <ColorDot color={lang.color} className="h-2 w-2" />
                   <span className="font-dash-sans text-[11px] font-medium text-dash-secondary">{lang.name}</span>
                   <span className="font-dash-mono text-[10px] text-dash-faint">{lang.percent}%</span>
                 </div>

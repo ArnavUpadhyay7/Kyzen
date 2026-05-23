@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;700;800;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;700;800;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@500;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
@@ -6,6 +6,7 @@
 /* ── Dashboard theme tokens (set per [data-theme]) ─────────────────────────── */
 
 [data-theme="dark"] {
+  /* Surfaces */
   --dash-page: #080c1a;
   --dash-card: rgba(10, 16, 35, 0.9);
   --dash-card-hover: rgba(14, 22, 50, 0.95);
@@ -15,35 +16,43 @@
   --dash-sidebar-border: rgba(99, 102, 241, 0.15);
   --dash-topbar: rgba(7, 11, 28, 0.96);
 
+  /* Borders */
   --dash-border: rgba(99, 102, 241, 0.15);
   --dash-border-med: rgba(99, 102, 241, 0.25);
 
+  /* Text */
   --dash-text-primary: #ffffff;
-  --dash-text-secondary: rgba(255, 255, 255, 0.8);
-  --dash-text-muted: rgba(255, 255, 255, 0.4);
-  --dash-text-faint: rgba(255, 255, 255, 0.22);
+  --dash-text-secondary: rgba(255, 255, 255, 0.85);
+  --dash-text-muted: rgba(255, 255, 255, 0.55);
+  --dash-text-faint: rgba(255, 255, 255, 0.38);
 
+  /* Controls */
   --dash-muted-btn: rgba(255, 255, 255, 0.06);
   --dash-muted-btn-hover: rgba(255, 255, 255, 0.1);
   --dash-input-bg: rgba(255, 255, 255, 0.04);
   --dash-input-border: rgba(255, 255, 255, 0.08);
 
+  /* Brand */
   --dash-accent: #6366f1;
   --dash-accent-soft: rgba(99, 102, 241, 0.15);
   --dash-accent-border: rgba(129, 140, 248, 0.3);
   --dash-violet: #818cf8;
+  --dash-accent-glow: 0 0 12px color-mix(in srgb, var(--dash-accent) 33%, transparent);
 
+  /* Semantic */
   --dash-success: #4ade80;
   --dash-warning: #facc15;
   --dash-danger: #f87171;
   --dash-orange: #f97316;
 
+  /* Nav */
   --dash-nav-active-bg: rgba(99, 102, 241, 0.18);
   --dash-nav-active-text: #ffffff;
   --dash-nav-active-icon: #818cf8;
   --dash-nav-active-border: rgba(99, 102, 241, 0.25);
   --dash-nav-badge-bg: rgba(129, 140, 248, 0.25);
 
+  /* Graph */
   --dash-graph-empty: rgba(255, 255, 255, 0.05);
   --dash-graph-l1: rgba(59, 130, 246, 0.3);
   --dash-graph-l2: rgba(99, 102, 241, 0.55);
@@ -52,55 +61,102 @@
   --dash-graph-label: rgba(255, 255, 255, 0.28);
   --dash-graph-day-label: rgba(255, 255, 255, 0.22);
   --dash-contrib-text: rgba(255, 255, 255, 0.4);
+
+  /* Elevation & overlays */
+  --dash-shadow-card: none;
+  --dash-shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.45);
+  --dash-overlay: rgba(0, 0, 0, 0.7);
+  --dash-hero-grid-opacity: 0.3;
+  --dash-hero-accent-mix: 12%;
+  --dash-hero-violet-mix: 8%;
 }
 
 [data-theme="light"] {
-  --dash-page: #f0f0f5;
-  --dash-card: #ffffff;
-  --dash-card-hover: #f8f8fc;
-  --dash-card-alt: rgba(0, 0, 0, 0.03);
-  --dash-modal: #ffffff;
-  --dash-sidebar: #fafafa;
-  --dash-sidebar-border: rgba(0, 0, 0, 0.08);
-  --dash-topbar: rgba(250, 250, 250, 0.96);
+  /* Surfaces — warm paper, low glare */
+  --dash-page: #e8ebf3;
+  --dash-card: #f4f5fa;
+  --dash-card-hover: #f9fafd;
+  --dash-card-alt: rgba(99, 102, 241, 0.045);
+  --dash-modal: #f6f7fb;
+  --dash-sidebar: #eceef5;
+  --dash-sidebar-border: rgba(99, 102, 241, 0.09);
+  --dash-topbar: rgba(236, 238, 245, 0.94);
 
-  --dash-border: rgba(0, 0, 0, 0.08);
-  --dash-border-med: rgba(0, 0, 0, 0.13);
+  /* Borders — indigo-tinted, not harsh gray */
+  --dash-border: rgba(99, 102, 241, 0.1);
+  --dash-border-med: rgba(99, 102, 241, 0.15);
 
-  --dash-text-primary: #0d0d10;
-  --dash-text-secondary: #444450;
-  --dash-text-muted: #88889a;
-  --dash-text-faint: #bbbbcc;
+  /* Text — readable contrast on soft surfaces */
+  --dash-text-primary: #2f3448;
+  --dash-text-secondary: #4a5068;
+  --dash-text-muted: #6b7289;
+  --dash-text-faint: #949bb3;
 
-  --dash-muted-btn: rgba(0, 0, 0, 0.06);
-  --dash-muted-btn-hover: rgba(0, 0, 0, 0.1);
-  --dash-input-bg: rgba(0, 0, 0, 0.04);
-  --dash-input-border: rgba(0, 0, 0, 0.1);
+  /* Controls */
+  --dash-muted-btn: rgba(99, 102, 241, 0.07);
+  --dash-muted-btn-hover: rgba(99, 102, 241, 0.11);
+  --dash-input-bg: rgba(255, 255, 255, 0.75);
+  --dash-input-border: rgba(99, 102, 241, 0.11);
 
-  --dash-accent: #6366f1;
-  --dash-accent-soft: rgba(99, 102, 241, 0.12);
-  --dash-accent-border: rgba(99, 102, 241, 0.3);
-  --dash-violet: #818cf8;
+  /* Brand — slightly desaturated */
+  --dash-accent: #5c61d4;
+  --dash-accent-soft: rgba(92, 97, 212, 0.11);
+  --dash-accent-border: rgba(92, 97, 212, 0.2);
+  --dash-violet: #6d72de;
+  --dash-accent-glow: 0 2px 12px rgba(92, 97, 212, 0.16);
 
-  --dash-success: #16a34a;
-  --dash-warning: #ca8a04;
-  --dash-danger: #dc2626;
-  --dash-orange: #ea580c;
+  /* Semantic — muted, not neon */
+  --dash-success: #3d9a6a;
+  --dash-warning: #b8860b;
+  --dash-danger: #c45c5c;
+  --dash-orange: #c76d3a;
 
-  --dash-nav-active-bg: rgba(99, 102, 241, 0.12);
-  --dash-nav-active-text: #0d0d10;
-  --dash-nav-active-icon: #6366f1;
-  --dash-nav-active-border: rgba(99, 102, 241, 0.25);
-  --dash-nav-badge-bg: rgba(99, 102, 241, 0.2);
+  /* Nav */
+  --dash-nav-active-bg: rgba(92, 97, 212, 0.1);
+  --dash-nav-active-text: #434861;
+  --dash-nav-active-icon: #5c61d4;
+  --dash-nav-active-border: rgba(92, 97, 212, 0.18);
+  --dash-nav-badge-bg: rgba(92, 97, 212, 0.14);
 
-  --dash-graph-empty: rgba(0, 0, 0, 0.07);
-  --dash-graph-l1: rgba(99, 102, 241, 0.2);
-  --dash-graph-l2: rgba(99, 102, 241, 0.4);
-  --dash-graph-l3: rgba(99, 102, 241, 0.62);
-  --dash-graph-l4: #6366f1;
-  --dash-graph-label: #aaaaaa;
-  --dash-graph-day-label: #bbbbbb;
-  --dash-contrib-text: #666666;
+  /* Graph — pastel lavender */
+  --dash-graph-empty: rgba(92, 97, 212, 0.07);
+  --dash-graph-l1: rgba(92, 97, 212, 0.16);
+  --dash-graph-l2: rgba(92, 97, 212, 0.28);
+  --dash-graph-l3: rgba(92, 97, 212, 0.42);
+  --dash-graph-l4: #6d72de;
+  --dash-graph-label: #9aa1b5;
+  --dash-graph-day-label: #b0b6c8;
+  --dash-contrib-text: #6e758c;
+
+  /* Elevation & overlays */
+  --dash-shadow-card: 0 1px 2px rgba(48, 56, 88, 0.04), 0 6px 20px rgba(48, 56, 88, 0.05);
+  --dash-shadow-modal: 0 16px 48px rgba(48, 56, 88, 0.1);
+  --dash-overlay: rgba(56, 61, 82, 0.28);
+  --dash-hero-grid-opacity: 0.16;
+  --dash-hero-accent-mix: 7%;
+  --dash-hero-violet-mix: 4%;
+}
+
+/* Theme-aware scrollbars (dashboard) */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #02040a;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(77, 124, 255, 0.38);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: var(--dash-page);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(92, 97, 212, 0.22);
+  border-radius: 2px;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(92, 97, 212, 0.32);
 }
 
 /* ── Landing theme tokens (always dark) ───────────────────────────────────── */
@@ -243,6 +299,11 @@
   --color-dash-graph-day-label: var(--dash-graph-day-label);
   --color-dash-contrib-text: var(--dash-contrib-text);
 
+  --color-dash-overlay: var(--dash-overlay);
+
+  --shadow-dash-card: var(--dash-shadow-card);
+  --shadow-dash-modal: var(--dash-shadow-modal);
+
   --font-dash-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-dash-mono: "DM Mono", ui-monospace, monospace;
 
@@ -364,10 +425,9 @@ html { scroll-behavior: auto; }
 /* ── Selection ──────────────────────────────────────────────────────────── */
 ::selection { background: rgba(77,124,255,0.28); }
 
-/* ── Scrollbar ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar       { width: 4px; }
-::-webkit-scrollbar-track { background: #02040A; }
-::-webkit-scrollbar-thumb { background: rgba(77,124,255,0.38); border-radius: 2px; }
+/* ── Scrollbar (width; colors per [data-theme] above) ───────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { border-radius: 2px; }
 
 /* ── Spotlight keyframe (MUST be global) ────────────────────────────────── */
 @keyframes spotlight {

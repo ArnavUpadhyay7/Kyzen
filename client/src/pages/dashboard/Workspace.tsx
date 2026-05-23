@@ -14,18 +14,17 @@ export default function KyzenWorkspace() {
   const [activeTab, setActiveTab] = useState<WorkspaceTabId>("battlelog");
 
   return (
-    <div className="min-h-full w-full p-4 md:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-dash-accent-border bg-dash-accent-soft text-base">
+    <div className="flex min-h-full w-full flex-col">
+      {/* Page header — matches dashboard header style */}
+      <div className="border-b border-dash-border bg-dash-surface px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-dash-accent-border bg-dash-accent-soft text-sm">
               🧠
             </div>
             <div>
-              <h1 className="bg-gradient-to-br from-dash-primary to-dash-violet bg-clip-text text-base font-bold text-transparent font-dash-sans">
-                Workspace
-              </h1>
-              <p className="font-dash-mono text-[11px] tracking-wide text-dash-faint">
+              <h1 className="text-sm font-semibold text-dash-primary font-dash-sans">Workspace</h1>
+              <p className="font-dash-mono text-[10px] tracking-widest text-dash-faint uppercase">
                 Think · Plan · Remember
               </p>
             </div>
@@ -40,27 +39,31 @@ export default function KyzenWorkspace() {
               })}
             </span>
           </div>
-        </header>
+        </div>
 
-        <nav className="mb-7 inline-flex flex-wrap gap-0.5 rounded-xl border border-dash-border bg-dash-card-alt p-1">
+        {/* Tab nav — sits inside the header bar, flush below title */}
+        <nav className="mt-4 flex items-center gap-0.5">
           {WORKSPACE_TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-dash-mono text-xs font-semibold tracking-wide transition-all",
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-dash-mono text-[11px] font-semibold tracking-wide transition-all",
                 activeTab === tab.id
-                  ? "border border-dash-accent-border bg-dash-accent-soft text-dash-violet shadow-md shadow-dash-accent/10"
-                  : "border border-transparent text-dash-muted hover:text-dash-secondary",
+                  ? "border border-dash-accent-border bg-dash-accent-soft text-dash-violet"
+                  : "border border-transparent text-dash-muted hover:bg-dash-card-alt hover:text-dash-secondary",
               )}
             >
-              <span className="text-[13px]">{tab.icon}</span>
+              <span className="text-[12px]">{tab.icon}</span>
               {tab.label}
             </button>
           ))}
         </nav>
+      </div>
 
+      {/* Tab content — full width, consistent padding */}
+      <div className="flex-1 p-6">
         {activeTab === "battlelog" && <BattleLogTab />}
         {activeTab === "ideavault" && <IdeaVaultTab />}
         {activeTab === "projects" && <ProjectPlannerTab />}

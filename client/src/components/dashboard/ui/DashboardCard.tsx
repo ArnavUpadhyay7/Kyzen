@@ -17,7 +17,7 @@ export function DashboardCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-dash-border transition-colors duration-200",
+        "rounded-xl border border-dash-border shadow-dash-card transition-colors duration-200",
         alt ? "bg-dash-card-alt" : "bg-dash-card",
         hover && "hover:bg-dash-card-hover",
         className,

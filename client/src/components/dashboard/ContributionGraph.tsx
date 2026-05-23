@@ -1,16 +1,29 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTheme, getDashCssVar } from "../../state/theme/ThemeContext";
+import { FixedTooltip } from "../ui/FixedTooltip";
 import { cn } from "../../lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface GraphEntry {
+export interface GraphEntry {
   date: string;
   count: number;
 }
 
+export type ContributionLevelMode = "fixed" | "scaled";
+export type ContributionTotalMode = "all" | "window";
+
 export interface ContributionGraphProps {
   data: GraphEntry[];
+  /** Label for summary line and tooltip (e.g. "tasks completed", "contributions"). */
+  activityLabel?: string;
+  year?: number;
+  /** Fixed thresholds (home) vs scaled to max count (dev). */
+  levelMode?: ContributionLevelMode;
+  /** Sum all data vs only cells in the visible 53-week window. */
+  totalMode?: ContributionTotalMode;
+  /** Sum duplicate dates instead of last-wins. */
+  aggregateDuplicates?: boolean;
 }
 
 interface TooltipState {
@@ -55,11 +68,21 @@ function localIso(d: Date): string {
   return `${y}-${m}-${dd}`;
 }
 
-function levelOf(count: number): number {
+function fixedLevel(count: number): number {
   if (count === 0) return 0;
   if (count < 2) return 1;
   if (count < 4) return 2;
   if (count < 6) return 3;
+  return 4;
+}
+
+function scaledLevel(count: number, max: number): number {
+  if (count <= 0 || max === 0) return 0;
+  const scale = max < 20 ? 20 / max : 1;
+  const scaled = count * scale;
+  if (scaled < 4) return 1;
+  if (scaled < 10) return 2;
+  if (scaled < 20) return 3;
   return 4;
 }
 
@@ -71,6 +94,27 @@ function formatDate(iso: string): string {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function buildLookup(
+  data: GraphEntry[],
+  aggregateDuplicates: boolean,
+): { lookup: Record<string, number>; maxCount: number } {
+  const lookup: Record<string, number> = {};
+  let maxCount = 0;
+
+  for (const entry of data) {
+    if (!entry.date) continue;
+    const safe = Math.max(0, Number(entry.count) || 0);
+    if (aggregateDuplicates) {
+      lookup[entry.date] = (lookup[entry.date] ?? 0) + safe;
+    } else {
+      lookup[entry.date] = safe;
+    }
+    if (lookup[entry.date] > maxCount) maxCount = lookup[entry.date];
+  }
+
+  return { lookup, maxCount };
 }
 
 function useGraphPalette() {
@@ -87,18 +131,31 @@ function useGraphPalette() {
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
-function Tooltip({ state }: { state: TooltipState }) {
+function Tooltip({
+  state,
+  activityLabel,
+}: {
+  state: TooltipState;
+  activityLabel: string;
+}) {
   if (!state.visible || !state.date) return null;
+
+  const unit =
+    activityLabel === "tasks completed"
+      ? `task${state.count !== 1 ? "s" : ""} completed`
+      : activityLabel;
+
   return (
-    <div
+    <FixedTooltip
+      x={state.x}
+      y={state.y}
       className={cn(
-        "fixed z-[9999] pointer-events-none min-w-[160px] -translate-x-1/2",
-        "-translate-y-[calc(100%+10px)] rounded-[10px] border border-dash-accent-border/20",
+        "min-w-[160px] -translate-x-1/2 -translate-y-[calc(100%+10px)]",
+        "rounded-[10px] border border-dash-accent-border/20",
         "bg-dash-modal/95 px-[11px] py-2 shadow-2xl backdrop-blur-2xl",
         "transition-opacity duration-75",
         state.visible ? "opacity-100" : "opacity-0",
       )}
-      style={{ left: state.x, top: state.y }}
     >
       <p className="mb-1.5 font-dash-mono text-[10px] tracking-wide text-dash-faint">
         {formatDate(state.date)}
@@ -110,18 +167,23 @@ function Tooltip({ state }: { state: TooltipState }) {
           <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-md border border-dash-accent-border/30 bg-dash-accent-soft font-dash-mono text-[11px] font-bold text-dash-violet">
             {state.count}
           </span>
-          <span className="font-dash-mono text-xs text-dash-secondary">
-            task{state.count !== 1 ? "s" : ""} completed
-          </span>
+          <span className="font-dash-mono text-xs text-dash-secondary">{unit}</span>
         </div>
       )}
-    </div>
+    </FixedTooltip>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ContributionGraph({ data }: ContributionGraphProps) {
+export default function ContributionGraph({
+  data,
+  activityLabel = "tasks completed",
+  year,
+  levelMode = "fixed",
+  totalMode = "all",
+  aggregateDuplicates = false,
+}: ContributionGraphProps) {
   const { fills, label, dayLabel } = useGraphPalette();
 
   const [tooltip, setTooltip] = useState<TooltipState>({
@@ -132,18 +194,26 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
     count: 0,
   });
 
-  const lookup: Record<string, number> = {};
-  data.forEach((d) => {
-    lookup[d.date] = d.count;
-  });
+  const { lookup, maxCount } = useMemo(
+    () => buildLookup(data, aggregateDuplicates),
+    [data, aggregateDuplicates],
+  );
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const todayIso = localIso(today);
   const dayOfWeek = today.getDay();
 
   const startSunday = new Date(today);
   startSunday.setDate(today.getDate() - dayOfWeek - 52 * 7);
+  const windowStartIso = localIso(startSunday);
+
+  const levelFor = useCallback(
+    (count: number) =>
+      levelMode === "scaled" ? scaledLevel(count, maxCount) : fixedLevel(count),
+    [levelMode, maxCount],
+  );
 
   type Cell = { iso: string; count: number; level: number; empty: boolean };
   const weeks: Cell[][] = [];
@@ -159,7 +229,7 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
       } else {
         const iso = localIso(date);
         const count = lookup[iso] ?? 0;
-        week.push({ iso, count, level: levelOf(count), empty: false });
+        week.push({ iso, count, level: levelFor(count), empty: false });
       }
     }
     weeks.push(week);
@@ -167,35 +237,49 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
 
   const monthMap = new Map<number, { label: string; weekIdx: number }>();
 
-  weeks.forEach((week, wi) => {
-    const firstReal = week.find((c) => !c.empty);
-    if (!firstReal) return;
+  for (let wi = 0; wi < weeks.length; wi++) {
+    const firstReal = weeks[wi].find((c) => !c.empty);
+    if (!firstReal) continue;
 
-    const [y, m] = firstReal.iso.split("-").map(Number);
-    const day = Number(firstReal.iso.split("-")[2]);
+    const parts = firstReal.iso.split("-");
+    const y = Number(parts[0]);
+    const m = Number(parts[1]);
+    const day = Number(parts[2]);
     const key = y * 12 + (m - 1);
 
     if (day <= 7 && !monthMap.has(key)) {
       const monthLabel = new Date(y, m - 1, 1).toLocaleString("en-US", { month: "short" });
       monthMap.set(key, { label: monthLabel, weekIdx: wi });
     }
-  });
+  }
 
   const monthLabels = Array.from(monthMap.entries())
     .sort(([a], [b]) => a - b)
     .map(([, v]) => v);
 
+  const totalCount = useMemo(() => {
+    if (totalMode === "all") {
+      return data.reduce((s, d) => s + Math.max(0, Number(d.count) || 0), 0);
+    }
+    let sum = 0;
+    for (const entry of data) {
+      if (!entry.date) continue;
+      if (entry.date >= windowStartIso && entry.date <= todayIso) {
+        sum += Math.max(0, Number(entry.count) || 0);
+      }
+    }
+    return sum;
+  }, [data, totalMode, windowStartIso, todayIso]);
+
   const svgW = DAY_LABEL_W + TOTAL_WEEKS * STEP;
   const svgH = MONTH_ROW_H + 7 * STEP;
-
-  const totalTasks = data.reduce((s, d) => s + d.count, 0);
-  const currentYear = today.getFullYear();
+  const displayYear = year ?? today.getFullYear();
 
   const DAY_ROW_LABELS = [
     { row: 1, label: "Mon" },
     { row: 3, label: "Wed" },
     { row: 5, label: "Fri" },
-  ];
+  ] as const;
 
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<SVGRectElement>, iso: string, count: number) => {
@@ -217,21 +301,19 @@ export default function ContributionGraph({ data }: ContributionGraphProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <Tooltip state={tooltip} />
+      <Tooltip state={tooltip} activityLabel={activityLabel} />
 
       <div className="flex items-center justify-between">
         <p className="font-dash-sans text-[12px] text-dash-contrib-text">
-          <span className="font-semibold text-dash-primary">{totalTasks}</span>{" "}
-          tasks completed in {currentYear}
+          <span className="font-semibold text-dash-primary">
+            {totalCount.toLocaleString()}
+          </span>{" "}
+          {activityLabel} in {displayYear}
         </p>
       </div>
 
       <div className="overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
-        <svg
-          width={svgW}
-          height={svgH}
-          className="block font-dash-mono"
-        >
+        <svg width={svgW} height={svgH} className="block font-dash-mono">
           {monthLabels.map(({ label: monthLabel, weekIdx }) => (
             <text
               key={`${monthLabel}-${weekIdx}`}

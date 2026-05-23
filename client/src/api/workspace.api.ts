@@ -1,4 +1,5 @@
 import api from "../lib/axios";
+import type { RawDashboard } from "./dashboard.api";
 
 export type Mood =
   | "LOCKED_IN"
@@ -114,6 +115,24 @@ export interface NotePayload {
   isCode?: boolean;
 }
 
+export interface WorkspaceCreateResponse<T> {
+  item: T;
+  xpGained: number;
+  dashboard?: RawDashboard;
+}
+
+interface BattleLogCreateResponse {
+  log: BattleLog;
+  xpGained: number;
+  dashboard?: RawDashboard;
+}
+
+interface BattleLogUpdateResponse {
+  log: BattleLog;
+  xpGained: number;
+  dashboard?: RawDashboard;
+}
+
 export const workspaceApi = {
   battleLogs: {
     getAll: async (): Promise<BattleLog[]> => {
@@ -124,12 +143,18 @@ export const workspaceApi = {
       const res = await api.get<{ log: BattleLog | null }>("/workspace/battle-logs/today");
       return res.data.log;
     },
-    create: async (payload: BattleLogPayload) => {
-      const res = await api.post<{ log: BattleLog }>("/workspace/battle-logs", payload);
+    create: async (payload: BattleLogPayload): Promise<BattleLogCreateResponse> => {
+      const res = await api.post<BattleLogCreateResponse>("/workspace/battle-logs", payload);
       return res.data;
     },
-    update: async (id: string, payload: BattleLogPayload) => {
-      const res = await api.patch<{ log: BattleLog }>(`/workspace/battle-logs/${id}`, payload);
+    update: async (
+      id: string,
+      payload: BattleLogPayload,
+    ): Promise<BattleLogUpdateResponse> => {
+      const res = await api.patch<BattleLogUpdateResponse>(
+        `/workspace/battle-logs/${id}`,
+        payload,
+      );
       return res.data;
     },
     delete: async (id: string) => {
@@ -142,9 +167,17 @@ export const workspaceApi = {
       const res = await api.get<{ ideas: WorkspaceIdea[] }>("/workspace/ideas");
       return res.data.ideas;
     },
-    create: async (payload: IdeaPayload) => {
-      const res = await api.post<{ idea: WorkspaceIdea }>("/workspace/ideas", payload);
-      return res.data.idea;
+    create: async (payload: IdeaPayload): Promise<WorkspaceCreateResponse<WorkspaceIdea>> => {
+      const res = await api.post<{
+        idea: WorkspaceIdea;
+        xpGained: number;
+        dashboard?: RawDashboard;
+      }>("/workspace/ideas", payload);
+      return {
+        item: res.data.idea,
+        xpGained: res.data.xpGained,
+        dashboard: res.data.dashboard,
+      };
     },
     update: async (id: string, payload: Partial<IdeaPayload>) => {
       const res = await api.patch<{ idea: WorkspaceIdea }>(`/workspace/ideas/${id}`, payload);
@@ -160,12 +193,25 @@ export const workspaceApi = {
       const res = await api.get<{ projects: WorkspaceProject[] }>("/workspace/projects");
       return res.data.projects;
     },
-    create: async (payload: ProjectPayload) => {
-      const res = await api.post<{ project: WorkspaceProject }>("/workspace/projects", payload);
-      return res.data.project;
+    create: async (
+      payload: ProjectPayload,
+    ): Promise<WorkspaceCreateResponse<WorkspaceProject>> => {
+      const res = await api.post<{
+        project: WorkspaceProject;
+        xpGained: number;
+        dashboard?: RawDashboard;
+      }>("/workspace/projects", payload);
+      return {
+        item: res.data.project,
+        xpGained: res.data.xpGained,
+        dashboard: res.data.dashboard,
+      };
     },
     update: async (id: string, payload: Partial<ProjectPayload>) => {
-      const res = await api.patch<{ project: WorkspaceProject }>(`/workspace/projects/${id}`, payload);
+      const res = await api.patch<{ project: WorkspaceProject }>(
+        `/workspace/projects/${id}`,
+        payload,
+      );
       return res.data.project;
     },
     delete: async (id: string) => {
@@ -175,15 +221,30 @@ export const workspaceApi = {
 
   inspirations: {
     getAll: async (): Promise<WorkspaceInspiration[]> => {
-      const res = await api.get<{ inspirations: WorkspaceInspiration[] }>("/workspace/inspirations");
+      const res = await api.get<{ inspirations: WorkspaceInspiration[] }>(
+        "/workspace/inspirations",
+      );
       return res.data.inspirations;
     },
-    create: async (payload: InspirationPayload) => {
-      const res = await api.post<{ inspiration: WorkspaceInspiration }>("/workspace/inspirations", payload);
-      return res.data.inspiration;
+    create: async (
+      payload: InspirationPayload,
+    ): Promise<WorkspaceCreateResponse<WorkspaceInspiration>> => {
+      const res = await api.post<{
+        inspiration: WorkspaceInspiration;
+        xpGained: number;
+        dashboard?: RawDashboard;
+      }>("/workspace/inspirations", payload);
+      return {
+        item: res.data.inspiration,
+        xpGained: res.data.xpGained,
+        dashboard: res.data.dashboard,
+      };
     },
     update: async (id: string, payload: Partial<InspirationPayload>) => {
-      const res = await api.patch<{ inspiration: WorkspaceInspiration }>(`/workspace/inspirations/${id}`, payload);
+      const res = await api.patch<{ inspiration: WorkspaceInspiration }>(
+        `/workspace/inspirations/${id}`,
+        payload,
+      );
       return res.data.inspiration;
     },
     delete: async (id: string) => {
@@ -196,9 +257,17 @@ export const workspaceApi = {
       const res = await api.get<{ notes: WorkspaceNote[] }>("/workspace/notes");
       return res.data.notes;
     },
-    create: async (payload: NotePayload) => {
-      const res = await api.post<{ note: WorkspaceNote }>("/workspace/notes", payload);
-      return res.data.note;
+    create: async (payload: NotePayload): Promise<WorkspaceCreateResponse<WorkspaceNote>> => {
+      const res = await api.post<{
+        note: WorkspaceNote;
+        xpGained: number;
+        dashboard?: RawDashboard;
+      }>("/workspace/notes", payload);
+      return {
+        item: res.data.note,
+        xpGained: res.data.xpGained,
+        dashboard: res.data.dashboard,
+      };
     },
     update: async (id: string, payload: Partial<NotePayload>) => {
       const res = await api.patch<{ note: WorkspaceNote }>(`/workspace/notes/${id}`, payload);

@@ -28,33 +28,33 @@ export const MOODS: {
     value: "LOCKED_IN",
     label: "Locked In",
     emoji: "⚡",
-    pillClass: "text-violet-400 bg-violet-500/10 border-violet-500/30",
-    buttonClass: "bg-violet-500/10 text-violet-400 border-violet-500/40",
-    barClass: "bg-violet-400/60",
+    pillClass: "text-dash-violet bg-dash-accent-soft border-dash-accent-border",
+    buttonClass: "bg-dash-accent-soft text-dash-violet border-dash-accent-border",
+    barClass: "bg-dash-violet/60",
   },
   {
     value: "GOOD",
     label: "Good",
     emoji: "✦",
-    pillClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
-    buttonClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/40",
-    barClass: "bg-emerald-400/60",
+    pillClass: "text-dash-success bg-dash-success/10 border-dash-success/30",
+    buttonClass: "bg-dash-success/10 text-dash-success border-dash-success/40",
+    barClass: "bg-dash-success/60",
   },
   {
     value: "TIRED",
     label: "Tired",
     emoji: "◉",
-    pillClass: "text-amber-400 bg-amber-500/10 border-amber-500/30",
-    buttonClass: "bg-amber-500/10 text-amber-400 border-amber-500/40",
-    barClass: "bg-amber-400/60",
+    pillClass: "text-dash-warning bg-dash-warning/10 border-dash-warning/30",
+    buttonClass: "bg-dash-warning/10 text-dash-warning border-dash-warning/40",
+    barClass: "bg-dash-warning/60",
   },
   {
     value: "BURNED_OUT",
     label: "Burned Out",
     emoji: "◈",
-    pillClass: "text-red-400 bg-red-500/10 border-red-500/30",
-    buttonClass: "bg-red-500/10 text-red-400 border-red-500/40",
-    barClass: "bg-red-400/60",
+    pillClass: "text-dash-danger bg-dash-danger/10 border-dash-danger/30",
+    buttonClass: "bg-dash-danger/10 text-dash-danger border-dash-danger/40",
+    barClass: "bg-dash-danger/60",
   },
   {
     value: "DISTRACTED",
@@ -76,8 +76,8 @@ export const IDEA_CATEGORY_LABELS: Record<IdeaCategory, string> = {
 };
 
 export const IDEA_CATEGORY_COLORS: Record<IdeaCategory, string> = {
-  PROJECT: "text-violet-400",
-  STARTUP: "text-emerald-400",
+  PROJECT: "text-dash-violet",
+  STARTUP: "text-dash-success",
   TOOL: "text-blue-400",
   EXPERIMENT: "text-pink-400",
 };
@@ -90,10 +90,10 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
 };
 
 export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
-  PLANNING: "text-amber-400 bg-amber-500/10 border-amber-500/30",
-  BUILDING: "text-violet-400 bg-violet-500/10 border-violet-500/30",
-  SHIPPING: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
-  PAUSED: "text-white/40 bg-white/5 border-white/10",
+  PLANNING: "text-dash-warning bg-dash-warning/10 border-dash-warning/30",
+  BUILDING: "text-dash-violet bg-dash-accent-soft border-dash-accent-border",
+  SHIPPING: "text-dash-success bg-dash-success/10 border-dash-success/30",
+  PAUSED: "text-dash-faint bg-dash-muted-btn border-dash-border",
 };
 
 export const INSPIRATION_TYPES: (InspirationType | "All")[] = [
@@ -105,19 +105,19 @@ export const INSPIRATION_TYPES: (InspirationType | "All")[] = [
 ];
 
 export const INSPIRATION_TYPE_COLORS: Record<InspirationType, string> = {
-  UI: "text-violet-400",
+  UI: "text-dash-violet",
   REPO: "text-blue-400",
-  DESIGN: "text-emerald-400",
+  DESIGN: "text-dash-success",
   CONCEPT: "text-pink-400",
 };
 
 export const INSPIRATION_GRADIENTS = [
-  "from-[#12052e] via-[#2d1b69] to-[#0f2a1a]",
-  "from-[#06122a] via-[#1a3a5f] to-[#0a1f2e]",
-  "from-[#0a1520] via-[#1a3a4a] to-[#061a10]",
-  "from-[#180924] via-[#3d1d5c] to-[#120824]",
-  "from-[#16160a] via-[#3a3205] to-[#16160a]",
-  "from-[#180808] via-[#3a0d0d] to-[#180808]",
+  "from-dash-card via-indigo-950 to-dash-page",
+  "from-dash-sidebar via-slate-900 to-dash-page",
+  "from-slate-900 via-slate-800 to-dash-page",
+  "from-violet-950 via-purple-950 to-dash-page",
+  "from-amber-950/40 via-dash-card to-dash-page",
+  "from-red-950/40 via-dash-card to-dash-page",
 ];
 
 export const NOTE_CATEGORIES: (NoteCategory | "All")[] = [
@@ -136,10 +136,10 @@ export const NOTE_CATEGORY_LABELS: Record<NoteCategory, string> = {
 };
 
 export const NOTE_CATEGORY_COLORS: Record<NoteCategory, string> = {
-  DSA: "text-violet-400",
+  DSA: "text-dash-violet",
   COMMAND: "text-blue-400",
-  INTERVIEW: "text-emerald-400",
-  LEARNING: "text-amber-400",
+  INTERVIEW: "text-dash-success",
+  LEARNING: "text-dash-warning",
 };
 
 export const BATTLE_LOG_FIELDS = [
@@ -149,8 +149,8 @@ export const BATTLE_LOG_FIELDS = [
     label: "Main thing completed today",
     placeholder: "Built auth flow · Solved 5 LC · Applied to 10 jobs…",
     rows: 2,
-    accentClass: "focus:border-orange-500/50 focus:ring-orange-500/10",
-    labelClass: "group-focus-within:text-orange-400",
+    accentClass: "focus:border-dash-orange/50 focus:ring-dash-orange/10",
+    labelClass: "group-focus-within:text-dash-orange",
   },
   {
     key: "win" as const,
@@ -158,8 +158,8 @@ export const BATTLE_LOG_FIELDS = [
     label: "Biggest win",
     placeholder: "First recruiter reply · Solved a Hard…",
     rows: 1,
-    accentClass: "focus:border-amber-500/50 focus:ring-amber-500/10",
-    labelClass: "group-focus-within:text-amber-400",
+    accentClass: "focus:border-dash-warning/50 focus:ring-dash-warning/10",
+    labelClass: "group-focus-within:text-dash-warning",
   },
   {
     key: "learned" as const,
@@ -167,8 +167,8 @@ export const BATTLE_LOG_FIELDS = [
     label: "What did you learn?",
     placeholder: "New concept, pattern, debugging trick…",
     rows: 2,
-    accentClass: "focus:border-violet-500/50 focus:ring-violet-500/10",
-    labelClass: "group-focus-within:text-violet-400",
+    accentClass: "focus:border-dash-accent-border focus:ring-dash-accent-soft",
+    labelClass: "group-focus-within:text-dash-violet",
   },
   {
     key: "bug" as const,
@@ -176,8 +176,8 @@ export const BATTLE_LOG_FIELDS = [
     label: "Bug defeated",
     placeholder: "Problem → Cause → Fix",
     rows: 2,
-    accentClass: "focus:border-red-500/50 focus:ring-red-500/10",
-    labelClass: "group-focus-within:text-red-400",
+    accentClass: "focus:border-dash-danger/50 focus:ring-dash-danger/10",
+    labelClass: "group-focus-within:text-dash-danger",
   },
   {
     key: "tomorrow" as const,
@@ -185,8 +185,8 @@ export const BATTLE_LOG_FIELDS = [
     label: "Tomorrow's focus",
     placeholder: "The single most important thing to do tomorrow…",
     rows: 1,
-    accentClass: "focus:border-violet-300/50 focus:ring-violet-300/10",
-    labelClass: "group-focus-within:text-violet-300",
+    accentClass: "focus:border-dash-violet/50 focus:ring-dash-accent-soft",
+    labelClass: "group-focus-within:text-dash-violet",
   },
 ];
 

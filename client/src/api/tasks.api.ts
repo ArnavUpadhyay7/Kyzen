@@ -25,8 +25,8 @@ export interface CompleteTaskResult {
 interface RawTask {
   id: string;
   title: string;
-  difficulty: string; // intentionally loose — normalized in mapTask
-  status: "ACTIVE" | "COMPLETED";
+  difficulty: string;
+  status: "PENDING" | "COMPLETED" | "MISSED";
   completedAt?: string | null;
   xpReward?: number;
   createdAt: string;
@@ -41,9 +41,10 @@ interface RawCompleteTaskResponse {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Matches server `utils/xp.ts` */
 export const XP_MAP: Record<Difficulty, number> = {
-  EASY: 30,
-  MEDIUM: 60,
+  EASY: 25,
+  MEDIUM: 50,
   HARD: 100,
 };
 

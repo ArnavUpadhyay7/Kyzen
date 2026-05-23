@@ -12,7 +12,7 @@ export interface DashboardButtonProps extends ButtonHTMLAttributes<HTMLButtonEle
 
 const variantClasses: Record<DashboardButtonVariant, string> = {
   primary:
-    "bg-dash-accent text-white border border-dash-accent hover:brightness-110 shadow-[0_0_12px_color-mix(in_srgb,var(--dash-accent)_33%,transparent)]",
+    "bg-dash-accent text-white border border-dash-accent hover:brightness-110 shadow-[var(--dash-accent-glow)]",
   muted:
     "bg-dash-muted-btn text-dash-secondary border border-dash-border hover:bg-dash-muted-btn-hover",
   ghost:
