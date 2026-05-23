@@ -36,6 +36,74 @@ const EMPTY_FORM: IdeaForm = {
   tags: "",
 };
 
+function IdeaCard({
+  idea,
+  onEdit,
+  onDelete,
+}: {
+  idea: WorkspaceIdea;
+  onEdit: (idea: WorkspaceIdea) => void;
+  onDelete: (id: string) => void;
+}) {
+  const colorClass = IDEA_CATEGORY_COLORS[idea.category];
+
+  return (
+    <WorkspaceCard className="flex flex-col gap-3 p-4">
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-2">
+        <Pill
+          label={IDEA_CATEGORY_LABELS[idea.category]}
+          className={`${colorClass} border-current/30 bg-current/10`}
+          small
+        />
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onEdit(idea)}
+            className="rounded-md border border-dash-border bg-dash-card-alt px-2 py-0.5 font-dash-mono text-[10px] text-dash-muted transition-colors hover:border-dash-accent-border hover:text-dash-violet"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(idea.id)}
+            className="rounded-md border border-dash-danger/20 bg-dash-danger/10 px-2 py-0.5 font-dash-mono text-[10px] text-dash-danger transition-colors hover:bg-dash-danger/20"
+          >
+            Del
+          </button>
+        </div>
+      </div>
+
+      {/* Title */}
+      <h3 className={`text-[13px] font-semibold leading-snug ${colorClass}`}>{idea.title}</h3>
+
+      {/* Problem */}
+      {idea.problem && (
+        <p className="text-[12.5px] leading-relaxed text-dash-muted">{idea.problem}</p>
+      )}
+
+      {/* Tags */}
+      {idea.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {idea.tags.map((tag) => (
+            <Pill
+              key={tag}
+              label={tag}
+              className={`${colorClass} border-current/30 bg-current/10`}
+              small
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Footer */}
+      <p className="mt-auto font-dash-mono text-[10px] text-dash-faint">
+        🕐 {formatRelativeTime(idea.createdAt)}
+      </p>
+    </WorkspaceCard>
+  );
+}
+
 export default function IdeaVaultTab() {
   const { items: ideas, loading, saving, create, update, remove } = useWorkspaceIdeas();
   const [search, setSearch] = useState("");
@@ -49,7 +117,7 @@ export default function IdeaVaultTab() {
       (idea) =>
         idea.title.toLowerCase().includes(q) ||
         idea.tags.some((t) => t.toLowerCase().includes(q)) ||
-        idea.category.toLowerCase().includes(q)
+        idea.category.toLowerCase().includes(q),
     );
   }, [ideas, search]);
 
@@ -72,16 +140,17 @@ export default function IdeaVaultTab() {
 
   async function handleSave() {
     if (!form.title.trim()) return;
-    const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    const tags = form.tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
     const payload = {
       title: form.title.trim(),
       category: form.category,
       problem: form.problem.trim() || undefined,
       tags,
     };
-    const result = editingId
-      ? await update(editingId, payload)
-      : await create(payload);
+    const result = editingId ? await update(editingId, payload) : await create(payload);
     if (result) resetForm();
   }
 
@@ -94,22 +163,25 @@ export default function IdeaVaultTab() {
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-start gap-3">
+      {/* Toolbar */}
+      <div className="mb-5 flex flex-wrap items-center gap-3">
         <div className="min-w-[200px] flex-1">
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Search ideas, tags, categories…"
-          />
+          <SearchBar value={search} onChange={setSearch} placeholder="Search ideas, tags, categories…" />
         </div>
-        <AccentButton onClick={() => { resetForm(); setShowForm(true); }}>
+        <AccentButton
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+        >
           + New Idea
         </AccentButton>
       </div>
 
+      {/* Form */}
       {showForm && (
-        <WorkspaceCard topGlow className="mb-5 p-5">
-          <h3 className="mb-3.5 text-[13px] font-semibold text-dash-primary">
+        <WorkspaceCard topGlow className="mb-6 p-5">
+          <h3 className="mb-4 text-[13px] font-semibold text-dash-primary">
             {editingId ? "Edit Idea" : "New Idea"}
           </h3>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -146,7 +218,7 @@ export default function IdeaVaultTab() {
               placeholder="What problem does this solve?"
             />
           </div>
-          <div className="mb-3.5">
+          <div className="mb-4">
             <FormLabel>Tags (comma-separated)</FormLabel>
             <FormInput
               value={form.tags}
@@ -155,60 +227,22 @@ export default function IdeaVaultTab() {
             />
           </div>
           <div className="flex gap-2">
-            <PrimaryButton className="w-auto px-5" loading={saving} onClick={handleSave}>
-              Save Idea
+            <PrimaryButton className="w-auto px-6" loading={saving} onClick={handleSave}>
+              {editingId ? "Update Idea" : "Save Idea"}
             </PrimaryButton>
             <SecondaryButton onClick={resetForm}>Cancel</SecondaryButton>
           </div>
         </WorkspaceCard>
       )}
 
+      {/* Grid */}
       {filtered.length === 0 ? (
-        <EmptyState message="No ideas found." />
+        <EmptyState message="No ideas found. Add your first one!" />
       ) : (
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((idea) => {
-            const colorClass = IDEA_CATEGORY_COLORS[idea.category];
-            return (
-              <WorkspaceCard key={idea.id} topGlow className="p-4 pl-5">
-                <div className="mb-2.5 flex items-start justify-between gap-2">
-                  <Pill
-                    label={IDEA_CATEGORY_LABELS[idea.category]}
-                    className={`${colorClass} bg-current/10 border-current/30`}
-                    small
-                  />
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => startEdit(idea)}
-                      className="rounded-md border border-dash-accent-border bg-dash-accent-soft px-2 py-0.5 font-dash-mono text-[10px] text-dash-violet"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(idea.id)}
-                      className="rounded-md border border-dash-danger/20 bg-dash-danger/10 px-2 py-0.5 font-dash-mono text-[10px] text-dash-danger"
-                    >
-                      Del
-                    </button>
-                  </div>
-                </div>
-                <h3 className={`mb-1.5 text-sm font-semibold ${colorClass}`}>{idea.title}</h3>
-                {idea.problem && (
-                  <p className="mb-2.5 text-[12.5px] leading-relaxed text-dash-muted">{idea.problem}</p>
-                )}
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  {idea.tags.map((tag) => (
-                    <Pill key={tag} label={tag} className={`${colorClass} bg-current/10 border-current/30`} small />
-                  ))}
-                </div>
-                <p className="font-dash-mono text-[10px] text-dash-faint">
-                  🕐 {formatRelativeTime(idea.createdAt)}
-                </p>
-              </WorkspaceCard>
-            );
-          })}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((idea) => (
+            <IdeaCard key={idea.id} idea={idea} onEdit={startEdit} onDelete={handleDelete} />
+          ))}
         </div>
       )}
     </div>

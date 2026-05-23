@@ -13,12 +13,11 @@ import {
   LoadingState,
   Pill,
   PrimaryButton,
-  SectionHeader,
   SecondaryButton,
   WorkspaceCard,
 } from "./ui";
 
-const PROJECT_ACCENT = [
+const PROJECT_ACCENTS = [
   { text: "text-dash-violet", bar: "bg-dash-violet" },
   { text: "text-dash-success", bar: "bg-dash-success" },
   { text: "text-dash-warning", bar: "bg-dash-warning" },
@@ -28,6 +27,23 @@ const PROJECT_ACCENT = [
 function StatusBadge({ status }: { status: WorkspaceProject["status"] }) {
   return (
     <Pill label={PROJECT_STATUS_LABELS[status]} className={PROJECT_STATUS_COLORS[status]} small />
+  );
+}
+
+function DetailBlock({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-dash-border bg-dash-card-alt p-4">
+      <p className="mb-2.5 font-dash-mono text-[9px] font-semibold uppercase tracking-widest text-dash-faint">
+        {label}
+      </p>
+      {children}
+    </div>
   );
 }
 
@@ -83,19 +99,22 @@ export default function ProjectPlannerTab() {
 
   return (
     <div>
+      {/* Toolbar */}
       <div className="mb-5 flex justify-end">
         <AccentButton onClick={() => setShowForm((p) => !p)}>+ New Project</AccentButton>
       </div>
 
+      {/* Form */}
       {showForm && (
-        <WorkspaceCard topGlow className="mb-5 p-5">
-          <h3 className="mb-3.5 text-[13px] font-semibold text-dash-primary">New Project</h3>
+        <WorkspaceCard topGlow className="mb-6 p-5">
+          <h3 className="mb-4 text-[13px] font-semibold text-dash-primary">New Project</h3>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <FormLabel>Name</FormLabel>
               <FormInput
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Project name"
               />
             </div>
             <div>
@@ -103,7 +122,10 @@ export default function ProjectPlannerTab() {
               <FormSelect
                 value={form.status}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, status: e.target.value as WorkspaceProject["status"] }))
+                  setForm((p) => ({
+                    ...p,
+                    status: e.target.value as WorkspaceProject["status"],
+                  }))
                 }
               >
                 {Object.entries(PROJECT_STATUS_LABELS).map(([value, label]) => (
@@ -120,6 +142,7 @@ export default function ProjectPlannerTab() {
               rows={2}
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              placeholder="What is this project about?"
             />
           </div>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -128,6 +151,7 @@ export default function ProjectPlannerTab() {
               <FormInput
                 value={form.mvp}
                 onChange={(e) => setForm((p) => ({ ...p, mvp: e.target.value }))}
+                placeholder="Auth, Dashboard, API"
               />
             </div>
             <div>
@@ -135,6 +159,7 @@ export default function ProjectPlannerTab() {
               <FormInput
                 value={form.stretch}
                 onChange={(e) => setForm((p) => ({ ...p, stretch: e.target.value }))}
+                placeholder="Dark mode, Export"
               />
             </div>
             <div>
@@ -142,12 +167,13 @@ export default function ProjectPlannerTab() {
               <FormInput
                 value={form.tech}
                 onChange={(e) => setForm((p) => ({ ...p, tech: e.target.value }))}
+                placeholder="React, Prisma, tRPC"
               />
             </div>
           </div>
           <div className="flex gap-2">
-            <PrimaryButton className="w-auto px-5" loading={saving} onClick={handleCreate}>
-              Create
+            <PrimaryButton className="w-auto px-6" loading={saving} onClick={handleCreate}>
+              Create Project
             </PrimaryButton>
             <SecondaryButton onClick={() => setShowForm(false)}>Cancel</SecondaryButton>
           </div>
@@ -158,24 +184,29 @@ export default function ProjectPlannerTab() {
         <EmptyState message="No projects yet. Create your first one!" />
       ) : (
         <div className="flex flex-col items-start gap-6 lg:flex-row">
-          <div className="w-full shrink-0 lg:w-[280px]">
-            <SectionHeader title="Projects" count={projects.length} />
+          {/* ── Project list ── */}
+          <div className="w-full shrink-0 lg:w-[260px]">
+            <p className="mb-3 font-dash-mono text-[9px] font-semibold uppercase tracking-widest text-dash-faint">
+              Projects · {projects.length}
+            </p>
             <div className="flex flex-col gap-2">
               {projects.map((project, idx) => {
-                const accent = PROJECT_ACCENT[idx % PROJECT_ACCENT.length];
+                const accent = PROJECT_ACCENTS[idx % PROJECT_ACCENTS.length];
                 const isSelected = selectedId === project.id;
                 return (
                   <WorkspaceCard
                     key={project.id}
                     onClick={() => setSelectedId(project.id)}
                     accentBarClass={isSelected ? accent.bar : undefined}
-                    className={`p-3.5 pl-4 ${
-                      isSelected ? "border-dash-accent-border shadow-lg shadow-dash-accent/10" : ""
+                    className={`p-3.5 pl-4 transition-all ${
+                      isSelected
+                        ? "border-dash-accent-border shadow-sm shadow-dash-accent/10"
+                        : ""
                     }`}
                   >
-                    <div className="mb-1.5 flex items-center justify-between">
+                    <div className="mb-2 flex items-start justify-between gap-2">
                       <span
-                        className={`text-[13px] font-semibold ${
+                        className={`text-[13px] font-semibold leading-snug ${
                           isSelected ? accent.text : "text-dash-primary"
                         }`}
                       >
@@ -184,12 +215,12 @@ export default function ProjectPlannerTab() {
                       <StatusBadge status={project.status} />
                     </div>
                     {project.description && (
-                      <p className="mb-2.5 text-xs leading-relaxed text-dash-muted">
+                      <p className="mb-2.5 line-clamp-2 text-[11.5px] leading-relaxed text-dash-muted">
                         {project.description}
                       </p>
                     )}
                     <DashboardProgress value={project.progress} className="h-1" />
-                    <p className="mt-1 font-dash-mono text-[10px] text-dash-faint">
+                    <p className="mt-1.5 font-dash-mono text-[10px] text-dash-faint">
                       {project.progress}% complete
                     </p>
                   </WorkspaceCard>
@@ -198,13 +229,15 @@ export default function ProjectPlannerTab() {
             </div>
           </div>
 
+          {/* ── Project detail ── */}
           {selected && (
             <div className="min-w-0 flex-1">
               <WorkspaceCard topGlow className="p-5 sm:p-6">
-                <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-                  <div>
-                    <div className="mb-1 flex flex-wrap items-center gap-2.5">
-                      <h2 className="text-xl font-bold text-dash-violet">{selected.name}</h2>
+                {/* Detail header */}
+                <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                  <div className="flex-1">
+                    <div className="mb-1.5 flex flex-wrap items-center gap-2.5">
+                      <h2 className="text-lg font-bold text-dash-violet">{selected.name}</h2>
                       <StatusBadge status={selected.status} />
                     </div>
                     {selected.description && (
@@ -213,30 +246,31 @@ export default function ProjectPlannerTab() {
                       </p>
                     )}
                   </div>
-                  <div className="text-right">
-                    <div className="font-dash-mono text-3xl font-extrabold leading-none text-dash-violet">
+                  <div className="flex shrink-0 flex-col items-end">
+                    <span className="font-dash-mono text-3xl font-extrabold leading-none text-dash-violet">
                       {selected.progress}%
-                    </div>
-                    <p className="mt-0.5 font-dash-mono text-[9px] tracking-widest text-dash-faint">
-                      PROGRESS
-                    </p>
+                    </span>
+                    <span className="mt-0.5 font-dash-mono text-[9px] uppercase tracking-widest text-dash-faint">
+                      Progress
+                    </span>
                   </div>
                 </div>
-                <DashboardProgress value={selected.progress} className="h-1.5" />
-                <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+
+                {/* Progress bar */}
+                <DashboardProgress value={selected.progress} className="mb-5 h-1.5" />
+
+                {/* Detail blocks */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {selected.why && (
-                    <div className="rounded-xl border border-dash-border bg-dash-card-alt p-3.5">
-                      <p className="mb-2 font-dash-mono text-[9px] font-semibold uppercase tracking-widest text-dash-violet/80">
-                        ❓ Why Build This?
+                    <DetailBlock label="❓ Why Build This?">
+                      <p className="text-[13px] leading-relaxed text-dash-secondary">
+                        {selected.why}
                       </p>
-                      <p className="text-[13px] leading-relaxed text-dash-secondary">{selected.why}</p>
-                    </div>
+                    </DetailBlock>
                   )}
+
                   {selected.tech.length > 0 && (
-                    <div className="rounded-xl border border-dash-border bg-dash-card-alt p-3.5">
-                      <p className="mb-2 font-dash-mono text-[9px] font-semibold uppercase tracking-widest text-dash-violet/80">
-                        🛠 Tech Stack
-                      </p>
+                    <DetailBlock label="🛠 Tech Stack">
                       <div className="flex flex-wrap gap-1.5">
                         {selected.tech.map((t) => (
                           <Pill
@@ -247,35 +281,37 @@ export default function ProjectPlannerTab() {
                           />
                         ))}
                       </div>
-                    </div>
+                    </DetailBlock>
                   )}
+
                   {selected.mvp.length > 0 && (
-                    <div className="rounded-xl border border-dash-border bg-dash-card-alt p-3.5">
-                      <p className="mb-2 font-dash-mono text-[9px] font-semibold uppercase tracking-widest text-dash-success/80">
-                        🎯 MVP Features
-                      </p>
-                      <ul className="m-0 list-disc pl-4">
+                    <DetailBlock label="🎯 MVP Features">
+                      <ul className="m-0 flex flex-col gap-1.5 pl-4">
                         {selected.mvp.map((item) => (
-                          <li key={item} className="text-[13px] leading-relaxed text-dash-secondary">
+                          <li
+                            key={item}
+                            className="text-[13px] leading-relaxed text-dash-secondary"
+                          >
                             {item}
                           </li>
                         ))}
                       </ul>
-                    </div>
+                    </DetailBlock>
                   )}
+
                   {selected.stretch.length > 0 && (
-                    <div className="rounded-xl border border-dash-border bg-dash-card-alt p-3.5">
-                      <p className="mb-2 font-dash-mono text-[9px] font-semibold uppercase tracking-widest text-dash-warning/80">
-                        ✨ Stretch Goals
-                      </p>
-                      <ul className="m-0 list-disc pl-4">
+                    <DetailBlock label="✨ Stretch Goals">
+                      <ul className="m-0 flex flex-col gap-1.5 pl-4">
                         {selected.stretch.map((item) => (
-                          <li key={item} className="text-[13px] leading-relaxed text-dash-secondary">
+                          <li
+                            key={item}
+                            className="text-[13px] leading-relaxed text-dash-secondary"
+                          >
                             {item}
                           </li>
                         ))}
                       </ul>
-                    </div>
+                    </DetailBlock>
                   )}
                 </div>
               </WorkspaceCard>

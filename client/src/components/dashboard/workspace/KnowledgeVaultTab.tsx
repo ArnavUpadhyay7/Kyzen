@@ -61,7 +61,10 @@ export default function KnowledgeVaultTab() {
       category: form.category,
       title: form.title.trim(),
       content: form.content.trim(),
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      tags: form.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
       isCode: form.isCode,
     });
     if (created) {
@@ -80,7 +83,8 @@ export default function KnowledgeVaultTab() {
 
   return (
     <div>
-      <div className="mb-3.5 flex flex-wrap gap-2.5">
+      {/* Toolbar */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="min-w-[200px] flex-1">
           <SearchBar
             value={search}
@@ -93,7 +97,8 @@ export default function KnowledgeVaultTab() {
         </AccentButton>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-1.5">
+      {/* Category filters */}
+      <div className="mb-5 flex flex-wrap gap-1.5">
         {NOTE_CATEGORIES.map((c) => (
           <FilterChip
             key={c}
@@ -105,20 +110,22 @@ export default function KnowledgeVaultTab() {
                 : undefined
             }
           >
-            {c === "All" ? c : NOTE_CATEGORY_LABELS[c as NoteCategory]}
+            {c === "All" ? "All" : NOTE_CATEGORY_LABELS[c as NoteCategory]}
           </FilterChip>
         ))}
       </div>
 
+      {/* Form */}
       {showForm && (
-        <WorkspaceCard topGlow className="mb-5 p-5">
-          <h3 className="mb-3.5 text-[13px] font-semibold text-dash-primary">New Note</h3>
+        <WorkspaceCard topGlow className="mb-6 p-5">
+          <h3 className="mb-4 text-[13px] font-semibold text-dash-primary">New Note</h3>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <FormLabel>Title</FormLabel>
               <FormInput
                 value={form.title}
                 onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                placeholder="Note title"
               />
             </div>
             <div>
@@ -143,17 +150,19 @@ export default function KnowledgeVaultTab() {
               rows={6}
               value={form.content}
               onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))}
+              placeholder="Write your note here…"
             />
           </div>
-          <div className="mb-3 flex items-center gap-4">
+          <div className="mb-4 flex items-end gap-4">
             <div className="flex-1">
               <FormLabel>Tags (comma-separated)</FormLabel>
               <FormInput
                 value={form.tags}
                 onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
+                placeholder="array, sorting, O(n)"
               />
             </div>
-            <label className="flex cursor-pointer items-center gap-2 pt-5 text-xs text-dash-muted">
+            <label className="mb-0.5 flex cursor-pointer items-center gap-2 text-[12px] text-dash-muted">
               <input
                 type="checkbox"
                 checked={form.isCode}
@@ -164,7 +173,7 @@ export default function KnowledgeVaultTab() {
             </label>
           </div>
           <div className="flex gap-2">
-            <PrimaryButton className="w-auto px-5" loading={saving} onClick={handleCreate}>
+            <PrimaryButton className="w-auto px-6" loading={saving} onClick={handleCreate}>
               Save Note
             </PrimaryButton>
             <SecondaryButton onClick={() => setShowForm(false)}>Cancel</SecondaryButton>
@@ -172,6 +181,7 @@ export default function KnowledgeVaultTab() {
         </WorkspaceCard>
       )}
 
+      {/* Notes list */}
       {filtered.length === 0 ? (
         <EmptyState message="No notes found." />
       ) : (
@@ -179,20 +189,26 @@ export default function KnowledgeVaultTab() {
           {filtered.map((note) => {
             const isOpen = expandedId === note.id;
             const colorClass = NOTE_CATEGORY_COLORS[note.category];
+            // Convert text-* to bg-* for the accent bar
+            const barClass = colorClass.replace("text-", "bg-");
+
             return (
               <WorkspaceCard
                 key={note.id}
-                accentBarClass={colorClass.replace("text-", "bg-")}
+                accentBarClass={barClass}
                 className="pl-4"
               >
+                {/* Row header */}
                 <button
                   type="button"
                   onClick={() => setExpandedId(isOpen ? null : note.id)}
-                  className="flex w-full items-center gap-2.5 border-none bg-transparent px-4 py-3 text-left text-dash-primary"
+                  className="flex w-full items-center gap-3 bg-transparent px-4 py-3 text-left"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[13px] font-semibold">{note.title}</span>
+                      <span className="text-[13px] font-semibold text-dash-primary">
+                        {note.title}
+                      </span>
                       <Pill
                         label={NOTE_CATEGORY_LABELS[note.category]}
                         className={`${colorClass} border-current/30 bg-current/10`}
@@ -218,27 +234,44 @@ export default function KnowledgeVaultTab() {
                         />
                       ))}
                     </div>
-                    <span className="text-[11px] text-dash-faint">{isOpen ? "▲" : "▼"}</span>
+                    <span className="text-[10px] text-dash-faint">{isOpen ? "▲" : "▼"}</span>
                   </div>
                 </button>
+
+                {/* Expanded content */}
                 {isOpen && (
-                  <div className="border-t border-dash-border px-4 py-3 pl-5">
+                  <div className="border-t border-dash-border px-5 py-4">
                     <pre
-                      className={`m-0 whitespace-pre-wrap break-words text-[12.5px] leading-relaxed ${
+                      className={`m-0 whitespace-pre-wrap break-words text-[13px] leading-relaxed ${
                         note.isCode
-                          ? "rounded-lg border border-dash-success/20 bg-dash-success/5 p-3 font-dash-mono text-dash-success"
-                          : "text-dash-secondary"
+                          ? "rounded-lg border border-dash-success/20 bg-dash-success/5 p-4 font-dash-mono text-dash-success"
+                          : "font-dash-sans text-dash-secondary"
                       }`}
                     >
                       {note.content}
                     </pre>
-                    <div className="mt-2.5 flex justify-end">
+
+                    {/* Mobile tags */}
+                    {note.tags.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5 sm:hidden">
+                        {note.tags.map((t) => (
+                          <Pill
+                            key={t}
+                            label={t}
+                            className={`${colorClass} border-current/30 bg-current/10`}
+                            small
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex justify-end">
                       <button
                         type="button"
                         onClick={() => handleDelete(note.id)}
-                        className="rounded-md border border-dash-danger/20 bg-dash-danger/10 px-3 py-1 font-dash-mono text-[10px] text-dash-danger"
+                        className="rounded-md border border-dash-danger/20 bg-dash-danger/10 px-3 py-1 font-dash-mono text-[10px] text-dash-danger transition-colors hover:bg-dash-danger/20"
                       >
-                        Delete
+                        Delete note
                       </button>
                     </div>
                   </div>
