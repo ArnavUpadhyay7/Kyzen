@@ -8,8 +8,10 @@ import {
 } from "@prisma/client";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { buildDashboardPayload } from "../utils/dashboard";
 import {
   VALID_MOODS,
+  WORKSPACE_CREATE_XP,
   awardXP,
   computeBattleLogXP,
   hasBattleLogContent,
@@ -163,8 +165,9 @@ export async function createBattleLog(req: AuthRequest, res: Response): Promise<
 
     await recordActivity(userId, today);
     const userStats = await awardXP(userId, xpEarned);
+    const dashboard = await buildDashboardPayload(userId);
 
-    res.status(201).json({ log, user: userStats });
+    res.status(201).json({ log, xpGained: xpEarned, user: userStats, dashboard });
   } catch (err) {
     console.error("[createBattleLog]", err);
     res.status(500).json({ message: "Internal server error." });
@@ -223,8 +226,15 @@ export async function updateBattleLog(req: AuthRequest, res: Response): Promise<
     });
 
     const userStats = xpDelta > 0 ? await awardXP(req.user!.id, xpDelta) : null;
+    const dashboard =
+      xpDelta > 0 ? await buildDashboardPayload(req.user!.id) : null;
 
-    res.json({ log, user: userStats });
+    res.json({
+      log,
+      xpGained: xpDelta > 0 ? xpDelta : 0,
+      user: userStats,
+      dashboard,
+    });
   } catch (err) {
     console.error("[updateBattleLog]", err);
     res.status(500).json({ message: "Internal server error." });
@@ -281,9 +291,10 @@ export async function createIdea(req: AuthRequest, res: Response): Promise<void>
 
     const parsedTags = parseStringArray(tags) ?? [];
 
+    const userId = req.user!.id;
     const idea = await prisma.workspaceIdea.create({
       data: {
-        userId: req.user!.id,
+        userId,
         title: title.trim(),
         category,
         problem: trimOrNull(problem),
@@ -291,7 +302,11 @@ export async function createIdea(req: AuthRequest, res: Response): Promise<void>
       },
     });
 
-    res.status(201).json({ idea });
+    const xpGained = WORKSPACE_CREATE_XP.idea;
+    await awardXP(userId, xpGained);
+    const dashboard = await buildDashboardPayload(userId);
+
+    res.status(201).json({ idea, xpGained, dashboard });
   } catch (err) {
     console.error("[createIdea]", err);
     res.status(500).json({ message: "Internal server error." });
@@ -405,9 +420,10 @@ export async function createProject(req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    const userId = req.user!.id;
     const project = await prisma.workspaceProject.create({
       data: {
-        userId: req.user!.id,
+        userId,
         name: name.trim(),
         description: trimOrNull(description),
         why: trimOrNull(why),
@@ -419,7 +435,11 @@ export async function createProject(req: AuthRequest, res: Response): Promise<vo
       },
     });
 
-    res.status(201).json({ project });
+    const xpGained = WORKSPACE_CREATE_XP.project;
+    await awardXP(userId, xpGained);
+    const dashboard = await buildDashboardPayload(userId);
+
+    res.status(201).json({ project, xpGained, dashboard });
   } catch (err) {
     console.error("[createProject]", err);
     res.status(500).json({ message: "Internal server error." });
@@ -515,9 +535,10 @@ export async function createInspiration(req: AuthRequest, res: Response): Promis
       return;
     }
 
+    const userId = req.user!.id;
     const inspiration = await prisma.workspaceInspiration.create({
       data: {
-        userId: req.user!.id,
+        userId,
         type,
         title: title.trim(),
         url: url.trim(),
@@ -525,7 +546,11 @@ export async function createInspiration(req: AuthRequest, res: Response): Promis
       },
     });
 
-    res.status(201).json({ inspiration });
+    const xpGained = WORKSPACE_CREATE_XP.inspiration;
+    await awardXP(userId, xpGained);
+    const dashboard = await buildDashboardPayload(userId);
+
+    res.status(201).json({ inspiration, xpGained, dashboard });
   } catch (err) {
     console.error("[createInspiration]", err);
     res.status(500).json({ message: "Internal server error." });
@@ -616,9 +641,10 @@ export async function createNote(req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
+    const userId = req.user!.id;
     const note = await prisma.workspaceNote.create({
       data: {
-        userId: req.user!.id,
+        userId,
         category,
         title: title.trim(),
         content: content.trim(),
@@ -627,7 +653,11 @@ export async function createNote(req: AuthRequest, res: Response): Promise<void>
       },
     });
 
-    res.status(201).json({ note });
+    const xpGained = WORKSPACE_CREATE_XP.note;
+    await awardXP(userId, xpGained);
+    const dashboard = await buildDashboardPayload(userId);
+
+    res.status(201).json({ note, xpGained, dashboard });
   } catch (err) {
     console.error("[createNote]", err);
     res.status(500).json({ message: "Internal server error." });

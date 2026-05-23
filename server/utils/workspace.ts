@@ -12,6 +12,14 @@ export const VALID_MOODS: Mood[] = [
 
 const XP_PER_FIELD = 25;
 
+/** XP granted when creating workspace items (not battle logs). */
+export const WORKSPACE_CREATE_XP = {
+  idea: 25,
+  project: 30,
+  inspiration: 20,
+  note: 25,
+} as const;
+
 /** Normalises a date to midnight UTC — one battle log row per user per day. */
 export function toMidnightUTC(d = new Date()): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));

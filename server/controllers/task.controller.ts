@@ -2,6 +2,7 @@ import { Response } from "express";
 import { Difficulty, TaskStatus } from "@prisma/client";
 import prisma from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { buildDashboardPayload } from "../utils/dashboard";
 import { XP_MAP, getXPRequired } from "../utils/xp";
 import {
   getTodayStart,
@@ -215,12 +216,15 @@ export async function completeTask(req: AuthRequest, res: Response): Promise<voi
       }),
     ]);
 
+    const dashboard = await buildDashboardPayload(req.user!.id);
+
     res.json({
       xpGained,
-      currentXP:  updatedUser.currentXP,
-      totalXP:    updatedUser.totalXP,
-      level:      updatedUser.level,
-      streak:     updatedUser.streak,
+      currentXP: updatedUser.currentXP,
+      totalXP: updatedUser.totalXP,
+      level: updatedUser.level,
+      streak: updatedUser.streak,
+      dashboard,
     });
   } catch (err) {
     console.error("[completeTask]", err);
