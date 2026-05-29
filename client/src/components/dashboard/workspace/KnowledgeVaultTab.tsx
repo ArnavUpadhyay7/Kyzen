@@ -85,7 +85,7 @@ export default function KnowledgeVaultTab() {
     <div>
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="min-w-[200px] flex-1">
+        <div className="min-w-50 flex-1">
           <SearchBar
             value={search}
             onChange={setSearch}
@@ -242,7 +242,7 @@ export default function KnowledgeVaultTab() {
                 {isOpen && (
                   <div className="border-t border-dash-border px-5 py-4">
                     <pre
-                      className={`m-0 whitespace-pre-wrap break-words text-[13px] leading-relaxed ${
+                      className={`m-0 whitespace-pre-wrap wrap-break-words text-[13px] leading-relaxed ${
                         note.isCode
                           ? "rounded-lg border border-dash-success/20 bg-dash-success/5 p-4 font-dash-mono text-dash-success"
                           : "font-dash-sans text-dash-secondary"

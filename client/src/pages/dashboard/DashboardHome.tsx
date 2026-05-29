@@ -17,7 +17,7 @@ import { XP_MAP } from "../../api/tasks.api";
 import { useDashboardStore, type Difficulty, type Task } from "../../state/dashboard/usedashboardstore";
 import ContributionGraph from "../../components/dashboard/ContributionGraph";
 import { useAuth } from "../../state/auth/AuthContext";
-import character_mascot from "../../assets/logo.png";
+import character_mascot from "../../assets/character_mascot.png";
 import {
   DashboardBadge,
   DashboardButton,

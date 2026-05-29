@@ -16,6 +16,7 @@ import {
   Hash,
   Users,
   ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import type { ActivityItem } from "../../api/dashboard.api";
 import type { Difficulty } from "../../api/tasks.api";
@@ -363,9 +364,13 @@ function SectionEyebrow({ children }: { children: React.ReactNode }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+const ACTIVITY_PAGE_SIZE = 5;
+
 export default function Profile() {
   const { dashboard, loading, fetchDashboard } = useDashboardStore();
   const { user } = useAuth();
+
+  const [activityPage, setActivityPage] = useState(0);
 
   useEffect(() => {
     if (!dashboard) void fetchDashboard();
@@ -398,6 +403,12 @@ export default function Profile() {
   const activity = dashboard?.recentActivity ?? [];
   const cardRarity = cardRarityForLevel(level);
   const cr = RARITY_CLASSES[cardRarity];
+
+  const activityPageCount = Math.ceil(activity.length / ACTIVITY_PAGE_SIZE);
+  const pagedActivity = activity.slice(
+    activityPage * ACTIVITY_PAGE_SIZE,
+    (activityPage + 1) * ACTIVITY_PAGE_SIZE,
+  );
 
   if (loading && !dashboard) {
     return (
@@ -481,7 +492,7 @@ export default function Profile() {
                     initial={{ scale: 1.07, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.22, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute inset-0 h-full w-full object-cover object-top drop-shadow-[0_20px_48px_color-mix(in_srgb,var(--dash-accent)_30%,transparent)]"
+                    className="absolute inset-0 h-full w-full object-cover drop-shadow-[0_20px_48px_color-mix(in_srgb,var(--dash-accent)_30%,transparent)]"
                   />
 
                   <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-b from-transparent to-dash-sidebar" />
@@ -722,6 +733,7 @@ export default function Profile() {
               </div>
             </motion.section>
 
+            {/* ─── Activity / Grind History ─────────────────────────────── */}
             <motion.section
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -734,55 +746,104 @@ export default function Profile() {
 
               <DashboardCard className="mb-4 overflow-hidden rounded-2xl p-0">
                 <div className="relative px-5 py-3">
-                  <div className="pointer-events-none absolute bottom-5 left-7.5 top-5 w-px bg-gradient-to-b from-dash-border via-dash-border to-transparent" />
 
                   {activity.length === 0 ? (
                     <p className="py-6 text-center font-dash-mono text-[11px] text-dash-muted">
                       Complete tasks or add workspace items to see activity.
                     </p>
                   ) : (
-                    activity.map((item, i) => (
+                    <AnimatePresence mode="wait">
                       <motion.div
-                        key={item.id}
-                        initial={{ opacity: 0, x: -8 }}
+                        key={activityPage}
+                        initial={{ opacity: 0, x: 10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.52 + i * 0.06, duration: 0.3 }}
-                        className={cn(
-                          "relative flex items-start gap-3.5 py-3",
-                          i < activity.length - 1 && "border-b border-dash-border",
-                        )}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                       >
-                        <div
-                          className={cn(
-                            "z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border",
-                            ACTIVITY_TONE[item.tone],
-                          )}
-                        >
-                          {activityIcon(item.tone)}
-                        </div>
-                        <div className="min-w-0 flex-1 pt-0.5">
-                          <p className="text-[12px] font-semibold leading-tight text-dash-primary">
-                            {item.text}
-                          </p>
-                          <p className="mt-0.5 font-dash-mono text-[9px] text-dash-muted">
-                            {item.sub}
-                          </p>
-                        </div>
-                        {item.xp != null && item.xp > 0 && (
-                          <DashboardBadge variant="accent" className="mt-0.5 shrink-0">
-                            +{item.xp}
-                          </DashboardBadge>
-                        )}
+                        {pagedActivity.map((item, i) => (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05, duration: 0.25 }}
+                            className={cn(
+                              "relative flex items-start gap-3.5 py-3",
+                              i < pagedActivity.length - 1 && "border-b border-dash-border",
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border",
+                                ACTIVITY_TONE[item.tone],
+                              )}
+                            >
+                              {activityIcon(item.tone)}
+                            </div>
+                            <div className="min-w-0 flex-1 pt-0.5">
+                              <p className="text-[12px] font-semibold leading-tight text-dash-primary">
+                                {item.text}
+                              </p>
+                              <p className="mt-0.5 font-dash-mono text-[9px] text-dash-muted">
+                                {item.sub}
+                              </p>
+                            </div>
+                            {item.xp != null && item.xp > 0 && (
+                              <DashboardBadge variant="accent" className="mt-0.5 shrink-0">
+                                +{item.xp}
+                              </DashboardBadge>
+                            )}
+                          </motion.div>
+                        ))}
                       </motion.div>
-                    ))
+                    </AnimatePresence>
                   )}
                 </div>
 
-                <div className="px-5 pb-4">
-                  <DashboardButton variant="muted" size="sm" className="w-full">
-                    View all activity <ChevronRight size={10} />
-                  </DashboardButton>
-                </div>
+                {/* Pagination controls — only shown when there's more than one page */}
+                {activityPageCount > 1 && (
+                  <div className="flex items-center justify-between border-t border-dash-border px-5 py-3">
+                    <button
+                      onClick={() => setActivityPage((p) => Math.max(0, p - 1))}
+                      disabled={activityPage === 0}
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-lg border transition-colors duration-150",
+                        activityPage === 0
+                          ? "cursor-not-allowed border-dash-border text-dash-faint opacity-30"
+                          : "border-dash-border bg-dash-card text-dash-secondary hover:border-dash-accent-border hover:text-dash-accent",
+                      )}
+                    >
+                      <ChevronLeft size={13} />
+                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      {Array.from({ length: activityPageCount }).map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActivityPage(i)}
+                          className={cn(
+                            "h-1.5 rounded-full transition-all duration-200",
+                            i === activityPage
+                              ? "w-4 bg-dash-accent"
+                              : "w-1.5 bg-dash-border hover:bg-dash-muted",
+                          )}
+                        />
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => setActivityPage((p) => Math.min(activityPageCount - 1, p + 1))}
+                      disabled={activityPage === activityPageCount - 1}
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-lg border transition-colors duration-150",
+                        activityPage === activityPageCount - 1
+                          ? "cursor-not-allowed border-dash-border text-dash-faint opacity-30"
+                          : "border-dash-border bg-dash-card text-dash-secondary hover:border-dash-accent-border hover:text-dash-accent",
+                      )}
+                    >
+                      <ChevronRight size={13} />
+                    </button>
+                  </div>
+                )}
               </DashboardCard>
 
               <motion.div
