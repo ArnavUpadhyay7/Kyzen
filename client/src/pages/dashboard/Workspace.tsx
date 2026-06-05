@@ -2,7 +2,6 @@ import { useState } from "react";
 import { cn } from "../../lib/utils";
 import BattleLogTab from "../../components/dashboard/workspace/BattleLogTab";
 import IdeaVaultTab from "../../components/dashboard/workspace/IdeaVaultTab";
-import InspirationTab from "../../components/dashboard/workspace/InspirationTab";
 import KnowledgeVaultTab from "../../components/dashboard/workspace/KnowledgeVaultTab";
 import ProjectPlannerTab from "../../components/dashboard/workspace/ProjectPlannerTab";
 import {
@@ -67,7 +66,6 @@ export default function KyzenWorkspace() {
         {activeTab === "battlelog" && <BattleLogTab />}
         {activeTab === "ideavault" && <IdeaVaultTab />}
         {activeTab === "projects" && <ProjectPlannerTab />}
-        {activeTab === "inspiration" && <InspirationTab />}
         {activeTab === "knowledge" && <KnowledgeVaultTab />}
       </div>
     </div>

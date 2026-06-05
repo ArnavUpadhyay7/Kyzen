@@ -10,7 +10,6 @@ export const WORKSPACE_TABS = [
   { id: "battlelog", icon: "📖", label: "Battle Log" },
   { id: "ideavault", icon: "💡", label: "Idea Vault" },
   { id: "projects", icon: "🗺", label: "Project Planner" },
-  { id: "inspiration", icon: "🎨", label: "Inspiration" },
   { id: "knowledge", icon: "🧠", label: "Knowledge Vault" },
 ] as const;
 
