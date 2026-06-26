@@ -48,7 +48,7 @@ export default function Landing() {
   const heroOpacity = useTransform(progress, [0, 0.16, 0.28], [1, 1, 0]);
   const heroY = useTransform(progress, [0, 0.3], [0, -70]);
 
-  const dashY = useTransform(progress, [0, 1], [42, -310]);
+  const dashY = useTransform(progress, [0, 1], [120, -310]);
   const dashRotateX = useTransform(progress, [0, 0.48], [6, 0]);
   const dashScale = useTransform(progress, [0, 0.45, 0.8], [0.9, 1.02, 1.03]);
 
@@ -109,7 +109,7 @@ export default function Landing() {
           </motion.div>
 
           <motion.div
-            className="absolute inset-x-0 z-[15] flex justify-center items-end px-5 pointer-events-none bottom-[22%] md:bottom-[-8%] [perspective:1200px] [perspective-origin:50%_65%] will-change-transform"
+            className="absolute inset-x-0 z-[15] flex justify-center items-end px-5 pointer-events-none bottom-[4%] md:bottom-[-20%] [perspective:1200px] [perspective-origin:50%_65%] will-change-transform"
             style={{ y: dashY }}
           >
             <motion.div
